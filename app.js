@@ -41,6 +41,18 @@ const formatDate = (isoDate) => {
   return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
 };
 
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return entities[character];
+  });
+
 const readLocal = () => {
   try {
     return JSON.parse(localStorage.getItem(LOCAL_KEY)) || state;
@@ -58,7 +70,7 @@ const setStatus = (message, kind = "local") => {
   elements.syncStatus.dataset.kind = kind;
 };
 
-const localId = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
 const loadLocal = () => {
   const data = readLocal();
@@ -100,7 +112,7 @@ const loadData = async () => {
   } catch (error) {
     console.error(error);
     loadLocal();
-    setStatus("Modo local", "local");
+    setStatus("Erro Supabase", "error");
   }
 
   render();
@@ -163,7 +175,7 @@ const renderSummary = () => {
   elements.lactatingTotal.textContent = `${lactating} em lactação`;
 };
 
-const empty = (text) => `<p class="empty">${text}</p>`;
+const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;
 
 const renderMilk = () => {
   const records = [...state.milk].sort((a, b) => b.date.localeCompare(a.date));
@@ -192,10 +204,10 @@ const renderAnimals = () => {
           (animal) => `
             <article class="item">
               <div>
-                <span>${animal.identification}</span>
-                <small>${animal.type}</small>
+                <span>${escapeHtml(animal.identification)}</span>
+                <small>${escapeHtml(animal.type)}</small>
               </div>
-              <strong>${animal.status}</strong>
+              <strong>${escapeHtml(animal.status)}</strong>
             </article>
           `
         )
@@ -210,8 +222,8 @@ const renderProducts = () => {
           (product) => `
             <article class="item">
               <div>
-                <span>${product.name}</span>
-                <small>${product.quantity} unidade(s)</small>
+                <span>${escapeHtml(product.name)}</span>
+                <small>${Number(product.quantity || 0)} unidade(s)</small>
               </div>
               <strong>${formatMoney(product.price)}</strong>
             </article>

@@ -84,6 +84,11 @@ h2 {
   color: #78570f;
 }
 
+.status[data-kind="error"] {
+  border-color: #e8aaa0;
+  color: #8e2f22;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr;
