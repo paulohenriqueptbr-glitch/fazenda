@@ -26,6 +26,14 @@ alter table milk_records enable row level security;
 alter table animals enable row level security;
 alter table products enable row level security;
 
+drop policy if exists "Permitir leitura publica de producao" on milk_records;
+drop policy if exists "Permitir cadastro publico de producao" on milk_records;
+drop policy if exists "Permitir atualizacao publica de producao" on milk_records;
+drop policy if exists "Permitir leitura publica de animais" on animals;
+drop policy if exists "Permitir cadastro publico de animais" on animals;
+drop policy if exists "Permitir leitura publica de produtos" on products;
+drop policy if exists "Permitir cadastro publico de produtos" on products;
+
 create policy "Permitir leitura publica de producao"
 on milk_records for select
 using (true);
