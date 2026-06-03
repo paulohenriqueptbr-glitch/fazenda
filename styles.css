@@ -383,3 +383,37 @@ button[type="submit"]:active,
     text-align: left;
   }
 }
+
+/* ==== PREMIUM DARK MODE ==== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --field: #21262d;
+    --ink: #c9d1d9;
+    --muted: #8b949e;
+    --line: #30363d;
+    --green: #58a6ff;
+    --green-dark: #1f6b5b;
+    --shadow: 0 14px 34px rgba(0,0,0,0.6);
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .hero {
+    background: linear-gradient(135deg, #1f6b5b, #0d1117);
+  }
+  .summary, .panel, .form-grid, .item {
+    background: var(--panel);
+    border-color: var(--line);
+  }
+  input, select {
+    background: var(--field);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  .status[data-kind="online"] { background: rgba(31, 107, 91, 0.2); }
+  .status[data-kind="syncing"] { background: rgba(231, 187, 83, 0.2); }
+  .status[data-kind="error"] { background: rgba(157, 52, 39, 0.4); }
+}

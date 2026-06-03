@@ -4,6 +4,9 @@ const state = {
   milk: [],
   animals: [],
   products: [],
+  lactations: [],
+  breeding: [],
+  medication: [],
 };
 
 const config = window.CONTROLE_LEITE_CONFIG || {};
@@ -11,6 +14,17 @@ const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && wind
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
 
 const $ = (selector) => document.querySelector(selector);
+
+const populateCowSelects = () => {
+  const cowOptions = state.animals
+    .filter(a => a.type.includes('Bovino'))
+    .map(a => `<option value="${escapeHtml(a.identification)}">${escapeHtml(a.identification)}</option>`)
+    .join('');
+  if ($("#lactCowId")) $("#lactCowId").innerHTML = cowOptions;
+  if ($("#breedCowId")) $("#breedCowId").innerHTML = cowOptions;
+  if ($("#medCowId")) $("#medCowId").innerHTML = cowOptions;
+};
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = () => todayIso().slice(0, 7);
 
@@ -28,6 +42,10 @@ const elements = {
   milkForm: $("#milkForm"),
   animalForm: $("#animalForm"),
   productForm: $("#productForm"),
+  lactationForm: $("#lactationForm"),
+  lactationList: $("#lactationList"),
+  breedingForm: $("#breedingForm"),
+  medicationForm: $("#medicationForm"),
   refreshButton: $("#refreshButton"),
   milkDate: $("#milkDate"),
 };
@@ -77,19 +95,25 @@ const loadLocal = () => {
   state.milk = data.milk || [];
   state.animals = data.animals || [];
   state.products = data.products || [];
+  state.lactations = data.lactations || [];
+  state.breeding = data.breeding || [];
+  state.medication = data.medication || [];
   setStatus("Local", "local");
 };
 
 const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
 
-  const [milkResult, animalResult, productResult] = await Promise.all([
+  const [milkResult, animalResult, productResult, lactationResult, breedingResult, medicationResult] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }),
     db.from("animals").select("*").order("created_at", { ascending: false }),
     db.from("products").select("*").order("created_at", { ascending: false }),
+    db.from("lactation_records").select("*").order("start", { ascending: false }),
+    db.from("breeding_records").select("*").order("inseminationDate", { ascending: false }),
+    db.from("medication_records").select("*").order("created_at", { ascending: false }),
   ]);
 
-  const error = milkResult.error || animalResult.error || productResult.error;
+  const error = milkResult.error || animalResult.error || productResult.error || lactationResult.error || breedingResult.error || medicationResult.error;
   if (error) {
     throw error;
   }
@@ -97,6 +121,9 @@ const loadSupabase = async () => {
   state.milk = milkResult.data || [];
   state.animals = animalResult.data || [];
   state.products = productResult.data || [];
+  state.lactations = lactationResult.data || [];
+  state.breeding = breedingResult.data || [];
+  state.medication = medicationResult.data || [];
   setStatus("Online", "online");
 };
 
@@ -115,6 +142,7 @@ const loadData = async () => {
     setStatus("Erro Supabase", "error");
   }
 
+  populateCowSelects();
   render();
 };
 
@@ -151,6 +179,42 @@ const insertProduct = async (product) => {
   }
 
   const { error } = await db.from("products").insert(product);
+  if (error) throw error;
+  await loadSupabase();
+};
+
+const insertLactation = async (record) => {
+  if (!hasSupabase) {
+    state.lactations.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    writeLocal();
+    return;
+  }
+
+  const { error } = await db.from("lactation_records").insert(record);
+  if (error) throw error;
+  await loadSupabase();
+};
+
+const insertBreeding = async (record) => {
+  if (!hasSupabase) {
+    state.breeding.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    writeLocal();
+    return;
+  }
+
+  const { error } = await db.from("breeding_records").insert(record);
+  if (error) throw error;
+  await loadSupabase();
+};
+
+const insertMedication = async (record) => {
+  if (!hasSupabase) {
+    state.medication.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    writeLocal();
+    return;
+  }
+
+  const { error } = await db.from("medication_records").insert(record);
   if (error) throw error;
   await loadSupabase();
 };
@@ -233,11 +297,28 @@ const renderProducts = () => {
     : empty("Nenhum produto cadastrado.");
 };
 
+const renderLactations = () => {
+  elements.lactationList.innerHTML = state.lactations.length
+    ? state.lactations
+        .map((l) => `
+          <article class="item">
+            <div>
+              <span>${escapeHtml(l.cowId)}</span>
+              <small>${formatDate(l.start)} → ${l.end ? formatDate(l.end) : "atual"}</small>
+            </div>
+            <strong>${formatLiters(l.litersPerDay)} / dia</strong>
+          </article>
+        `)
+        .join("")
+    : empty("Nenhuma lactação registrada.");
+};
+
 const render = () => {
   renderSummary();
   renderMilk();
   renderAnimals();
   renderProducts();
+  renderLactations();
 };
 
 document.querySelectorAll(".tab").forEach((button) => {

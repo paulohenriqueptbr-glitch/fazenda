@@ -1,64 +1,61 @@
-create table if not exists milk_records (
-  id uuid primary key default gen_random_uuid(),
-  date date not null unique,
-  liters numeric(10, 2) not null check (liters >= 0),
-  price_per_liter numeric(10, 2) not null check (price_per_liter >= 0),
-  created_at timestamptz not null default now()
-);
+-- Supabase schema additions for farm management
 
-create table if not exists animals (
-  id uuid primary key default gen_random_uuid(),
-  identification text not null unique,
-  type text not null,
-  status text not null,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists products (
+-- Table: cows
+create table if not exists cows (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  quantity integer not null default 0 check (quantity >= 0),
-  price numeric(10, 2) not null default 0 check (price >= 0),
+  breed text,
+  birth_date date not null,
   created_at timestamptz not null default now()
 );
 
-alter table milk_records enable row level security;
-alter table animals enable row level security;
-alter table products enable row level security;
+-- Table: lactations
+create table if not exists lactations (
+  id uuid primary key default gen_random_uuid(),
+  cow_id uuid references cows(id) on delete cascade,
+  start_date date not null,
+  end_date date,
+  daily_milk numeric(10,2) not null check (daily_milk >= 0),
+  created_at timestamptz not null default now()
+);
 
-drop policy if exists "Permitir leitura publica de producao" on milk_records;
-drop policy if exists "Permitir cadastro publico de producao" on milk_records;
-drop policy if exists "Permitir atualizacao publica de producao" on milk_records;
-drop policy if exists "Permitir leitura publica de animais" on animals;
-drop policy if exists "Permitir cadastro publico de animais" on animals;
-drop policy if exists "Permitir leitura publica de produtos" on products;
-drop policy if exists "Permitir cadastro publico de produtos" on products;
+-- Table: breeding
+create table if not exists breeding (
+  id uuid primary key default gen_random_uuid(),
+  cow_id uuid references cows(id) on delete cascade,
+  insemination_date date not null,
+  expected_calving_date date,
+  notes text,
+  created_at timestamptz not null default now()
+);
 
-create policy "Permitir leitura publica de producao"
-on milk_records for select
-using (true);
+-- Table: medications
+create table if not exists medications (
+  id uuid primary key default gen_random_uuid(),
+  cow_id uuid references cows(id) on delete cascade,
+  medication_name text not null,
+  dosage text,
+  administered_by text,
+  administration_date date not null,
+  notes text,
+  created_at timestamptz not null default now()
+);
 
-create policy "Permitir cadastro publico de producao"
-on milk_records for insert
-with check (true);
+-- Enable row level security for new tables
+alter table cows enable row level security;
+alter table lactations enable row level security;
+alter table breeding enable row level security;
+alter table medications enable row level security;
 
-create policy "Permitir atualizacao publica de producao"
-on milk_records for update
-using (true)
-with check (true);
+-- Simple public policies (you may tighten later)
+create policy "Public read cows" on cows for select using (true);
+create policy "Public insert cows" on cows for insert with check (true);
 
-create policy "Permitir leitura publica de animais"
-on animals for select
-using (true);
+create policy "Public read lactations" on lactations for select using (true);
+create policy "Public insert lactations" on lactations for insert with check (true);
 
-create policy "Permitir cadastro publico de animais"
-on animals for insert
-with check (true);
+create policy "Public read breeding" on breeding for select using (true);
+create policy "Public insert breeding" on breeding for insert with check (true);
 
-create policy "Permitir leitura publica de produtos"
-on products for select
-using (true);
-
-create policy "Permitir cadastro publico de produtos"
-on products for insert
-with check (true);
+create policy "Public read medications" on medications for select using (true);
+create policy "Public insert medications" on medications for insert with check (true);

@@ -41,6 +41,10 @@
         <button class="tab active" type="button" data-tab="milk">Leite</button>
         <button class="tab" type="button" data-tab="animals">Animais</button>
         <button class="tab" type="button" data-tab="stock">Estoque</button>
+        <button class="tab" type="button" data-tab="cows">Vacas</button>
+        <button class="tab" type="button" data-tab="lactation">Lactação</button>
+        <button class="tab" type="button" data-tab="breeding">Reprodução</button>
+        <button class="tab" type="button" data-tab="medication">Medicação</button>
       </nav>
 
       <section id="milk" class="panel active">
@@ -93,24 +97,64 @@
         <div id="animalList" class="list"></div>
       </section>
 
-      <section id="stock" class="panel">
-        <form id="productForm" class="form-grid">
-          <label for="productName">Produto</label>
-          <input id="productName" type="text" placeholder="Ex.: Queijo" required>
-
-          <label for="productQuantity">Quantidade</label>
-          <input id="productQuantity" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex.: 12" required>
-
-          <label for="productPrice">Preço unitário</label>
-          <input id="productPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 20,00" required>
-
-          <button type="submit">Salvar produto</button>
+      <section id="cows" class="panel">
+        <form id="cowForm" class="form-grid">
+          <label for="cowName">Nome</label>
+          <input id="cowName" type="text" placeholder="Ex.: Bovina 001" required>
+          <label for="cowBreed">Raça</label>
+          <input id="cowBreed" type="text" placeholder="Ex.: Holandesa" required>
+          <label for="cowBirth">Data de nascimento</label>
+          <input id="cowBirth" type="date" required>
+          <button type="submit">Cadastrar vaca</button>
         </form>
+        <div class="section-title"><h2>Rebanho</h2></div>
+        <div id="cowList" class="list"></div>
+      </section>
 
-        <div class="section-title">
-          <h2>Produtos</h2>
-        </div>
-        <div id="productList" class="list"></div>
+      <section id="lactation" class="panel">
+        <form id="lactationForm" class="form-grid">
+          <label for="lactCowId">Vaca</label>
+          <select id="lactCowId"></select>
+          <label for="lactStart">Início</label>
+          <input id="lactStart" type="date" required>
+          <label for="lactEnd">Fim</label>
+          <input id="lactEnd" type="date">
+          <label for="lactLiters">Litros por dia</label>
+          <input id="lactLiters" type="number" min="0" step="0.1" required>
+          <button type="submit">Registrar lactação</button>
+        </form>
+        <div class="section-title"><h2>Lactações</h2></div>
+        <div id="lactationList" class="list"></div>
+      </section>
+
+      <section id="breeding" class="panel">
+        <form id="breedingForm" class="form-grid">
+          <label for="breedCowId">Vaca</label>
+          <select id="breedCowId"></select>
+          <label for="inseminationDate">Data da inseminação</label>
+          <input id="inseminationDate" type="date" required>
+          <label for="expectedCalving">Parto previsto</label>
+          <input id="expectedCalving" type="date" required>
+          <button type="submit">Registrar reprodução</button>
+        </form>
+        <div class="section-title"><h2>Reproduções</h2></div>
+        <div id="breedingList" class="list"></div>
+      </section>
+
+      <section id="medication" class="panel">
+        <form id="medicationForm" class="form-grid">
+          <label for="medCowId">Vaca</label>
+          <select id="medCowId"></select>
+          <label for="medName">Medicamento</label>
+          <input id="medName" type="text" placeholder="Ex.: Vitamina A" required>
+          <label for="medDosage">Dosagem</label>
+          <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
+          <label for="medDate">Data de aplicação</label>
+          <input id="medDate" type="date" required>
+          <button type="submit">Registrar medicação</button>
+        </form>
+        <div class="section-title"><h2>Medicações</h2></div>
+        <div id="medicationList" class="list"></div>
       </section>
     </main>
 
