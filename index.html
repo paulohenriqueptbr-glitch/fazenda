@@ -3,18 +3,48 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#1f6b5b">
-    <title>Controle Leite</title>
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
+    <title>Controle Fazenda</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app-shell">
+
+    <!-- ===== TELA DE LOGIN ===== -->
+    <div id="loginScreen" class="login-screen">
+      <div class="login-card">
+        <span class="login-icon">🐄</span>
+        <h1>Controle Fazenda</h1>
+        <p class="login-subtitle">Faça login para acessar o sistema</p>
+        <form id="loginForm" class="login-form">
+          <label for="loginEmail">E-mail</label>
+          <input id="loginEmail" type="email" placeholder="seu@email.com" required>
+          <label for="loginPassword">Senha</label>
+          <input id="loginPassword" type="password" placeholder="Sua senha" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <div id="loginError" class="login-error"></div>
+        <p class="login-footer">Acesso restrito ao administrador da fazenda</p>
+      </div>
+    </div>
+
+    <!-- ===== APP PRINCIPAL ===== -->
+    <main id="appShell" class="app-shell">
+
+      <div class="app-header">
+        <h1>🐄 Controle Fazenda</h1>
+        <div class="user-info">
+          <span id="userEmail" class="user-email"></span>
+          <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
+        </div>
+      </div>
+
       <header class="hero">
         <div class="hero-copy">
           <span class="eyebrow">Fazenda online</span>
-          <h1>Controle Leite</h1>
+          <h1>Painel de controle</h1>
         </div>
         <span id="syncStatus" class="status">Local</span>
       </header>
@@ -31,6 +61,11 @@
           <small id="monthValue">R$ 0,00</small>
         </article>
         <article class="summary">
+          <span>Cotação do leite</span>
+          <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
+          <small>Altere em Configurações</small>
+        </article>
+        <article class="summary">
           <span>Animais</span>
           <strong id="animalTotal">0</strong>
           <small id="lactatingTotal">0 em lactação</small>
@@ -40,27 +75,21 @@
       <nav class="tabs" aria-label="Seções">
         <button class="tab active" type="button" data-tab="milk">Leite</button>
         <button class="tab" type="button" data-tab="animals">Animais</button>
-        <button class="tab" type="button" data-tab="stock">Estoque</button>
-        <button class="tab" type="button" data-tab="cows">Vacas</button>
         <button class="tab" type="button" data-tab="lactation">Lactação</button>
         <button class="tab" type="button" data-tab="breeding">Reprodução</button>
         <button class="tab" type="button" data-tab="medication">Medicação</button>
+        <button class="tab" type="button" data-tab="settings">⚙ Config</button>
       </nav>
 
+      <!-- ABA: Leite -->
       <section id="milk" class="panel active">
         <form id="milkForm" class="form-grid">
           <label for="milkDate">Data</label>
           <input id="milkDate" type="date" required>
-
           <label for="liters">Litros</label>
           <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
-
-          <label for="price">Valor do litro</label>
-          <input id="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,40" required>
-
           <button type="submit">Salvar produção</button>
         </form>
-
         <div class="section-title">
           <h2>Histórico</h2>
           <button id="refreshButton" class="ghost" type="button">Atualizar</button>
@@ -68,6 +97,7 @@
         <div id="historyList" class="list"></div>
       </section>
 
+      <!-- ABA: Animais -->
       <section id="animals" class="panel">
         <form id="animalForm" class="form-grid">
           <label for="animalName">Identificação</label>
@@ -84,33 +114,19 @@
           <label for="animalStatus">Status</label>
           <select id="animalStatus">
             <option>Em lactação</option>
+            <option>Seca</option>
+            <option>Prenhe</option>
             <option>Para engorda</option>
             <option>Disponível para venda</option>
           </select>
 
           <button type="submit">Cadastrar animal</button>
         </form>
-
-        <div class="section-title">
-          <h2>Rebanho</h2>
-        </div>
+        <div class="section-title"><h2>Rebanho</h2></div>
         <div id="animalList" class="list"></div>
       </section>
 
-      <section id="cows" class="panel">
-        <form id="cowForm" class="form-grid">
-          <label for="cowName">Nome</label>
-          <input id="cowName" type="text" placeholder="Ex.: Bovina 001" required>
-          <label for="cowBreed">Raça</label>
-          <input id="cowBreed" type="text" placeholder="Ex.: Holandesa" required>
-          <label for="cowBirth">Data de nascimento</label>
-          <input id="cowBirth" type="date" required>
-          <button type="submit">Cadastrar vaca</button>
-        </form>
-        <div class="section-title"><h2>Rebanho</h2></div>
-        <div id="cowList" class="list"></div>
-      </section>
-
+      <!-- ABA: Lactação -->
       <section id="lactation" class="panel">
         <form id="lactationForm" class="form-grid">
           <label for="lactCowId">Vaca</label>
@@ -120,13 +136,14 @@
           <label for="lactEnd">Fim</label>
           <input id="lactEnd" type="date">
           <label for="lactLiters">Litros por dia</label>
-          <input id="lactLiters" type="number" min="0" step="0.1" required>
+          <input id="lactLiters" type="number" min="0" step="0.1" inputmode="decimal" required>
           <button type="submit">Registrar lactação</button>
         </form>
         <div class="section-title"><h2>Lactações</h2></div>
         <div id="lactationList" class="list"></div>
       </section>
 
+      <!-- ABA: Reprodução -->
       <section id="breeding" class="panel">
         <form id="breedingForm" class="form-grid">
           <label for="breedCowId">Vaca</label>
@@ -141,6 +158,7 @@
         <div id="breedingList" class="list"></div>
       </section>
 
+      <!-- ABA: Medicação -->
       <section id="medication" class="panel">
         <form id="medicationForm" class="form-grid">
           <label for="medCowId">Vaca</label>
@@ -156,10 +174,22 @@
         <div class="section-title"><h2>Medicações</h2></div>
         <div id="medicationList" class="list"></div>
       </section>
+
+      <!-- ABA: Configurações -->
+      <section id="settings" class="panel">
+        <form id="priceQuoteForm" class="form-grid">
+          <label for="priceQuoteInput">Cotação do leite (R$/L)</label>
+          <input id="priceQuoteInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,40" required>
+          <button type="submit">Salvar cotação</button>
+        </form>
+        <div class="section-title"><h2>Cotação atual</h2></div>
+        <p id="priceQuoteValue" class="price-quote-value"></p>
+      </section>
+
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="app.js" defer></script>
+    <script src="app.js"></script>
   </body>
 </html>

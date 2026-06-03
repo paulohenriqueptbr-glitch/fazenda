@@ -1,40 +1,152 @@
+/* ===== Controle Fazenda — app.js ===== */
+
 const LOCAL_KEY = "controle-leite-data";
 
 const state = {
   milk: [],
   animals: [],
-  products: [],
   lactations: [],
   breeding: [],
   medication: [],
   priceQuote: 0,
 };
 
+/* --- Supabase setup --- */
 const config = window.CONTROLE_LEITE_CONFIG || {};
 const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
-const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
+const db = hasSupabase
+  ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
+  : null;
 
-const $ = (selector) => document.querySelector(selector);
-
-const populateCowSelects = () => {
-  const cowOptions = state.animals
-    .filter(a => a.type.includes('Bovino'))
-    .map(a => `<option value="${escapeHtml(a.identification)}">${escapeHtml(a.identification)}</option>`)
-    .join('');
-  if ($("#lactCowId")) $("#lactCowId").innerHTML = cowOptions;
-  if ($("#breedCowId")) $("#breedCowId").innerHTML = cowOptions;
-  if ($("#medCowId")) $("#medCowId").innerHTML = cowOptions;
-};
-
+/* --- Helpers --- */
+const $ = (sel) => document.querySelector(sel);
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = () => todayIso().slice(0, 7);
+const localId = () =>
+  crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
 
-const renderPriceQuote = () => {
-  elements.priceQuoteDisplay.textContent = `Cotação do leite: R$ ${Number(state.priceQuote).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/L`;
+const formatLiters = (v) =>
+  `${Number(v || 0).toLocaleString("pt-BR")} L`;
+const formatMoney = (v) =>
+  Number(v || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+const formatDate = (iso) => {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString(
+    "pt-BR"
+  );
 };
 
-const elements = {
-  // UI elements
+const escapeHtml = (v) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) =>
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    })[c]
+  );
+
+/* ===== AUTH (Login / Logout) ===== */
+const loginScreen = $("#loginScreen");
+const appShell = $("#appShell");
+const loginForm = $("#loginForm");
+const loginError = $("#loginError");
+const logoutBtn = $("#logoutBtn");
+const userEmailEl = $("#userEmail");
+
+const showApp = (email) => {
+  loginScreen.classList.add("hidden");
+  appShell.classList.add("visible");
+  if (userEmailEl) userEmailEl.textContent = email || "";
+};
+
+const showLogin = () => {
+  loginScreen.classList.remove("hidden");
+  appShell.classList.remove("visible");
+  loginError.classList.remove("visible");
+};
+
+const showLoginError = (msg) => {
+  loginError.textContent = msg;
+  loginError.classList.add("visible");
+};
+
+// Check existing session on load
+const checkSession = async () => {
+  if (!hasSupabase || !db) {
+    // No Supabase — skip auth, show app directly
+    showApp("Modo local");
+    initApp();
+    return;
+  }
+
+  try {
+    const {
+      data: { session },
+    } = await db.auth.getSession();
+    if (session?.user) {
+      showApp(session.user.email);
+      initApp();
+    } else {
+      showLogin();
+    }
+  } catch (err) {
+    console.error("Session check error:", err);
+    showLogin();
+  }
+};
+
+// Login form submit
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loginError.classList.remove("visible");
+
+  const email = $("#loginEmail").value.trim();
+  const password = $("#loginPassword").value;
+
+  if (!hasSupabase || !db) {
+    showApp("Modo local");
+    initApp();
+    return;
+  }
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      showLoginError(error.message === "Invalid login credentials"
+        ? "E-mail ou senha incorretos."
+        : error.message);
+      return;
+    }
+
+    showApp(data.user.email);
+    initApp();
+  } catch (err) {
+    showLoginError("Erro ao conectar. Tente novamente.");
+    console.error(err);
+  }
+});
+
+// Logout
+logoutBtn.addEventListener("click", async () => {
+  if (hasSupabase && db) {
+    await db.auth.signOut();
+  }
+  showLogin();
+});
+
+/* ===== DOM refs (inside app) ===== */
+const el = {
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
   todayValue: $("#todayValue"),
@@ -42,102 +154,95 @@ const elements = {
   monthValue: $("#monthValue"),
   animalTotal: $("#animalTotal"),
   lactatingTotal: $("#lactatingTotal"),
+  priceQuoteDisplay: $("#priceQuoteDisplay"),
   historyList: $("#historyList"),
   animalList: $("#animalList"),
-  productList: $("#productList"),
-  milkForm: $("#milkForm"),
-  animalForm: $("#animalForm"),
-  productForm: $("#productForm"),
-  lactationForm: $("#lactationForm"),
   lactationList: $("#lactationList"),
+  breedingList: $("#breedingList"),
+  medicationList: $("#medicationList"),
+  milkForm: $("#milkForm"),
+  milkDate: $("#milkDate"),
+  animalForm: $("#animalForm"),
+  lactationForm: $("#lactationForm"),
   breedingForm: $("#breedingForm"),
   medicationForm: $("#medicationForm"),
-  refreshButton: $("#refreshButton"),
-  milkDate: $("#milkDate"),
-  // Config price quote UI
   priceQuoteForm: $("#priceQuoteForm"),
   priceQuoteInput: $("#priceQuoteInput"),
-  priceQuoteDisplay: $("#priceQuoteDisplay"),
-  // End UI elements
+  priceQuoteValue: $("#priceQuoteValue"),
+  refreshButton: $("#refreshButton"),
 };
 
-const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
-const formatMoney = (value) =>
-  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const formatDate = (isoDate) => {
-  const [year, month, day] = isoDate.split("-");
-  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
-};
-
-const escapeHtml = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (character) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return entities[character];
-  });
-
+/* --- Local storage --- */
 const readLocal = () => {
   try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || state;
+    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {};
   } catch {
-    return state;
+    return {};
   }
 };
 
-const writeLocal = () => {
+const writeLocal = () =>
   localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+
+/* --- Status badge --- */
+const setStatus = (msg, kind = "local") => {
+  el.syncStatus.textContent = msg;
+  el.syncStatus.dataset.kind = kind;
 };
 
-const setStatus = (message, kind = "local") => {
-  elements.syncStatus.textContent = message;
-  elements.syncStatus.dataset.kind = kind;
-};
-
-const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-
+/* --- Data loading --- */
 const loadLocal = () => {
-  const data = readLocal();
-  state.milk = data.milk || [];
-  state.animals = data.animals || [];
-  state.products = data.products || [];
-  state.lactations = data.lactations || [];
-  state.breeding = data.breeding || [];
-  state.medication = data.medication || [];
-  state.priceQuote = data.priceQuote || 0;
+  const d = readLocal();
+  state.milk = d.milk || [];
+  state.animals = d.animals || [];
+  state.lactations = d.lactations || [];
+  state.breeding = d.breeding || [];
+  state.medication = d.medication || [];
+  state.priceQuote = d.priceQuote || 0;
   setStatus("Local", "local");
 };
 
 const loadSupabase = async () => {
-  setStatus("Sincronizando", "syncing");
+  setStatus("Sincronizando…", "syncing");
 
-  const [milkResult, animalResult, productResult, lactationResult, breedingResult, medicationResult] = await Promise.all([
+  const [milkR, animalR, lactR, breedR, medR] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }),
-    db.from("animals").select("*").order("created_at", { ascending: false }),
-    db.from("products").select("*").order("created_at", { ascending: false }),
-    db.from("lactation_records").select("*").order("start", { ascending: false }),
-    db.from("breeding_records").select("*").order("inseminationDate", { ascending: false }),
-    db.from("medication_records").select("*").order("created_at", { ascending: false }),
+    db
+      .from("animals")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    db
+      .from("lactation_records")
+      .select("*")
+      .order("start_date", { ascending: false }),
+    db
+      .from("breeding_records")
+      .select("*")
+      .order("insemination_date", { ascending: false }),
+    db
+      .from("medication_records")
+      .select("*")
+      .order("administration_date", { ascending: false }),
   ]);
 
-  const error = milkResult.error || animalResult.error || productResult.error || lactationResult.error || breedingResult.error || medicationResult.error;
-  if (error) {
-    throw error;
-  }
+  const err =
+    milkR.error ||
+    animalR.error ||
+    lactR.error ||
+    breedR.error ||
+    medR.error;
+  if (err) throw err;
 
-  state.milk = milkResult.data || [];
-  state.animals = animalResult.data || [];
-  state.products = productResult.data || [];
-  state.lactations = lactationResult.data || [];
-  state.breeding = breedingResult.data || [];
-  state.medication = medicationResult.data || [];
-  // Assume priceQuote is stored in a separate settings table; fallback to local value if not present
-  // For simplicity, keep existing local priceQuote unchanged here.
+  state.milk = milkR.data || [];
+  state.animals = animalR.data || [];
+  state.lactations = lactR.data || [];
+  state.breeding = breedR.data || [];
+  state.medication = medR.data || [];
+
+  // price quote from local storage (not in Supabase yet)
+  const local = readLocal();
+  state.priceQuote = local.priceQuote || 0;
+
   setStatus("Online", "online");
 };
 
@@ -150,8 +255,8 @@ const loadData = async () => {
 
   try {
     await loadSupabase();
-  } catch (error) {
-    console.error(error);
+  } catch (e) {
+    console.error("Supabase error:", e);
     loadLocal();
     setStatus("Erro Supabase", "error");
   }
@@ -160,314 +265,377 @@ const loadData = async () => {
   render();
 };
 
+/* --- Populate cow selects --- */
+const populateCowSelects = () => {
+  const opts = state.animals
+    .map(
+      (a) =>
+        `<option value="${escapeHtml(a.identification)}">${escapeHtml(
+          a.identification
+        )}</option>`
+    )
+    .join("");
+  if ($("#lactCowId")) $("#lactCowId").innerHTML = opts;
+  if ($("#breedCowId")) $("#breedCowId").innerHTML = opts;
+  if ($("#medCowId")) $("#medCowId").innerHTML = opts;
+};
+
+/* ===== CRUD ===== */
+
+// Milk
 const upsertMilk = async (record) => {
   if (!hasSupabase) {
-    state.milk = state.milk.filter((item) => item.date !== record.date);
+    state.milk = state.milk.filter((r) => r.date !== record.date);
     state.milk.push({ ...record, id: localId() });
     writeLocal();
     return;
   }
-
-  const { error } = await db.from("milk_records").upsert(record, { onConflict: "date" });
+  const { error } = await db
+    .from("milk_records")
+    .upsert(record, { onConflict: "date" });
   if (error) throw error;
   await loadSupabase();
 };
 
+// Animals
 const insertAnimal = async (animal) => {
   if (!hasSupabase) {
-    state.animals.unshift({ ...animal, id: localId(), created_at: new Date().toISOString() });
+    state.animals.unshift({
+      ...animal,
+      id: localId(),
+      created_at: new Date().toISOString(),
+    });
     writeLocal();
     return;
   }
-
   const { error } = await db.from("animals").insert(animal);
   if (error) throw error;
   await loadSupabase();
 };
 
-const insertProduct = async (product) => {
-  if (!hasSupabase) {
-    state.products.unshift({ ...product, id: localId(), created_at: new Date().toISOString() });
-    writeLocal();
-    return;
-  }
-
-  const { error } = await db.from("products").insert(product);
-  if (error) throw error;
-  await loadSupabase();
-};
-
+// Lactation
 const insertLactation = async (record) => {
   if (!hasSupabase) {
-    state.lactations.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    state.lactations.unshift({
+      ...record,
+      id: localId(),
+      created_at: new Date().toISOString(),
+    });
     writeLocal();
     return;
   }
-
-  const { error } = await db.from("lactation_records").insert(record);
+  const row = {
+    cow_id: record.cow_id,
+    start_date: record.start_date,
+    end_date: record.end_date || null,
+    daily_liters: record.daily_liters,
+  };
+  const { error } = await db.from("lactation_records").insert(row);
   if (error) throw error;
   await loadSupabase();
 };
 
+// Breeding
 const insertBreeding = async (record) => {
   if (!hasSupabase) {
-    state.breeding.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    state.breeding.unshift({
+      ...record,
+      id: localId(),
+      created_at: new Date().toISOString(),
+    });
     writeLocal();
     return;
   }
-
-  const { error } = await db.from("breeding_records").insert(record);
+  const row = {
+    cow_id: record.cow_id,
+    insemination_date: record.insemination_date,
+    expected_calving_date: record.expected_calving_date,
+  };
+  const { error } = await db.from("breeding_records").insert(row);
   if (error) throw error;
   await loadSupabase();
 };
 
+// Medication
 const insertMedication = async (record) => {
   if (!hasSupabase) {
-    state.medication.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
+    state.medication.unshift({
+      ...record,
+      id: localId(),
+      created_at: new Date().toISOString(),
+    });
     writeLocal();
     return;
   }
-
-  const { error } = await db.from("medication_records").insert(record);
+  const row = {
+    cow_id: record.cow_id,
+    medication_name: record.medication_name,
+    dosage: record.dosage,
+    administration_date: record.administration_date,
+  };
+  const { error } = await db.from("medication_records").insert(row);
   if (error) throw error;
   await loadSupabase();
+};
+
+/* ===== Render ===== */
+const empty = (txt) => `<p class="empty">${escapeHtml(txt)}</p>`;
+
+const renderPriceQuote = () => {
+  const q = Number(state.priceQuote || 0);
+  const fmt = q.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  if (el.priceQuoteDisplay)
+    el.priceQuoteDisplay.textContent = `R$ ${fmt}/L`;
+  if (el.priceQuoteValue)
+    el.priceQuoteValue.textContent = `R$ ${fmt} por litro`;
 };
 
 const renderSummary = () => {
-  const todayRecord = state.milk.find((record) => record.date === todayIso());
-  const monthRecords = state.milk.filter((record) => record.date.startsWith(monthKey()));
-  const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
-  const monthValue = monthRecords.reduce(
-    (sum, record) => sum + Number(record.liters || 0) * Number(record.price_per_liter || 0),
+  const price = Number(state.priceQuote || 0);
+  const todayRec = state.milk.find((r) => r.date === todayIso());
+  const todayLiters = Number(todayRec?.liters || 0);
+
+  const monthRecs = state.milk.filter((r) =>
+    r.date?.startsWith(monthKey())
+  );
+  const monthLiters = monthRecs.reduce(
+    (s, r) => s + Number(r.liters || 0),
     0
   );
-  const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
 
-  elements.todayTotal.textContent = formatLiters(todayRecord?.liters || 0);
-  elements.todayValue.textContent = formatMoney(
-    Number(todayRecord?.liters || 0) * Number(todayRecord?.price_per_liter || 0)
-  );
-  elements.monthTotal.textContent = formatLiters(monthLiters);
-  elements.monthValue.textContent = formatMoney(monthValue);
-  elements.animalTotal.textContent = state.animals.length;
-  elements.lactatingTotal.textContent = `${lactating} em lactação`;
+  const lactating = state.animals.filter(
+    (a) => a.status === "Em lactação"
+  ).length;
+
+  el.todayTotal.textContent = formatLiters(todayLiters);
+  el.todayValue.textContent = formatMoney(todayLiters * price);
+  el.monthTotal.textContent = formatLiters(monthLiters);
+  el.monthValue.textContent = formatMoney(monthLiters * price);
+  el.animalTotal.textContent = state.animals.length;
+  el.lactatingTotal.textContent = `${lactating} em lactação`;
 };
 
-const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;
-
 const renderMilk = () => {
-  const records = [...state.milk].sort((a, b) => b.date.localeCompare(a.date));
+  const price = Number(state.priceQuote || 0);
+  const recs = [...state.milk].sort((a, b) =>
+    b.date.localeCompare(a.date)
+  );
 
-  elements.historyList.innerHTML = records.length
-    ? records
+  el.historyList.innerHTML = recs.length
+    ? recs
         .map(
-          (record) => `
-            <article class="item">
-              <div>
-                <span>${formatDate(record.date)}</span>
-                <small>${formatMoney(record.price_per_liter)} por litro</small>
-              </div>
-              <strong>${formatLiters(record.liters)} | ${formatMoney(record.liters * record.price_per_liter)}</strong>
-            </article>
-          `
+          (r) => `
+        <article class="item">
+          <div>
+            <span>${formatDate(r.date)}</span>
+            <small>${formatMoney(price)} por litro</small>
+          </div>
+          <strong>${formatLiters(r.liters)} | ${formatMoney(
+            Number(r.liters) * price
+          )}</strong>
+        </article>`
         )
         .join("")
     : empty("Nenhuma produção registrada.");
 };
 
 const renderAnimals = () => {
-  elements.animalList.innerHTML = state.animals.length
+  el.animalList.innerHTML = state.animals.length
     ? state.animals
         .map(
-          (animal) => `
-            <article class="item">
-              <div>
-                <span>${escapeHtml(animal.identification)}</span>
-                <small>${escapeHtml(animal.type)}</small>
-              </div>
-              <strong>${escapeHtml(animal.status)}</strong>
-            </article>
-          `
+          (a) => `
+        <article class="item">
+          <div>
+            <span>${escapeHtml(a.identification)}</span>
+            <small>${escapeHtml(a.type)}</small>
+          </div>
+          <strong>${escapeHtml(a.status)}</strong>
+        </article>`
         )
         .join("")
     : empty("Nenhum animal cadastrado.");
 };
 
-const renderProducts = () => {
-  elements.productList.innerHTML = state.products.length
-    ? state.products
-        .map(
-          (product) => `
-            <article class="item">
-              <div>
-                <span>${escapeHtml(product.name)}</span>
-                <small>${Number(product.quantity || 0)} unidade(s)</small>
-              </div>
-              <strong>${formatMoney(product.price)}</strong>
-            </article>
-          `
-        )
-        .join("")
-    : empty("Nenhum produto cadastrado.");
-};
-
 const renderLactations = () => {
-  elements.lactationList.innerHTML = state.lactations.length
+  el.lactationList.innerHTML = state.lactations.length
     ? state.lactations
-        .map((l) => `
-          <article class="item">
-            <div>
-              <span>${escapeHtml(l.cowId)}</span>
-              <small>${formatDate(l.start)} → ${l.end ? formatDate(l.end) : "atual"}</small>
-            </div>
-            <strong>${formatLiters(l.litersPerDay)} / dia</strong>
-          </article>
-        `)
+        .map(
+          (l) => `
+        <article class="item">
+          <div>
+            <span>${escapeHtml(l.cow_id)}</span>
+            <small>${formatDate(l.start_date)} → ${
+            l.end_date ? formatDate(l.end_date) : "atual"
+          }</small>
+          </div>
+          <strong>${formatLiters(l.daily_liters)} / dia</strong>
+        </article>`
+        )
         .join("")
     : empty("Nenhuma lactação registrada.");
 };
 
 const renderBreeding = () => {
-  elements.breedingList.innerHTML = state.breeding.length
+  el.breedingList.innerHTML = state.breeding.length
     ? state.breeding
-        .map((b) => `
-          <article class="item">
-            <div>
-              <span>${escapeHtml(b.cowId)}</span>
-              <small>${formatDate(b.inseminationDate)} → ${formatDate(b.expectedCalving)}</small>
-            </div>
-            <strong>Reprodução</strong>
-          </article>
-        `)
+        .map(
+          (b) => `
+        <article class="item">
+          <div>
+            <span>${escapeHtml(b.cow_id)}</span>
+            <small>Inseminação: ${formatDate(b.insemination_date)}</small>
+          </div>
+          <strong>Parto: ${formatDate(b.expected_calving_date)}</strong>
+        </article>`
+        )
         .join("")
     : empty("Nenhuma reprodução registrada.");
 };
 
 const renderMedication = () => {
-  elements.medicationList.innerHTML = state.medication.length
+  el.medicationList.innerHTML = state.medication.length
     ? state.medication
-        .map((m) => `
-          <article class="item">
-            <div>
-              <span>${escapeHtml(m.cowId)}</span>
-              <small>${formatDate(m.date)}</small>
-            </div>
-            <strong>${escapeHtml(m.name)} - ${escapeHtml(m.dosage)}</strong>
-          </article>
-        `)
+        .map(
+          (m) => `
+        <article class="item">
+          <div>
+            <span>${escapeHtml(m.cow_id)}</span>
+            <small>${formatDate(m.administration_date)}</small>
+          </div>
+          <strong>${escapeHtml(m.medication_name)} — ${escapeHtml(
+            m.dosage
+          )}</strong>
+        </article>`
+        )
         .join("")
     : empty("Nenhuma medicação registrada.");
 };
 
 const render = () => {
+  renderPriceQuote();
   renderSummary();
   renderMilk();
   renderAnimals();
-  renderProducts();
   renderLactations();
   renderBreeding();
   renderMedication();
-  renderPriceQuote();
 };
 
-document.querySelectorAll(".tab").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".tab, .panel").forEach((element) => element.classList.remove("active"));
-    button.classList.add("active");
-    $(`#${button.dataset.tab}`).classList.add("active");
-  });
-});
+/* ===== Event listeners (only bound once) ===== */
+let appInitialized = false;
 
-elements.milkForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+const initApp = () => {
+  if (appInitialized) {
+    loadData();
+    return;
+  }
+  appInitialized = true;
 
-  const record = {
-    date: $("#milkDate").value,
-    liters: Number.parseFloat($("#liters").value || "0"),
-    price_per_liter: Number.parseFloat($("#price").value || "0"),
-  };
-
-  await upsertMilk(record);
-  elements.milkForm.reset();
-  elements.milkDate.value = todayIso();
-  render();
-elements.priceQuoteForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const newQuote = Number.parseFloat(elements.priceQuoteInput.value || "0");
-  state.priceQuote = newQuote;
-  writeLocal();
-  renderPriceQuote();
-  elements.priceQuoteForm.reset();
-});
-
-elements.animalForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  await insertAnimal({
-    identification: $("#animalName").value.trim(),
-    type: $("#animalType").value,
-    status: $("#animalStatus").value,
+  // Tab navigation
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll(".tab, .panel")
+        .forEach((e) => e.classList.remove("active"));
+      btn.classList.add("active");
+      $(`#${btn.dataset.tab}`).classList.add("active");
+    });
   });
 
-  elements.animalForm.reset();
-  render();
-});
-
-elements.productForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  await insertProduct({
-    name: $("#productName").value.trim(),
-    quantity: Number.parseInt($("#productQuantity").value || "0", 10),
-    price: Number.parseFloat($("#productPrice").value || "0"),
+  // Milk form
+  el.milkForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const record = {
+      date: $("#milkDate").value,
+      liters: Number.parseFloat($("#liters").value || "0"),
+    };
+    await upsertMilk(record);
+    el.milkForm.reset();
+    el.milkDate.value = todayIso();
+    render();
   });
 
-  elements.productForm.reset();
-  render();
-});
-
-elements.lactationForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await insertLactation({
-    cowId: $("#lactCowId").value,
-    start: $("#lactStart").value,
-    end: $("#lactEnd").value || null,
-    litersPerDay: Number.parseFloat($("#lactLiters").value || "0"),
+  // Animal form
+  el.animalForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await insertAnimal({
+      identification: $("#animalName").value.trim(),
+      type: $("#animalType").value,
+      status: $("#animalStatus").value,
+    });
+    el.animalForm.reset();
+    populateCowSelects();
+    render();
   });
-  elements.lactationForm.reset();
-  render();
-});
 
-elements.breedingForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await insertBreeding({
-    cowId: $("#breedCowId").value,
-    inseminationDate: $("#inseminationDate").value,
-    expectedCalving: $("#expectedCalving").value,
+  // Lactation form
+  el.lactationForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await insertLactation({
+      cow_id: $("#lactCowId").value,
+      start_date: $("#lactStart").value,
+      end_date: $("#lactEnd").value || null,
+      daily_liters: Number.parseFloat($("#lactLiters").value || "0"),
+    });
+    el.lactationForm.reset();
+    render();
   });
-  elements.breedingForm.reset();
-  render();
-});
 
-elements.medicationForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await insertMedication({
-    cowId: $("#medCowId").value,
-    name: $("#medName").value.trim(),
-    dosage: $("#medDosage").value.trim(),
-    date: $("#medDate").value,
+  // Breeding form
+  el.breedingForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await insertBreeding({
+      cow_id: $("#breedCowId").value,
+      insemination_date: $("#inseminationDate").value,
+      expected_calving_date: $("#expectedCalving").value,
+    });
+    el.breedingForm.reset();
+    render();
   });
-  elements.medicationForm.reset();
-  render();
-});
 
-elements.refreshButton.addEventListener("click", loadData);
+  // Medication form
+  el.medicationForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await insertMedication({
+      cow_id: $("#medCowId").value,
+      medication_name: $("#medName").value.trim(),
+      dosage: $("#medDosage").value.trim(),
+      administration_date: $("#medDate").value,
+    });
+    el.medicationForm.reset();
+    render();
+  });
 
+  // Price quote form
+  el.priceQuoteForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    state.priceQuote = Number.parseFloat(
+      el.priceQuoteInput.value || "0"
+    );
+    writeLocal();
+    render();
+    el.priceQuoteForm.reset();
+  });
+
+  // Refresh button
+  el.refreshButton.addEventListener("click", loadData);
+
+  // Set today's date
+  el.milkDate.value = todayIso();
+
+  // Load data
+  loadData();
+};
+
+/* ===== Service Worker ===== */
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js");
-  });
+  window.addEventListener("load", () =>
+    navigator.serviceWorker.register("service-worker.js")
+  );
 }
 
-elements.milkDate.value = todayIso();
-loadData();
+/* ===== Boot ===== */
+checkSession();
