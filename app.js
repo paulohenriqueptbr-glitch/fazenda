@@ -7,6 +7,7 @@ const state = {
   lactations: [],
   breeding: [],
   medication: [],
+  priceQuote: 0,
 };
 
 const config = window.CONTROLE_LEITE_CONFIG || {};
@@ -28,7 +29,12 @@ const populateCowSelects = () => {
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = () => todayIso().slice(0, 7);
 
+const renderPriceQuote = () => {
+  elements.priceQuoteDisplay.textContent = `Cotação do leite: R$ ${Number(state.priceQuote).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/L`;
+};
+
 const elements = {
+  // UI elements
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
   todayValue: $("#todayValue"),
@@ -48,6 +54,11 @@ const elements = {
   medicationForm: $("#medicationForm"),
   refreshButton: $("#refreshButton"),
   milkDate: $("#milkDate"),
+  // Config price quote UI
+  priceQuoteForm: $("#priceQuoteForm"),
+  priceQuoteInput: $("#priceQuoteInput"),
+  priceQuoteDisplay: $("#priceQuoteDisplay"),
+  // End UI elements
 };
 
 const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
@@ -98,6 +109,7 @@ const loadLocal = () => {
   state.lactations = data.lactations || [];
   state.breeding = data.breeding || [];
   state.medication = data.medication || [];
+  state.priceQuote = data.priceQuote || 0;
   setStatus("Local", "local");
 };
 
@@ -124,6 +136,8 @@ const loadSupabase = async () => {
   state.lactations = lactationResult.data || [];
   state.breeding = breedingResult.data || [];
   state.medication = medicationResult.data || [];
+  // Assume priceQuote is stored in a separate settings table; fallback to local value if not present
+  // For simplicity, keep existing local priceQuote unchanged here.
   setStatus("Online", "online");
 };
 
@@ -313,12 +327,47 @@ const renderLactations = () => {
     : empty("Nenhuma lactação registrada.");
 };
 
+const renderBreeding = () => {
+  elements.breedingList.innerHTML = state.breeding.length
+    ? state.breeding
+        .map((b) => `
+          <article class="item">
+            <div>
+              <span>${escapeHtml(b.cowId)}</span>
+              <small>${formatDate(b.inseminationDate)} → ${formatDate(b.expectedCalving)}</small>
+            </div>
+            <strong>Reprodução</strong>
+          </article>
+        `)
+        .join("")
+    : empty("Nenhuma reprodução registrada.");
+};
+
+const renderMedication = () => {
+  elements.medicationList.innerHTML = state.medication.length
+    ? state.medication
+        .map((m) => `
+          <article class="item">
+            <div>
+              <span>${escapeHtml(m.cowId)}</span>
+              <small>${formatDate(m.date)}</small>
+            </div>
+            <strong>${escapeHtml(m.name)} - ${escapeHtml(m.dosage)}</strong>
+          </article>
+        `)
+        .join("")
+    : empty("Nenhuma medicação registrada.");
+};
+
 const render = () => {
   renderSummary();
   renderMilk();
   renderAnimals();
   renderProducts();
   renderLactations();
+  renderBreeding();
+  renderMedication();
+  renderPriceQuote();
 };
 
 document.querySelectorAll(".tab").forEach((button) => {
@@ -342,6 +391,13 @@ elements.milkForm.addEventListener("submit", async (event) => {
   elements.milkForm.reset();
   elements.milkDate.value = todayIso();
   render();
+elements.priceQuoteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const newQuote = Number.parseFloat(elements.priceQuoteInput.value || "0");
+  state.priceQuote = newQuote;
+  writeLocal();
+  renderPriceQuote();
+  elements.priceQuoteForm.reset();
 });
 
 elements.animalForm.addEventListener("submit", async (event) => {
@@ -367,6 +423,41 @@ elements.productForm.addEventListener("submit", async (event) => {
   });
 
   elements.productForm.reset();
+  render();
+});
+
+elements.lactationForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await insertLactation({
+    cowId: $("#lactCowId").value,
+    start: $("#lactStart").value,
+    end: $("#lactEnd").value || null,
+    litersPerDay: Number.parseFloat($("#lactLiters").value || "0"),
+  });
+  elements.lactationForm.reset();
+  render();
+});
+
+elements.breedingForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await insertBreeding({
+    cowId: $("#breedCowId").value,
+    inseminationDate: $("#inseminationDate").value,
+    expectedCalving: $("#expectedCalving").value,
+  });
+  elements.breedingForm.reset();
+  render();
+});
+
+elements.medicationForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await insertMedication({
+    cowId: $("#medCowId").value,
+    name: $("#medName").value.trim(),
+    dosage: $("#medDosage").value.trim(),
+    date: $("#medDate").value,
+  });
+  elements.medicationForm.reset();
   render();
 });
 

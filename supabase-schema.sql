@@ -1,6 +1,6 @@
--- Supabase schema additions for farm management
+-- Supabase schema for farm management
 
--- Table: cows
+-- Table: cows (optional, retained for future use)
 create table if not exists cows (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -9,30 +9,30 @@ create table if not exists cows (
   created_at timestamptz not null default now()
 );
 
--- Table: lactations
-create table if not exists lactations (
+-- Table: lactation_records (matches app.js expectations)
+create table if not exists lactation_records (
   id uuid primary key default gen_random_uuid(),
-  cow_id uuid references cows(id) on delete cascade,
-  start_date date not null,
-  end_date date,
-  daily_milk numeric(10,2) not null check (daily_milk >= 0),
+  cow_id uuid references animals(id) on delete cascade,
+  start date not null,
+  "end" date,
+  liters_per_day numeric(10,2) not null check (liters_per_day >= 0),
   created_at timestamptz not null default now()
 );
 
--- Table: breeding
-create table if not exists breeding (
+-- Table: breeding_records (matches app.js expectations)
+create table if not exists breeding_records (
   id uuid primary key default gen_random_uuid(),
-  cow_id uuid references cows(id) on delete cascade,
+  cow_id uuid references animals(id) on delete cascade,
   insemination_date date not null,
   expected_calving_date date,
   notes text,
   created_at timestamptz not null default now()
 );
 
--- Table: medications
-create table if not exists medications (
+-- Table: medication_records (matches app.js expectations)
+create table if not exists medication_records (
   id uuid primary key default gen_random_uuid(),
-  cow_id uuid references cows(id) on delete cascade,
+  cow_id uuid references animals(id) on delete cascade,
   medication_name text not null,
   dosage text,
   administered_by text,
@@ -42,20 +42,16 @@ create table if not exists medications (
 );
 
 -- Enable row level security for new tables
-alter table cows enable row level security;
-alter table lactations enable row level security;
-alter table breeding enable row level security;
-alter table medications enable row level security;
+alter table lactation_records enable row level security;
+alter table breeding_records enable row level security;
+alter table medication_records enable row level security;
 
--- Simple public policies (you may tighten later)
-create policy "Public read cows" on cows for select using (true);
-create policy "Public insert cows" on cows for insert with check (true);
+-- Simple public policies (adjust as needed)
+create policy "Public read lactation_records" on lactation_records for select using (true);
+create policy "Public insert lactation_records" on lactation_records for insert with check (true);
 
-create policy "Public read lactations" on lactations for select using (true);
-create policy "Public insert lactations" on lactations for insert with check (true);
+create policy "Public read breeding_records" on breeding_records for select using (true);
+create policy "Public insert breeding_records" on breeding_records for insert with check (true);
 
-create policy "Public read breeding" on breeding for select using (true);
-create policy "Public insert breeding" on breeding for insert with check (true);
-
-create policy "Public read medications" on medications for select using (true);
-create policy "Public insert medications" on medications for insert with check (true);
+create policy "Public read medication_records" on medication_records for select using (true);
+create policy "Public insert medication_records" on medication_records for insert with check (true);
