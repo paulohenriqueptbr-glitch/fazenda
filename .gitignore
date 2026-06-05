@@ -24,6 +24,10 @@ venv/
 ENV/
 env/
 .env
+.env.*
+!.env.example
+/config.js
+/config.local.js
 *.pyc
 .pytest_cache/
 .mypy_cache/

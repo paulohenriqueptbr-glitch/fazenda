@@ -1,12 +1,14 @@
-const CACHE_NAME = "controle-fazenda-v5";
+const CACHE_NAME = "controle-fazenda-v6";
 const APP_FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./api/config.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -24,6 +26,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  if (url.pathname === "/api/config.js") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 

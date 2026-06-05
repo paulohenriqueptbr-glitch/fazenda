@@ -13,6 +13,7 @@ const state = {
 const config = window.CONTROLE_LEITE_CONFIG || {};
 const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
+let currentUserId = null;
 
 const $ = (selector) => document.querySelector(selector);
 const todayIso = () => {
@@ -22,6 +23,8 @@ const todayIso = () => {
 };
 const monthKey = () => todayIso().slice(0, 7);
 const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+const withCurrentUser = (payload) => (currentUserId ? { ...payload, user_id: currentUserId } : payload);
+const userStorageKey = (key) => (currentUserId ? `${key}:${currentUserId}` : key);
 
 const showToast = (message, type = "success") => {
   const container = document.getElementById("toastContainer");
@@ -126,14 +129,14 @@ const showLoginError = (message) => {
 
 const readLocal = () => {
   try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {};
+    return JSON.parse(localStorage.getItem(userStorageKey(LOCAL_KEY))) || {};
   } catch {
     return {};
   }
 };
 
 const writeLocal = () => {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+  localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(state));
 };
 
 const setStatus = (message, kind = "local") => {
@@ -157,6 +160,7 @@ const loadPriceQuote = async () => {
     .from("app_settings")
     .select("value")
     .eq("key", PRICE_QUOTE_KEY)
+    .eq("user_id", currentUserId)
     .maybeSingle();
 
   if (error) throw error;
@@ -176,9 +180,10 @@ const savePriceQuote = async (value) => {
     {
       key: PRICE_QUOTE_KEY,
       value: String(state.priceQuote),
+      user_id: currentUserId,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "key" }
+    { onConflict: "user_id,key" }
   );
 
   if (error) throw error;
@@ -257,11 +262,11 @@ const populateCowSelects = () => {
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
 
 const getSyncQueue = () => {
-  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)) || []; } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(userStorageKey(SYNC_QUEUE_KEY))) || []; } catch { return []; }
 };
 
 const saveSyncQueue = (queue) => {
-  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  localStorage.setItem(userStorageKey(SYNC_QUEUE_KEY), JSON.stringify(queue));
 };
 
 const enqueueMutation = (type, action, payload, recordId = null) => {
@@ -281,7 +286,7 @@ const upsertMilk = async (record) => {
   }
 
   if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("milk_records").upsert(record, { onConflict: "date" });
+    const { error } = await db.from("milk_records").upsert(withCurrentUser(record), { onConflict: "user_id,date" });
     if (error) throw error;
     await loadSupabase();
   }
@@ -296,7 +301,7 @@ const insertAnimal = async (animal) => {
     if (!hasSupabase) return;
   }
   if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("animals").insert(animal);
+    const { error } = await db.from("animals").insert(withCurrentUser(animal));
     if (error) throw error;
     await loadSupabase();
   }
@@ -317,7 +322,7 @@ const insertLactation = async (record) => {
     if (!hasSupabase) return;
   }
   if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("lactation_records").insert(payload);
+    const { error } = await db.from("lactation_records").insert(withCurrentUser(payload));
     if (error) throw error;
     await loadSupabase();
   }
@@ -337,7 +342,7 @@ const insertBreeding = async (record) => {
     if (!hasSupabase) return;
   }
   if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("breeding_records").insert(payload);
+    const { error } = await db.from("breeding_records").insert(withCurrentUser(payload));
     if (error) throw error;
     await loadSupabase();
   }
@@ -358,7 +363,7 @@ const insertMedication = async (record) => {
     if (!hasSupabase) return;
   }
   if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("medication_records").insert(payload);
+    const { error } = await db.from("medication_records").insert(withCurrentUser(payload));
     if (error) throw error;
     await loadSupabase();
   }
@@ -430,13 +435,13 @@ const processSyncQueue = async () => {
       if (!config) continue;
       
       if (item.action === "insert") {
-        await db.from(config.table).insert({ ...item.payload });
+        await db.from(config.table).insert({ ...item.payload, user_id: currentUserId });
       } else if (item.action === "update") {
         await db.from(config.table).update(item.payload).eq("id", item.recordId);
       } else if (item.action === "delete") {
         await db.from(config.table).delete().eq("id", item.recordId);
       } else if (item.action === "upsert") {
-        await db.from(config.table).upsert(item.payload, { onConflict: "date" });
+        await db.from(config.table).upsert({ ...item.payload, user_id: currentUserId }, { onConflict: "user_id,date" });
       }
     } catch (err) {
       console.error("Erro no sync", item, err);
@@ -761,6 +766,7 @@ const initApp = () => {
       await upsertMilk({
         date: $("#milkDate").value,
         liters: Number.parseFloat($("#liters").value || "0"),
+        user_id: currentUserId,
       });
 
       el.milkForm.reset();
@@ -781,6 +787,7 @@ const initApp = () => {
         identification: $("#animalName").value.trim(),
         type: $("#animalType").value,
         status: $("#animalStatus").value,
+        user_id: currentUserId,
       });
 
       el.animalForm.reset();
@@ -859,14 +866,8 @@ const initApp = () => {
 
 const checkSession = async () => {
   if (!hasSupabase || !db) {
-    showApp("Modo local");
-    initApp();
-    return;
-  }
-
-  if (!navigator.onLine) {
-    showApp("Offline (Modo Local)");
-    initApp();
+    showLogin();
+    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis na Vercel.");
     return;
   }
 
@@ -876,10 +877,14 @@ const checkSession = async () => {
     } = await db.auth.getSession();
 
     if (session?.user) {
+      currentUserId = session.user.id;
       showApp(session.user.email);
       initApp();
     } else {
       showLogin();
+      if (!navigator.onLine) {
+        showLoginError("Sem internet. Entre uma vez online antes de usar offline.");
+      }
     }
   } catch (error) {
     console.error("Session check error:", error);
@@ -895,8 +900,12 @@ loginForm.addEventListener("submit", async (event) => {
   const password = $("#loginPassword").value;
 
   if (!hasSupabase || !db) {
-    showApp("Modo local");
-    initApp();
+    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis na Vercel.");
+    return;
+  }
+
+  if (!navigator.onLine) {
+    showLoginError("Sem internet. Conecte para fazer login.");
     return;
   }
 
@@ -908,6 +917,7 @@ loginForm.addEventListener("submit", async (event) => {
       return;
     }
 
+    currentUserId = data.user.id;
     showApp(data.user.email);
     initApp();
   } catch (error) {
@@ -921,6 +931,7 @@ logoutBtn.addEventListener("click", async () => {
     await db.auth.signOut();
   }
 
+  currentUserId = null;
   showLogin();
 });
 

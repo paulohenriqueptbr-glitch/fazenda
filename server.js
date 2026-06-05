@@ -16,6 +16,24 @@ const types = {
 http
   .createServer((request, response) => {
     const url = decodeURIComponent(request.url.split("?")[0]);
+
+    if (url === "/api/config.js") {
+      const supabaseUrl = process.env.SUPABASE_URL || "";
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+
+      response.writeHead(200, {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-store, max-age=0",
+      });
+      response.end(
+        `window.CONTROLE_LEITE_CONFIG = ${JSON.stringify({
+          supabaseUrl,
+          supabaseAnonKey,
+        })};`
+      );
+      return;
+    }
+
     const file = path.resolve(root, url === "/" ? "index.html" : url.slice(1));
 
     if (!file.startsWith(root)) {
