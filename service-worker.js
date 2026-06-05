@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-fazenda-v7";
+const CACHE_NAME = "controle-fazenda-v8";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const APP_FILES = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "https://unpkg.com/lucide@latest",
 ];
 
 self.addEventListener("install", (event) => {

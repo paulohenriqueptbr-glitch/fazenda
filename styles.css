@@ -1,19 +1,21 @@
 :root {
   color-scheme: light;
   font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
-  background: #ffffff;
-  color: #1a1a1a;
-  --green: #1f6b5b;
-  --green-dark: #123f37;
-  --green-soft: #dcece6;
-  --ink: #1a1a1a;
-  --muted: #6b7280;
-  --line: #e5e7eb;
+  background: #f5f7f4;
+  color: #14201d;
+  --green: #176c56;
+  --green-dark: #0e4638;
+  --green-soft: #e5f2ed;
+  --blue: #245f96;
+  --amber: #b7791f;
+  --ink: #14201d;
+  --muted: #65736f;
+  --line: #dce5e1;
   --panel: #ffffff;
-  --field: #f9fafb;
-  --gold: #e7bb53;
+  --field: #f7faf8;
   --danger: #dc2626;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow: 0 12px 32px rgba(19, 40, 35, 0.08);
+  --soft-shadow: 0 4px 14px rgba(19, 40, 35, 0.06);
 }
 
 * {
@@ -22,13 +24,14 @@
 
 html {
   min-height: 100%;
-  background: #ffffff;
+  background: #f5f7f4;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #ffffff;
+  background:
+    linear-gradient(180deg, #eef5f1 0, #f8faf8 240px, #ffffff 560px);
 }
 
 button,
@@ -157,23 +160,26 @@ button {
 
 /* ===== APP SHELL ===== */
 .app-shell {
-  width: min(100%, 860px);
+  width: min(100%, 980px);
   margin: 0 auto;
-  padding: 16px 14px calc(128px + env(safe-area-inset-bottom));
+  padding: 14px 16px calc(132px + env(safe-area-inset-bottom));
 }
 
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  margin-bottom: 8px;
+  gap: 16px;
+  padding: 10px 0 18px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(20, 32, 29, 0.08);
 }
 
 .app-header h1 {
-  font-size: 1.5rem;
+  font-size: 1.55rem;
   color: var(--ink);
   margin: 0;
+  letter-spacing: 0;
 }
 
 .app-header .user-info {
@@ -183,8 +189,8 @@ button {
 }
 
 .app-header .status {
-  min-width: 72px;
-  padding: 7px 10px;
+  min-width: 70px;
+  padding: 6px 10px;
   font-size: 0.72rem;
 }
 
@@ -195,8 +201,8 @@ button {
 }
 
 .btn-logout {
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 34px;
+  padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
@@ -262,22 +268,52 @@ h2 {
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin: 18px 0 14px;
 }
 
 .summary {
-  min-height: 92px;
-  padding: 14px;
+  position: relative;
+  min-height: 104px;
+  padding: 16px;
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: var(--soft-shadow);
+}
+
+.summary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--line);
 }
 
 .summary.primary {
-  background: var(--panel);
-  border-color: rgba(31, 107, 91, 0.2);
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+  color: white;
+  box-shadow: 0 16px 34px rgba(14, 70, 56, 0.18);
+}
+
+.summary.primary::before {
+  background: var(--amber);
+}
+
+.summary:nth-child(2)::before {
+  background: var(--blue);
+}
+
+.summary:nth-child(3)::before {
+  background: var(--amber);
+}
+
+.summary:nth-child(4)::before {
+  background: var(--green);
 }
 
 .summary span,
@@ -288,17 +324,27 @@ h2 {
 }
 
 .summary span {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .summary strong {
   display: block;
-  margin: 8px 0 4px;
+  margin: 10px 0 4px;
   color: var(--ink);
-  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-size: clamp(1.6rem, 5vw, 2.05rem);
   line-height: 1;
+}
+
+.summary.primary span,
+.summary.primary small,
+.summary.primary strong {
+  color: white;
+}
+
+.summary.primary small {
+  opacity: 0.82;
 }
 
 /* ===== BOTTOM NAVIGATION ===== */
@@ -307,14 +353,14 @@ h2 {
   bottom: 0;
   left: 0;
   right: 0;
-  min-height: calc(64px + env(safe-area-inset-bottom));
+  min-height: calc(70px + env(safe-area-inset-bottom));
   background: var(--panel);
   border-top: 1px solid var(--line);
   display: flex;
   overflow-x: auto;
-  gap: 8px;
-  padding: 0 12px env(safe-area-inset-bottom);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  gap: 6px;
+  padding: 6px 12px env(safe-area-inset-bottom);
+  box-shadow: 0 -12px 32px rgba(19, 40, 35, 0.08);
   z-index: 100;
   scroll-behavior: smooth;
   -ms-overflow-style: none;
@@ -330,24 +376,28 @@ h2 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 64px;
-  height: 64px;
+  min-width: 66px;
+  height: 58px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  transition: color 0.2s;
-  padding: 4px;
+  transition: background 0.2s, color 0.2s;
+  padding: 6px 5px;
 }
 
 .nav-item.active {
+  background: var(--green-soft);
   color: var(--green);
 }
 
 .nav-icon {
-  font-size: 1.3rem;
-  margin-bottom: 2px;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  stroke-width: 2.2;
 }
 
 /* ===== TOAST NOTIFICATIONS ===== */
@@ -398,11 +448,15 @@ h2 {
 .form-grid {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+.compact-form {
+  border-left: 4px solid var(--green);
 }
 
 .field {
@@ -421,9 +475,9 @@ select {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0 13px;
-  background: var(--field);
+  background: #fbfdfc;
   color: var(--ink);
   outline: 0;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -438,7 +492,7 @@ select:focus {
 button[type="submit"],
 .ghost {
   min-height: 48px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 800;
 }
 
@@ -447,8 +501,8 @@ button[type="submit"] {
   border: 0;
   background: var(--green);
   color: white;
-  box-shadow: 0 4px 14px rgba(31, 107, 91, 0.18);
-  transition: background 0.2s;
+  box-shadow: 0 10px 18px rgba(23, 108, 86, 0.2);
+  transition: background 0.2s, box-shadow 0.2s;
 }
 
 button[type="submit"]:hover {
@@ -479,7 +533,7 @@ button[type="submit"]:active,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 24px 0 10px;
+  margin: 24px 0 12px;
 }
 
 .list {
@@ -495,7 +549,7 @@ button[type="submit"]:active,
   min-height: 64px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--panel);
   transition: box-shadow 0.2s;
 }
@@ -549,11 +603,11 @@ button[type="submit"]:active,
 }
 
 .empty {
-  padding: 18px 14px;
+  padding: 20px 16px;
   margin: 0;
   border: 1px dashed var(--line);
-  border-radius: 10px;
-  background: var(--field);
+  border-radius: 8px;
+  background: rgba(247, 250, 248, 0.72);
 }
 
 .price-quote-value {
@@ -577,7 +631,7 @@ button[type="submit"]:active,
   min-height: 92px;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
 }
@@ -608,7 +662,7 @@ button[type="submit"]:active,
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--panel);
 }
 
@@ -640,7 +694,7 @@ button[type="submit"]:active,
 /* ===== RESPONSIVE ===== */
 @media (min-width: 680px) {
   .app-shell {
-    padding-top: 24px;
+    padding-top: 18px;
   }
 
   .summary-grid {
@@ -665,7 +719,12 @@ button[type="submit"]:active,
   }
 
   .compact-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 220px);
+  }
+
+  .compact-form button[type="submit"] {
+    grid-column: auto;
+    margin-top: 0;
   }
 }
 
@@ -694,5 +753,24 @@ button[type="submit"]:active,
 
   .chart-row strong {
     text-align: left;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-header .user-info {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .app-header .user-email {
+    max-width: calc(100vw - 150px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
