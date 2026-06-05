@@ -34,18 +34,11 @@
       <div class="app-header">
         <h1>Controle Fazenda</h1>
         <div class="user-info">
+          <span id="syncStatus" class="status">Local</span>
           <span id="userEmail" class="user-email"></span>
           <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
         </div>
       </div>
-
-      <header class="hero">
-        <div class="hero-copy">
-          <span class="eyebrow">Fazenda online</span>
-          <h1>Painel de controle</h1>
-        </div>
-        <span id="syncStatus" class="status">Local</span>
-      </header>
 
       <section class="summary-grid" aria-label="Resumo">
         <article class="summary primary">
@@ -73,11 +66,15 @@
 
 
       <section id="milk" class="panel active">
-        <form id="milkForm" class="form-grid">
-          <label for="milkDate">Data</label>
-          <input id="milkDate" type="date" required>
-          <label for="liters">Litros</label>
-          <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
+        <form id="milkForm" class="form-grid compact-form">
+          <div class="field">
+            <label for="milkDate">Data</label>
+            <input id="milkDate" type="date" required>
+          </div>
+          <div class="field">
+            <label for="liters">Litros</label>
+            <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
+          </div>
           <button type="submit">Salvar produção</button>
         </form>
         <div class="section-title">
