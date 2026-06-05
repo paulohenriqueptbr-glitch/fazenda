@@ -152,6 +152,8 @@ button {
 .app-shell { display: none; }
 .app-shell.visible { display: block; }
 .login-screen.hidden { display: none; }
+.bottom-nav { display: none !important; }
+.app-shell.visible ~ .bottom-nav { display: flex !important; }
 
 /* ===== APP SHELL ===== */
 .app-shell {

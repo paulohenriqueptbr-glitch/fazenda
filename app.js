@@ -641,7 +641,7 @@ const renderBreeding = () => {
             <article class="item">
               <div>
                 <span>${escapeHtml(record.cow_id)}</span>
-                <small>Inseminação: ${formatDate(record.insemination_date)}</small>
+                <small>Prenhez: ${formatDate(record.insemination_date)}</small>
               </div>
               <strong>Parto: ${formatDate(record.expected_calving_date)}</strong>
               ${recordActions("breeding", record)}
@@ -741,6 +741,19 @@ const initApp = () => {
 
   document.addEventListener("click", handleRecordAction);
 
+  const inseminationInput = $("#inseminationDate");
+  const calvingInput = $("#expectedCalving");
+  if (inseminationInput && calvingInput) {
+    inseminationInput.addEventListener("change", () => {
+      if (!inseminationInput.value) return;
+      const date = new Date(inseminationInput.value);
+      // To prevent timezone offset issues moving it back a day:
+      date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+      date.setDate(date.getDate() + 285);
+      calvingInput.value = date.toISOString().split("T")[0];
+    });
+  }
+
   el.milkForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -792,15 +805,18 @@ const initApp = () => {
 
   el.breedingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-
-    await insertBreeding({
-      cow_id: $("#breedCowId").value,
-      insemination_date: $("#inseminationDate").value,
-      expected_calving_date: $("#expectedCalving").value,
-    });
-
-    el.breedingForm.reset();
-    render();
+    try {
+      await insertBreeding({
+        cow_id: $("#breedCowId").value,
+        insemination_date: $("#inseminationDate").value,
+        expected_calving_date: $("#expectedCalving").value || null,
+      });
+      el.breedingForm.reset();
+      render();
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao salvar: " + err.message, "error");
+    }
   });
 
   el.medicationForm.addEventListener("submit", async (event) => {
