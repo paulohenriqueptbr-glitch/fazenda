@@ -23,6 +23,21 @@ const todayIso = () => {
 const monthKey = () => todayIso().slice(0, 7);
 const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
+const showToast = (message, type = "success") => {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+    toast.style.transition = "all 0.3s";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+};
+
 const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -206,6 +221,14 @@ const loadData = async () => {
     return;
   }
 
+  if (!navigator.onLine) {
+    loadLocal();
+    setStatus("Offline (Modo Local)", "error");
+    populateCowSelects();
+    render();
+    return;
+  }
+
   try {
     await loadSupabase();
   } catch (error) {
@@ -231,82 +254,114 @@ const populateCowSelects = () => {
   $("#medCowId").innerHTML = options;
 };
 
+const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
+
+const getSyncQueue = () => {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)) || []; } catch { return []; }
+};
+
+const saveSyncQueue = (queue) => {
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+};
+
+const enqueueMutation = (type, action, payload, recordId = null) => {
+  if (!hasSupabase) return;
+  const queue = getSyncQueue();
+  queue.push({ id: localId(), type, action, payload, recordId, timestamp: Date.now() });
+  saveSyncQueue(queue);
+};
+
 const upsertMilk = async (record) => {
-  if (!hasSupabase) {
+  if (!hasSupabase || !navigator.onLine) {
     state.milk = state.milk.filter((item) => item.date !== record.date);
     state.milk.push({ ...record, id: localId() });
     writeLocal();
-    return;
+    if (!navigator.onLine) enqueueMutation("milk", "upsert", record);
+    if (!hasSupabase) return;
   }
 
-  const { error } = await db.from("milk_records").upsert(record, { onConflict: "date" });
-  if (error) throw error;
-  await loadSupabase();
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from("milk_records").upsert(record, { onConflict: "date" });
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const insertAnimal = async (animal) => {
-  if (!hasSupabase) {
-    state.animals.unshift({ ...animal, id: localId(), created_at: new Date().toISOString() });
+  const newId = localId();
+  if (!hasSupabase || !navigator.onLine) {
+    state.animals.unshift({ ...animal, id: newId, created_at: new Date().toISOString() });
     writeLocal();
-    return;
+    if (!navigator.onLine) enqueueMutation("animal", "insert", animal, newId);
+    if (!hasSupabase) return;
   }
-
-  const { error } = await db.from("animals").insert(animal);
-  if (error) throw error;
-  await loadSupabase();
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from("animals").insert(animal);
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const insertLactation = async (record) => {
-  if (!hasSupabase) {
-    state.lactations.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
-    writeLocal();
-    return;
-  }
-
-  const { error } = await db.from("lactation_records").insert({
+  const newId = localId();
+  const payload = {
     cow_id: record.cow_id,
     start_date: record.start_date,
     end_date: record.end_date || null,
     daily_liters: record.daily_liters,
-  });
-
-  if (error) throw error;
-  await loadSupabase();
+  };
+  if (!hasSupabase || !navigator.onLine) {
+    state.lactations.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+    writeLocal();
+    if (!navigator.onLine) enqueueMutation("lactation", "insert", payload, newId);
+    if (!hasSupabase) return;
+  }
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from("lactation_records").insert(payload);
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const insertBreeding = async (record) => {
-  if (!hasSupabase) {
-    state.breeding.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
-    writeLocal();
-    return;
-  }
-
-  const { error } = await db.from("breeding_records").insert({
+  const newId = localId();
+  const payload = {
     cow_id: record.cow_id,
     insemination_date: record.insemination_date,
     expected_calving_date: record.expected_calving_date,
-  });
-
-  if (error) throw error;
-  await loadSupabase();
+  };
+  if (!hasSupabase || !navigator.onLine) {
+    state.breeding.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+    writeLocal();
+    if (!navigator.onLine) enqueueMutation("breeding", "insert", payload, newId);
+    if (!hasSupabase) return;
+  }
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from("breeding_records").insert(payload);
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const insertMedication = async (record) => {
-  if (!hasSupabase) {
-    state.medication.unshift({ ...record, id: localId(), created_at: new Date().toISOString() });
-    writeLocal();
-    return;
-  }
-
-  const { error } = await db.from("medication_records").insert({
+  const newId = localId();
+  const payload = {
     cow_id: record.cow_id,
     medication_name: record.medication_name,
     dosage: record.dosage,
     administration_date: record.administration_date,
-  });
-
-  if (error) throw error;
-  await loadSupabase();
+  };
+  if (!hasSupabase || !navigator.onLine) {
+    state.medication.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+    writeLocal();
+    if (!navigator.onLine) enqueueMutation("medication", "insert", payload, newId);
+    if (!hasSupabase) return;
+  }
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from("medication_records").insert(payload);
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const collections = {
@@ -327,32 +382,76 @@ const updateRecord = async (type, id, changes) => {
   const config = collections[type];
   if (!config || !id) return;
 
-  if (!hasSupabase) {
+  if (!hasSupabase || !navigator.onLine) {
     state[config.stateKey] = state[config.stateKey].map((record) =>
       String(record.id) === String(id) ? { ...record, ...changes } : record
     );
     writeLocal();
-    return;
+    if (!navigator.onLine) enqueueMutation(type, "update", changes, id);
+    if (!hasSupabase) return;
   }
 
-  const { error } = await db.from(config.table).update(changes).eq("id", id);
-  if (error) throw error;
-  await loadSupabase();
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from(config.table).update(changes).eq("id", id);
+    if (error) throw error;
+    await loadSupabase();
+  }
 };
 
 const deleteRecord = async (type, id) => {
   const config = collections[type];
   if (!config || !id) return;
 
-  if (!hasSupabase) {
+  if (!hasSupabase || !navigator.onLine) {
     state[config.stateKey] = state[config.stateKey].filter((record) => String(record.id) !== String(id));
     writeLocal();
-    return;
+    if (!navigator.onLine) enqueueMutation(type, "delete", null, id);
+    if (!hasSupabase) return;
   }
 
-  const { error } = await db.from(config.table).delete().eq("id", id);
-  if (error) throw error;
+  if (navigator.onLine && hasSupabase) {
+    const { error } = await db.from(config.table).delete().eq("id", id);
+    if (error) throw error;
+    await loadSupabase();
+  }
+};
+
+const processSyncQueue = async () => {
+  if (!navigator.onLine || !hasSupabase) return;
+  const queue = getSyncQueue();
+  if (queue.length === 0) return;
+
+  setStatus(`Sincronizando ${queue.length}...`, "syncing");
+  const remaining = [];
+
+  for (const item of queue) {
+    try {
+      const config = collections[item.type];
+      if (!config) continue;
+      
+      if (item.action === "insert") {
+        await db.from(config.table).insert({ ...item.payload });
+      } else if (item.action === "update") {
+        await db.from(config.table).update(item.payload).eq("id", item.recordId);
+      } else if (item.action === "delete") {
+        await db.from(config.table).delete().eq("id", item.recordId);
+      } else if (item.action === "upsert") {
+        await db.from(config.table).upsert(item.payload, { onConflict: "date" });
+      }
+    } catch (err) {
+      console.error("Erro no sync", item, err);
+      remaining.push(item);
+    }
+  }
+
+  saveSyncQueue(remaining);
+  if (remaining.length === 0) {
+    setStatus("Online", "online");
+  } else {
+    setStatus(`${remaining.length} erros no sync`, "error");
+  }
   await loadSupabase();
+  render();
 };
 
 const askText = (label, currentValue = "") => {
@@ -439,7 +538,7 @@ const handleRecordAction = async (event) => {
     if (action === "delete") await removeRecord(type, id);
   } catch (error) {
     console.error(error);
-    window.alert("Não foi possível concluir a ação. Verifique o Supabase e tente novamente.");
+    showToast("Não foi possível concluir a ação.", "error");
   }
 };
 
@@ -632,9 +731,9 @@ const initApp = () => {
 
   appInitialized = true;
 
-  document.querySelectorAll(".tab").forEach((button) => {
+  document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".tab, .panel").forEach((element) => element.classList.remove("active"));
+      document.querySelectorAll(".nav-item, .panel").forEach((element) => element.classList.remove("active"));
       button.classList.add("active");
       $(`#${button.dataset.tab}`).classList.add("active");
     });
@@ -653,34 +752,37 @@ const initApp = () => {
 
       el.milkForm.reset();
       el.milkDate.value = todayIso();
+      showToast("Produção salva com sucesso!");
       render();
     } catch (err) {
       console.error(err);
-      window.alert("Erro ao salvar a produção de leite. Verifique o banco de dados Supabase: " + err.message);
+      showToast("Erro ao salvar: " + err.message, "error");
     }
   });
 
   el.animalForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    await insertAnimal({
-      identification: $("#animalName").value.trim(),
-      type: $("#animalType").value,
-      status: $("#animalStatus").value,
-    });
+    try {
+      await insertAnimal({
+        identification: $("#animalName").value.trim(),
+        type: $("#animalType").value,
+        status: $("#animalStatus").value,
+      });
 
-    el.animalForm.reset();
-    populateCowSelects();
-    render();
+      el.animalForm.reset();
+      showToast("Animal cadastrado!");
+      populateCowSelects();
+      render();
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao salvar: " + err.message, "error");
+    }
   });
 
   el.lactationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    await insertLactation({
-      cow_id: $("#lactCowId").value,
-      start_date: $("#lactStart").value,
-      end_date: $("#lactEnd").value || null,
       daily_liters: Number.parseFloat($("#lactLiters").value || "0"),
     });
 
@@ -732,6 +834,12 @@ const initApp = () => {
 const checkSession = async () => {
   if (!hasSupabase || !db) {
     showApp("Modo local");
+    initApp();
+    return;
+  }
+
+  if (!navigator.onLine) {
+    showApp("Offline (Modo Local)");
     initApp();
     return;
   }
@@ -795,5 +903,17 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js");
   });
 }
+
+window.addEventListener("online", () => {
+  if (hasSupabase && db) {
+    setStatus("Conectando...", "syncing");
+    processSyncQueue().then(() => checkSession());
+  }
+});
+
+window.addEventListener("offline", () => {
+  const q = getSyncQueue();
+  setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error");
+});
 
 checkSession();

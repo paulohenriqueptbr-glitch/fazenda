@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
     <title>Controle Fazenda</title>
     <link rel="manifest" href="manifest.webmanifest">
@@ -68,15 +70,7 @@
         </article>
       </section>
 
-      <nav class="tabs" aria-label="Seções">
-        <button class="tab active" type="button" data-tab="milk">Leite</button>
-        <button class="tab" type="button" data-tab="animals">Animais</button>
-        <button class="tab" type="button" data-tab="lactation">Lactação</button>
-        <button class="tab" type="button" data-tab="breeding">Reprodução</button>
-        <button class="tab" type="button" data-tab="medication">Medicação</button>
-        <button class="tab" type="button" data-tab="reports">Relatórios</button>
-        <button class="tab" type="button" data-tab="settings">Config</button>
-      </nav>
+
 
       <section id="milk" class="panel active">
         <form id="milkForm" class="form-grid">
@@ -201,6 +195,41 @@
         <p id="priceQuoteValue" class="price-quote-value"></p>
       </section>
     </main>
+
+    <!-- ===== BOTTOM NAVIGATION ===== -->
+    <nav class="bottom-nav" aria-label="Navegação">
+      <button class="nav-item active" type="button" data-tab="milk">
+        <span class="nav-icon">🥛</span>
+        <span>Leite</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="animals">
+        <span class="nav-icon">🐄</span>
+        <span>Animais</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="lactation">
+        <span class="nav-icon">🍼</span>
+        <span>Lactação</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="breeding">
+        <span class="nav-icon">🧬</span>
+        <span>Gestação</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="medication">
+        <span class="nav-icon">💉</span>
+        <span>Saúde</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="reports">
+        <span class="nav-icon">📊</span>
+        <span>Relatórios</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Config</span>
+      </button>
+    </nav>
+
+    <!-- ===== TOAST CONTAINER ===== -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>

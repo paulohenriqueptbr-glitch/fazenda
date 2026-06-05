@@ -157,7 +157,7 @@ button {
 .app-shell {
   width: min(100%, 860px);
   margin: 0 auto;
-  padding: 16px 14px 34px;
+  padding: 16px 14px 100px;
 }
 
 .app-header {
@@ -326,39 +326,89 @@ h2 {
   line-height: 1;
 }
 
-/* ===== TABS ===== */
-.tabs {
-  position: sticky;
-  top: 0;
-  z-index: 3;
+/* ===== BOTTOM NAVIGATION ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 16px 0;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--field);
-  box-shadow: var(--shadow);
+  overflow-x: auto;
+  gap: 8px;
+  padding: 0 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.bottom-nav::-webkit-scrollbar {
+  display: none;
 }
 
-.tab {
-  flex: 1;
-  min-height: 42px;
-  min-width: 80px;
+.nav-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  height: 100%;
   border: 0;
-  border-radius: 8px;
   background: transparent;
   color: var(--muted);
+  font-size: 0.72rem;
   font-weight: 800;
-  font-size: 0.82rem;
-  transition: all 0.15s;
+  transition: color 0.2s;
+  padding: 4px;
 }
 
-.tab.active {
-  background: var(--green);
+.nav-item.active {
+  color: var(--green);
+}
+
+.nav-icon {
+  font-size: 1.3rem;
+  margin-bottom: 2px;
+}
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-container {
+  position: fixed;
+  bottom: 84px; /* Acima da bottom nav */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+  width: max-content;
+  max-width: 90vw;
+}
+
+.toast {
+  background: var(--ink);
   color: white;
-  box-shadow: 0 4px 12px rgba(31, 107, 91, 0.2);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: toastFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-align: center;
+}
+
+.toast.success { background: var(--green); }
+.toast.error { background: var(--danger); }
+.toast.sync { background: #3b82f6; } /* Azul */
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .panel {
@@ -427,7 +477,7 @@ button[type="submit"]:hover {
 
 button[type="submit"]:active,
 .ghost:active,
-.tab:active {
+.nav-item:active {
   transform: translateY(1px);
 }
 
