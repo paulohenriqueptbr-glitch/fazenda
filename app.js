@@ -796,11 +796,21 @@ const initApp = () => {
   el.lactationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-      daily_liters: Number.parseFloat($("#lactLiters").value || "0"),
-    });
+    try {
+      await insertLactation({
+        cow_id: $("#lactCowId").value,
+        start_date: $("#lactStart").value,
+        end_date: $("#lactEnd").value || null,
+        daily_liters: Number.parseFloat($("#lactLiters").value || "0"),
+      });
 
-    el.lactationForm.reset();
-    render();
+      el.lactationForm.reset();
+      showToast("Lactacao registrada!");
+      render();
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao salvar: " + err.message, "error");
+    }
   });
 
   el.breedingForm.addEventListener("submit", async (event) => {
