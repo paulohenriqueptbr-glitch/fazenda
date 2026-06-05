@@ -1,7 +1,7 @@
 const url = "https://ihpckthkvtlvibpkcaih.supabase.co/rest/v1/lactation_records?select=*";
 const headers = {
-  apikey: "sb_publishable_iypiW6CZ90rCNHG79oKGiQ_jDuKyPFN",
-  Authorization: "Bearer sb_publishable_iypiW6CZ90rCNHG79oKGiQ_jDuKyPFN"
+  apikey: "",
+  Authorization: ""
 };
 
 fetch(url, { headers })
