@@ -1,13 +1,13 @@
 {
-  "name": "Controle Leite",
-  "short_name": "Leite",
-  "description": "Controle simples de producao de leite.",
+  "name": "Controle Fazenda",
+  "short_name": "Fazenda",
+  "description": "Sistema de gerenciamento de fazenda leiteira.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f7f4",
-  "theme_color": "#22685c",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6b5b",
   "icons": [
     {
       "src": "icons/icon-192.png",
