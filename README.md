@@ -44,6 +44,7 @@ http://127.0.0.1:5173
 3. Abra o SQL Editor.
 4. Rode todo o conteúdo de `supabase-schema.sql`.
 5. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+   - A aplicação também aceita `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 6. Não coloque `.env`, `config.js` ou chaves reais no repositório.
 
 ## Publicar na Vercel

@@ -13,13 +13,22 @@ const types = {
   ".png": "image/png",
 };
 
+const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
+
 http
   .createServer((request, response) => {
     const url = decodeURIComponent(request.url.split("?")[0]);
 
     if (url === "/api/config.js") {
-      const supabaseUrl = process.env.SUPABASE_URL || "";
-      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+      const supabaseUrl = pickEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
+      const supabaseAnonKey = pickEnv(
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_SUPABASE_PUBLISHABLE_KEY"
+      );
 
       response.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
