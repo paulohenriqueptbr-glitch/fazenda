@@ -5,6 +5,34 @@ const path = require("path");
 const root = __dirname;
 const port = 5173;
 
+const loadDotEnv = () => {
+  const envPath = path.join(root, ".env");
+
+  if (!fs.existsSync(envPath)) return;
+
+  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed
+      .slice(separatorIndex + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+
+    if (key && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+};
+
+loadDotEnv();
+
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",

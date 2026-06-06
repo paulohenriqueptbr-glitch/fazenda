@@ -27,6 +27,15 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 
 ## Rodar localmente
 
+Crie um arquivo `.env` na pasta do projeto com suas credenciais públicas do Supabase:
+
+```text
+SUPABASE_URL=https://SEU-PROJETO.supabase.co
+SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLIC
+```
+
+Depois rode:
+
 ```powershell
 node server.js
 ```
@@ -37,15 +46,18 @@ Depois acesse:
 http://127.0.0.1:5173
 ```
 
+O login local precisa de internet para validar e-mail e senha no Supabase. Depois de entrar uma vez online, o app consegue abrir offline com a sessão salva e guardar registros para sincronizar depois.
+
 ## Configurar Supabase
 
 1. Crie um projeto no Supabase.
 2. Em Authentication, crie o usuário administrador.
 3. Abra o SQL Editor.
-4. Rode todo o conteúdo de `supabase-schema.sql`.
-5. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+4. Para banco novo, rode todo o conteúdo de `supabase-schema.sql`.
+5. Para banco já existente, prefira rodar `supabase-security-migration.sql`, que ativa RLS e adiciona políticas sem apagar tabelas.
+6. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
    - A aplicação também aceita `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-6. Não coloque `.env`, `config.js` ou chaves reais no repositório.
+7. Não coloque `.env`, `config.js` ou chaves reais no repositório.
 
 ## Publicar na Vercel
 
@@ -62,3 +74,7 @@ http://127.0.0.1:5173
 - O app usa apenas a chave pública anon do Supabase no navegador.
 - O isolamento dos dados deve ser feito com RLS no Supabase usando `user_id`.
 - Nunca use a `service_role` key no frontend ou em arquivos públicos.
+- Regenerar a anon/publishable key se ela já apareceu em commits antigos.
+- Ativar rate limit no Supabase Auth, por exemplo 5 tentativas de login por hora por IP.
+- Usar `supabase-security-migration.sql` para reforçar RLS, políticas e constraints em bancos já existentes.
+- A aba Config possui exportação manual em JSON para backup dos dados visíveis ao usuário logado.

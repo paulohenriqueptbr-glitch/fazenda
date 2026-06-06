@@ -21,6 +21,7 @@ create table milk_records (
   liters numeric(10, 2) not null check (liters >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  check (date <= current_date),
   -- Uma data por usuário (não múltiplos registros no mesmo dia)
   unique(user_id, date)
 );
@@ -53,9 +54,10 @@ create table lactation_records (
   cow_id text not null,
   start_date date not null,
   end_date date,
-  daily_liters numeric(10, 2) not null check (daily_liters >= 0),
+  daily_liters numeric(10, 2) not null check (daily_liters > 0),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (end_date is null or start_date <= end_date)
 );
 
 create index idx_lactation_user on lactation_records(user_id, start_date desc);
@@ -70,7 +72,8 @@ create table breeding_records (
   insemination_date date not null,
   expected_calving_date date,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (expected_calving_date is null or insemination_date <= expected_calving_date)
 );
 
 create index idx_breeding_user on breeding_records(user_id, insemination_date desc);

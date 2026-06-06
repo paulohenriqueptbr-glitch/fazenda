@@ -1,5 +1,7 @@
 const LOCAL_KEY = "controle-fazenda-data";
 const PRICE_QUOTE_KEY = "milk_price_quote";
+const MAX_LOGIN_ATTEMPTS = 5;
+const PAGE_SIZE = 100;
 
 const state = {
   milk: [],
@@ -14,6 +16,7 @@ const config = window.CONTROLE_LEITE_CONFIG || {};
 const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
 let currentUserId = null;
+let failedLoginAttempts = 0;
 
 const $ = (selector) => document.querySelector(selector);
 const todayIso = () => {
@@ -94,6 +97,7 @@ const el = {
   priceQuoteInput: $("#priceQuoteInput"),
   priceQuoteValue: $("#priceQuoteValue"),
   refreshButton: $("#refreshButton"),
+  exportDataButton: $("#exportDataButton"),
   reportMonthTotal: $("#reportMonthTotal"),
   reportMonthValue: $("#reportMonthValue"),
   reportAverage: $("#reportAverage"),
@@ -125,6 +129,60 @@ const showLogin = () => {
 const showLoginError = (message) => {
   loginError.textContent = message;
   loginError.classList.add("visible");
+};
+
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const supabaseErrorMessage = (error) => {
+  const raw = String(error?.message || error?.code || error || "").toLowerCase();
+
+  if (raw.includes("jwt") || raw.includes("session")) return "Sua sessão expirou. Faça login novamente.";
+  if (raw.includes("network") || raw.includes("fetch") || raw.includes("failed to fetch")) {
+    return "Sem conexão com o servidor. Os dados ficarão salvos para sincronizar.";
+  }
+  if (raw.includes("row-level security") || raw.includes("permission denied") || raw.includes("42501")) {
+    return "Acesso negado pelo Supabase. Confira seu login e as políticas RLS.";
+  }
+  if (raw.includes("429") || raw.includes("rate limit")) {
+    return "Muitas tentativas. Aguarde um momento e tente novamente.";
+  }
+  if (raw.includes("violates check constraint") || raw.includes("23514")) {
+    return "Dados inválidos. Confira os valores informados.";
+  }
+  if (raw.includes("duplicate key") || raw.includes("23505")) {
+    return "Já existe um registro com essas informações.";
+  }
+
+  return "Erro ao comunicar com o servidor. Tente novamente.";
+};
+
+const handleSupabaseError = (error, context = "") => {
+  console.error(`Erro Supabase${context ? ` [${context}]` : ""}:`, error);
+  const message = supabaseErrorMessage(error);
+  showToast(message, "error");
+  return message;
+};
+
+const requireSession = async () => {
+  if (!hasSupabase || !db) return null;
+
+  const {
+    data: { session },
+    error,
+  } = await db.auth.getSession();
+
+  if (error) throw error;
+
+  if (!session?.user) {
+    currentUserId = null;
+    showLogin();
+    const error = new Error("Sua sessão expirou. Faça login novamente.");
+    error.authRequired = true;
+    throw error;
+  }
+
+  currentUserId = session.user.id;
+  return session;
 };
 
 const readLocal = () => {
@@ -176,6 +234,7 @@ const savePriceQuote = async (value) => {
     return;
   }
 
+  await requireSession();
   const { error } = await db.from("app_settings").upsert(
     {
       key: PRICE_QUOTE_KEY,
@@ -193,11 +252,11 @@ const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
 
   const [milkResult, animalResult, lactationResult, breedingResult, medicationResult] = await Promise.all([
-    db.from("milk_records").select("*").order("date", { ascending: false }),
-    db.from("animals").select("*").order("created_at", { ascending: false }),
-    db.from("lactation_records").select("*").order("start_date", { ascending: false }),
-    db.from("breeding_records").select("*").order("insemination_date", { ascending: false }),
-    db.from("medication_records").select("*").order("administration_date", { ascending: false }),
+    db.from("milk_records").select("*").order("date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("animals").select("*").order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("lactation_records").select("*").order("start_date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("breeding_records").select("*").order("insemination_date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("medication_records").select("*").order("administration_date", { ascending: false }).range(0, PAGE_SIZE - 1),
   ]);
 
   const error =
@@ -226,20 +285,13 @@ const loadData = async () => {
     return;
   }
 
-  if (!navigator.onLine) {
-    loadLocal();
-    setStatus("Offline (Modo Local)", "error");
-    populateCowSelects();
-    render();
-    return;
-  }
-
   try {
+    await processSyncQueue({ refresh: false });
     await loadSupabase();
   } catch (error) {
-    console.error("Supabase error:", error);
+    console.error("Supabase load error:", error);
     loadLocal();
-    setStatus("Erro Supabase", "error");
+    setStatus(navigator.onLine ? supabaseErrorMessage(error) : "Offline (Modo Local)", "error");
   }
 
   populateCowSelects();
@@ -277,34 +329,45 @@ const enqueueMutation = (type, action, payload, recordId = null) => {
 };
 
 const upsertMilk = async (record) => {
-  if (!hasSupabase || !navigator.onLine) {
-    state.milk = state.milk.filter((item) => item.date !== record.date);
-    state.milk.push({ ...record, id: localId() });
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation("milk", "upsert", record);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("milk_records").upsert(withCurrentUser(record), { onConflict: "user_id,date" });
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar produção");
+      enqueueMutation("milk", "upsert", record);
+      setStatus("Offline (pendente)", "error");
+    }
   }
 
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("milk_records").upsert(withCurrentUser(record), { onConflict: "user_id,date" });
-    if (error) throw error;
-    await loadSupabase();
-  }
+  state.milk = state.milk.filter((item) => item.date !== record.date);
+  state.milk.push({ ...record, id: localId() });
+  writeLocal();
 };
 
 const insertAnimal = async (animal) => {
   const newId = localId();
-  if (!hasSupabase || !navigator.onLine) {
-    state.animals.unshift({ ...animal, id: newId, created_at: new Date().toISOString() });
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation("animal", "insert", animal, newId);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("animals").insert(withCurrentUser(animal));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar animal");
+      enqueueMutation("animal", "insert", animal, newId);
+      setStatus("Offline (pendente)", "error");
+    }
   }
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("animals").insert(withCurrentUser(animal));
-    if (error) throw error;
-    await loadSupabase();
-  }
+
+  state.animals.unshift({ ...animal, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
 };
 
 const insertLactation = async (record) => {
@@ -315,17 +378,23 @@ const insertLactation = async (record) => {
     end_date: record.end_date || null,
     daily_liters: record.daily_liters,
   };
-  if (!hasSupabase || !navigator.onLine) {
-    state.lactations.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation("lactation", "insert", payload, newId);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("lactation_records").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar lactação");
+      enqueueMutation("lactation", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
   }
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("lactation_records").insert(withCurrentUser(payload));
-    if (error) throw error;
-    await loadSupabase();
-  }
+
+  state.lactations.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
 };
 
 const insertBreeding = async (record) => {
@@ -335,17 +404,23 @@ const insertBreeding = async (record) => {
     insemination_date: record.insemination_date,
     expected_calving_date: record.expected_calving_date,
   };
-  if (!hasSupabase || !navigator.onLine) {
-    state.breeding.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation("breeding", "insert", payload, newId);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("breeding_records").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar reprodução");
+      enqueueMutation("breeding", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
   }
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("breeding_records").insert(withCurrentUser(payload));
-    if (error) throw error;
-    await loadSupabase();
-  }
+
+  state.breeding.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
 };
 
 const insertMedication = async (record) => {
@@ -356,17 +431,23 @@ const insertMedication = async (record) => {
     dosage: record.dosage,
     administration_date: record.administration_date,
   };
-  if (!hasSupabase || !navigator.onLine) {
-    state.medication.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation("medication", "insert", payload, newId);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("medication_records").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar medicação");
+      enqueueMutation("medication", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
   }
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from("medication_records").insert(withCurrentUser(payload));
-    if (error) throw error;
-    await loadSupabase();
-  }
+
+  state.medication.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
 };
 
 const collections = {
@@ -387,45 +468,56 @@ const updateRecord = async (type, id, changes) => {
   const config = collections[type];
   if (!config || !id) return;
 
-  if (!hasSupabase || !navigator.onLine) {
-    state[config.stateKey] = state[config.stateKey].map((record) =>
-      String(record.id) === String(id) ? { ...record, ...changes } : record
-    );
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation(type, "update", changes, id);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from(config.table).update(changes).eq("id", id);
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "atualizar registro");
+      enqueueMutation(type, "update", changes, id);
+      setStatus("Offline (pendente)", "error");
+    }
   }
 
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from(config.table).update(changes).eq("id", id);
-    if (error) throw error;
-    await loadSupabase();
-  }
+  state[config.stateKey] = state[config.stateKey].map((record) =>
+    String(record.id) === String(id) ? { ...record, ...changes } : record
+  );
+  writeLocal();
 };
 
 const deleteRecord = async (type, id) => {
   const config = collections[type];
   if (!config || !id) return;
 
-  if (!hasSupabase || !navigator.onLine) {
-    state[config.stateKey] = state[config.stateKey].filter((record) => String(record.id) !== String(id));
-    writeLocal();
-    if (!navigator.onLine) enqueueMutation(type, "delete", null, id);
-    if (!hasSupabase) return;
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from(config.table).delete().eq("id", id);
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "excluir registro");
+      enqueueMutation(type, "delete", null, id);
+      setStatus("Offline (pendente)", "error");
+    }
   }
 
-  if (navigator.onLine && hasSupabase) {
-    const { error } = await db.from(config.table).delete().eq("id", id);
-    if (error) throw error;
-    await loadSupabase();
-  }
+  state[config.stateKey] = state[config.stateKey].filter((record) => String(record.id) !== String(id));
+  writeLocal();
 };
 
-const processSyncQueue = async () => {
-  if (!navigator.onLine || !hasSupabase) return;
+const processSyncQueue = async ({ refresh = true } = {}) => {
+  if (!hasSupabase) return;
   const queue = getSyncQueue();
   if (queue.length === 0) return;
 
+  await requireSession();
   setStatus(`Sincronizando ${queue.length}...`, "syncing");
   const remaining = [];
 
@@ -444,7 +536,7 @@ const processSyncQueue = async () => {
         await db.from(config.table).upsert({ ...item.payload, user_id: currentUserId }, { onConflict: "user_id,date" });
       }
     } catch (err) {
-      console.error("Erro no sync", item, err);
+      handleSupabaseError(err, "sincronizar pendência");
       remaining.push(item);
     }
   }
@@ -455,8 +547,10 @@ const processSyncQueue = async () => {
   } else {
     setStatus(`${remaining.length} erros no sync`, "error");
   }
-  await loadSupabase();
-  render();
+  if (refresh) {
+    await loadSupabase();
+    render();
+  }
 };
 
 const askText = (label, currentValue = "") => {
@@ -726,6 +820,25 @@ const render = () => {
   renderReports();
 };
 
+const exportDataBackup = () => {
+  const backup = {
+    exported_at: new Date().toISOString(),
+    user_id: currentUserId,
+    data: state,
+    pending_sync: getSyncQueue(),
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `controle-fazenda-backup-${todayIso()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("Backup exportado com sucesso!");
+};
+
 let appInitialized = false;
 
 const initApp = () => {
@@ -774,8 +887,7 @@ const initApp = () => {
       showToast("Produção salva com sucesso!");
       render();
     } catch (err) {
-      console.error(err);
-      showToast("Erro ao salvar: " + err.message, "error");
+      handleSupabaseError(err, "formulário de produção");
     }
   });
 
@@ -795,8 +907,7 @@ const initApp = () => {
       populateCowSelects();
       render();
     } catch (err) {
-      console.error(err);
-      showToast("Erro ao salvar: " + err.message, "error");
+      handleSupabaseError(err, "formulário de animal");
     }
   });
 
@@ -815,8 +926,7 @@ const initApp = () => {
       showToast("Lactacao registrada!");
       render();
     } catch (err) {
-      console.error(err);
-      showToast("Erro ao salvar: " + err.message, "error");
+      handleSupabaseError(err, "formulário de lactação");
     }
   });
 
@@ -831,35 +941,43 @@ const initApp = () => {
       el.breedingForm.reset();
       render();
     } catch (err) {
-      console.error(err);
-      showToast("Erro ao salvar: " + err.message, "error");
+      handleSupabaseError(err, "formulário de reprodução");
     }
   });
 
   el.medicationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    await insertMedication({
-      cow_id: $("#medCowId").value,
-      medication_name: $("#medName").value.trim(),
-      dosage: $("#medDosage").value.trim(),
-      administration_date: $("#medDate").value,
-    });
+    try {
+      await insertMedication({
+        cow_id: $("#medCowId").value,
+        medication_name: $("#medName").value.trim(),
+        dosage: $("#medDosage").value.trim(),
+        administration_date: $("#medDate").value,
+      });
 
-    el.medicationForm.reset();
-    render();
+      el.medicationForm.reset();
+      render();
+    } catch (err) {
+      handleSupabaseError(err, "formulário de medicação");
+    }
   });
 
   el.priceQuoteForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    await savePriceQuote(Number.parseFloat(el.priceQuoteInput.value || "0"));
-    writeLocal();
-    render();
-    el.priceQuoteForm.reset();
+    try {
+      await savePriceQuote(Number.parseFloat(el.priceQuoteInput.value || "0"));
+      writeLocal();
+      render();
+      el.priceQuoteForm.reset();
+    } catch (err) {
+      handleSupabaseError(err, "salvar cotação");
+    }
   });
 
   el.refreshButton.addEventListener("click", loadData);
+  el.exportDataButton?.addEventListener("click", exportDataBackup);
   el.milkDate.value = todayIso();
   loadData();
 };
@@ -867,7 +985,7 @@ const initApp = () => {
 const checkSession = async () => {
   if (!hasSupabase || !db) {
     showLogin();
-    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis na Vercel.");
+    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis do ambiente.");
     return;
   }
 
@@ -899,8 +1017,13 @@ loginForm.addEventListener("submit", async (event) => {
   const email = $("#loginEmail").value.trim();
   const password = $("#loginPassword").value;
 
+  if (failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+    showLoginError("Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
+    return;
+  }
+
   if (!hasSupabase || !db) {
-    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis na Vercel.");
+    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis do ambiente.");
     return;
   }
 
@@ -913,10 +1036,17 @@ loginForm.addEventListener("submit", async (event) => {
     const { data, error } = await db.auth.signInWithPassword({ email, password });
 
     if (error) {
-      showLoginError(error.message === "Invalid login credentials" ? "E-mail ou senha incorretos." : error.message);
+      failedLoginAttempts += 1;
+      await delay(Math.min(failedLoginAttempts * 2000, 30000));
+      const message =
+        error.message === "Invalid login credentials"
+          ? `E-mail ou senha incorretos. Tentativa ${failedLoginAttempts}/${MAX_LOGIN_ATTEMPTS}.`
+          : supabaseErrorMessage(error);
+      showLoginError(message);
       return;
     }
 
+    failedLoginAttempts = 0;
     currentUserId = data.user.id;
     showApp(data.user.email);
     initApp();
@@ -938,6 +1068,20 @@ logoutBtn.addEventListener("click", async () => {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js");
+  });
+}
+
+if (hasSupabase && db) {
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT" || !session?.user) {
+      currentUserId = null;
+      showLogin();
+      return;
+    }
+
+    currentUserId = session.user.id;
+    showApp(session.user.email);
+    initApp();
   });
 }
 

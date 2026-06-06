@@ -523,6 +523,10 @@ button[type="submit"]:active,
   transition: background 0.2s;
 }
 
+.full-width {
+  width: 100%;
+}
+
 .ghost:hover {
   background: var(--field);
 }
