@@ -494,6 +494,20 @@ const deleteRecord = async (type, id) => {
   const config = collections[type];
   if (!config || !id) return;
 
+  if (type === "animal" && hasSupabase) {
+    try {
+      await requireSession();
+      const animalId = String(id);
+      await Promise.all([
+        db.from("lactation_records").delete().eq("cow_id", animalId),
+        db.from("breeding_records").delete().eq("cow_id", animalId),
+        db.from("medication_records").delete().eq("cow_id", animalId),
+      ]);
+    } catch (err) {
+      console.warn("Aviso ao limpar registros relacionados:", err);
+    }
+  }
+
   if (hasSupabase) {
     try {
       await requireSession();
@@ -554,67 +568,153 @@ const processSyncQueue = async ({ refresh = true } = {}) => {
   }
 };
 
-const askText = (label, currentValue = "") => {
-  const value = window.prompt(label, currentValue ?? "");
-  return value === null ? null : value.trim();
+// Validação de datas
+const isValidDate = (dateStr) => {
+  const date = new Date(dateStr + "T00:00:00");
+  return !Number.isNaN(date.getTime());
 };
 
-const askNumber = (label, currentValue = 0) => {
-  const value = window.prompt(label, String(currentValue ?? 0).replace(".", ","));
-  if (value === null) return null;
-  const normalized = value.replace(",", ".");
-  const number = Number.parseFloat(normalized);
-  return Number.isFinite(number) && number >= 0 ? number : null;
+const isNotFutureDate = (dateStr) => {
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date <= today;
+};
+
+const isValidDateRange = (startStr, endStr) => {
+  if (!endStr) return true;
+  const start = new Date(startStr + "T00:00:00");
+  const end = new Date(endStr + "T00:00:00");
+  return start <= end;
+};
+
+const validateNumber = (value, min = 0, max = 10000) => {
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) && num >= min && num <= max ? num : null;
+};
+
+const showEditModal = (type, record) => {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+    modal.className = "edit-modal-overlay";
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+      justify-content: center; z-index: 1000;
+    `;
+
+    const getInputsHTML = () => {
+      if (type === "milk") {
+        return `<label>Litros: <input type="number" name="liters" min="0" max="1000" step="0.1" value="${record.liters}" required></label>`;
+      } else if (type === "animal") {
+        return `
+          <label>Tipo: <input type="text" name="type" value="${escapeHtml(record.type)}" required></label>
+          <label>Status: <input type="text" name="status" value="${escapeHtml(record.status)}" required></label>
+        `;
+      } else if (type === "lactation") {
+        return `
+          <label>Litros/dia: <input type="number" name="daily_liters" min="0" max="500" step="0.1" value="${record.daily_liters}" required></label>
+          <label>Fim (AAAA-MM-DD): <input type="date" name="end_date" value="${record.end_date || ''}"></label>
+        `;
+      } else if (type === "breeding") {
+        return `<label>Parto previsto: <input type="date" name="expected_calving_date" value="${record.expected_calving_date || ''}" required></label>`;
+      } else if (type === "medication") {
+        return `
+          <label>Medicamento: <input type="text" name="medication_name" value="${escapeHtml(record.medication_name)}" required></label>
+          <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
+          <label>Data: <input type="date" name="administration_date" value="${record.administration_date}" required></label>
+        `;
+      }
+      return "";
+    };
+
+    modal.innerHTML = `
+      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,0.2);">
+        <h2 style="margin-top: 0; font-size: 1.25rem;">Editar Registro</h2>
+        <form id="editForm" style="display: grid; gap: 12px;">
+          ${getInputsHTML()}
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
+            <button type="button" id="cancelBtn" style="padding: 10px; background: #ddd; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">Cancelar</button>
+            <button type="submit" style="padding: 10px; background: #176c56; color: white; border: none; border-radius: 4px; cursor: pointer;">Salvar</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const form = modal.querySelector("#editForm");
+    const cancelBtn = modal.querySelector("#cancelBtn");
+
+    const cleanup = () => {
+      modal.remove();
+    };
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData);
+      cleanup();
+      resolve(data);
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      cleanup();
+      resolve(null);
+    });
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        cleanup();
+        resolve(null);
+      }
+    });
+  });
 };
 
 const editRecord = async (type, id) => {
   const record = findRecord(type, id);
   if (!record) return;
 
-  if (type === "milk") {
-    const liters = askNumber("Litros produzidos", record.liters);
-    if (liters === null) return;
-    await updateRecord(type, id, { liters });
-  }
+  const data = await showEditModal(type, record);
+  if (!data) return;
 
-  if (type === "animal") {
-    const animalType = askText("Tipo do animal", record.type);
-    if (animalType === null || !animalType) return;
-    const status = askText("Status do animal", record.status);
-    if (status === null || !status) return;
-    await updateRecord(type, id, { type: animalType, status });
+  try {
+    if (type === "milk") {
+      const liters = validateNumber(data.liters, 0, 1000);
+      if (liters === null) throw new Error("Litros inválido (0-1000)");
+      await updateRecord(type, id, { liters });
+    } else if (type === "animal") {
+      if (!data.type?.trim()) throw new Error("Tipo inválido");
+      if (!data.status?.trim()) throw new Error("Status inválido");
+      await updateRecord(type, id, { type: data.type.trim(), status: data.status.trim() });
+    } else if (type === "lactation") {
+      const dailyLiters = validateNumber(data.daily_liters, 0, 500);
+      if (dailyLiters === null) throw new Error("Litros/dia inválido (0-500)");
+      if (data.end_date && !isValidDateRange(record.start_date, data.end_date)) {
+        throw new Error("Data de fim não pode ser antes do início");
+      }
+      await updateRecord(type, id, { daily_liters: dailyLiters, end_date: data.end_date || null });
+    } else if (type === "breeding") {
+      if (!data.expected_calving_date) throw new Error("Data de parto obrigatória");
+      if (!isValidDate(data.expected_calving_date)) throw new Error("Data inválida");
+      await updateRecord(type, id, { expected_calving_date: data.expected_calving_date });
+    } else if (type === "medication") {
+      if (!data.medication_name?.trim()) throw new Error("Medicamento inválido");
+      if (!data.administration_date) throw new Error("Data de aplicação obrigatória");
+      if (!isValidDate(data.administration_date)) throw new Error("Data inválida");
+      await updateRecord(type, id, {
+        medication_name: data.medication_name.trim(),
+        dosage: (data.dosage || "").trim(),
+        administration_date: data.administration_date,
+      });
+    }
+    populateCowSelects();
+    render();
+    showToast("Registro atualizado com sucesso!");
+  } catch (error) {
+    showToast(error.message || "Erro ao editar", "error");
   }
-
-  if (type === "lactation") {
-    const dailyLiters = askNumber("Litros por dia", record.daily_liters);
-    if (dailyLiters === null) return;
-    const endDate = askText("Data de fim (AAAA-MM-DD). Deixe vazio se estiver atual.", record.end_date || "");
-    if (endDate === null) return;
-    await updateRecord(type, id, { daily_liters: dailyLiters, end_date: endDate || null });
-  }
-
-  if (type === "breeding") {
-    const expectedCalvingDate = askText("Parto previsto (AAAA-MM-DD)", record.expected_calving_date || "");
-    if (expectedCalvingDate === null || !expectedCalvingDate) return;
-    await updateRecord(type, id, { expected_calving_date: expectedCalvingDate });
-  }
-
-  if (type === "medication") {
-    const medicationName = askText("Medicamento", record.medication_name);
-    if (medicationName === null || !medicationName) return;
-    const dosage = askText("Dosagem", record.dosage || "");
-    if (dosage === null) return;
-    const administrationDate = askText("Data de aplicação (AAAA-MM-DD)", record.administration_date);
-    if (administrationDate === null || !administrationDate) return;
-    await updateRecord(type, id, {
-      medication_name: medicationName,
-      dosage,
-      administration_date: administrationDate,
-    });
-  }
-
-  populateCowSelects();
-  render();
 };
 
 const removeRecord = async (type, id) => {
@@ -850,24 +950,33 @@ const initApp = () => {
 
   appInitialized = true;
 
-  document.querySelectorAll(".nav-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".nav-item, .panel").forEach((element) => element.classList.remove("active"));
-      button.classList.add("active");
-      $(`#${button.dataset.tab}`).classList.add("active");
+  if (!document.body._tabListenersAttached) {
+    document.body._tabListenersAttached = true;
+    document.querySelectorAll(".nav-item").forEach((button) => {
+      if (!button._clickListenerAttached) {
+        button._clickListenerAttached = true;
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".nav-item, .panel").forEach((element) => element.classList.remove("active"));
+          button.classList.add("active");
+          $(`#${button.dataset.tab}`).classList.add("active");
+        });
+      }
     });
-  });
+  }
 
-  document.addEventListener("click", handleRecordAction);
+  if (!document.body._recordActionsAttached) {
+    document.body._recordActionsAttached = true;
+    document.addEventListener("click", handleRecordAction);
+  }
 
   const inseminationInput = $("#inseminationDate");
   const calvingInput = $("#expectedCalving");
-  if (inseminationInput && calvingInput) {
+  if (inseminationInput && calvingInput && !inseminationInput._listenerAttached) {
+    inseminationInput._listenerAttached = true;
     inseminationInput.addEventListener("change", () => {
       if (!inseminationInput.value) return;
-      const date = new Date(inseminationInput.value);
-      // To prevent timezone offset issues moving it back a day:
-      date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+      const [year, month, day] = inseminationInput.value.split("-");
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
       date.setDate(date.getDate() + 285);
       calvingInput.value = date.toISOString().split("T")[0];
     });
@@ -877,9 +986,17 @@ const initApp = () => {
     event.preventDefault();
 
     try {
+      const dateValue = $("#milkDate").value;
+      const litersValue = Number.parseFloat($("#liters").value || "0");
+
+      if (!isValidDate(dateValue)) throw new Error("Data inválida");
+      if (!isNotFutureDate(dateValue)) throw new Error("Não pode registrar produção futura");
+      const liters = validateNumber(litersValue, 0, 1000);
+      if (liters === null) throw new Error("Litros inválido (0-1000)");
+
       await upsertMilk({
-        date: $("#milkDate").value,
-        liters: Number.parseFloat($("#liters").value || "0"),
+        date: dateValue,
+        liters,
         user_id: currentUserId,
       });
 
@@ -888,7 +1005,8 @@ const initApp = () => {
       showToast("Produção salva com sucesso!");
       render();
     } catch (err) {
-      handleSupabaseError(err, "formulário de produção");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao salvar produção", "error");
     }
   });
 
@@ -896,8 +1014,11 @@ const initApp = () => {
     event.preventDefault();
 
     try {
+      const identification = $("#animalName").value.trim();
+      if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
+      
       await insertAnimal({
-        identification: $("#animalName").value.trim(),
+        identification,
         type: $("#animalType").value,
         status: $("#animalStatus").value,
         user_id: currentUserId,
@@ -908,7 +1029,8 @@ const initApp = () => {
       populateCowSelects();
       render();
     } catch (err) {
-      handleSupabaseError(err, "formulário de animal");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao cadastrar animal", "error");
     }
   });
 
@@ -916,33 +1038,54 @@ const initApp = () => {
     event.preventDefault();
 
     try {
+      const startDate = $("#lactStart").value;
+      const endDate = $("#lactEnd").value || null;
+      const dailyLiters = Number.parseFloat($("#lactLiters").value || "0");
+
+      if (!isValidDate(startDate)) throw new Error("Data de início inválida");
+      if (endDate && !isValidDate(endDate)) throw new Error("Data de fim inválida");
+      if (!isValidDateRange(startDate, endDate)) throw new Error("Data de fim não pode ser antes do início");
+      
+      const liters = validateNumber(dailyLiters, 0, 500);
+      if (liters === null) throw new Error("Litros/dia inválido (0-500)");
+
       await insertLactation({
         cow_id: $("#lactCowId").value,
-        start_date: $("#lactStart").value,
-        end_date: $("#lactEnd").value || null,
-        daily_liters: Number.parseFloat($("#lactLiters").value || "0"),
+        start_date: startDate,
+        end_date: endDate,
+        daily_liters: liters,
       });
 
       el.lactationForm.reset();
-      showToast("Lactacao registrada!");
+      showToast("Lactação registrada!");
       render();
     } catch (err) {
-      handleSupabaseError(err, "formulário de lactação");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao registrar lactação", "error");
     }
   });
 
   el.breedingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
+      const insemDate = $("#inseminationDate").value;
+      const calvingDate = $("#expectedCalving").value;
+
+      if (!isValidDate(insemDate)) throw new Error("Data de inseminação inválida");
+      if (!isValidDate(calvingDate)) throw new Error("Data de parto inválida");
+      if (!isValidDateRange(insemDate, calvingDate)) throw new Error("Parto não pode ser antes de inseminação");
+
       await insertBreeding({
         cow_id: $("#breedCowId").value,
-        insemination_date: $("#inseminationDate").value,
-        expected_calving_date: $("#expectedCalving").value || null,
+        insemination_date: insemDate,
+        expected_calving_date: calvingDate,
       });
       el.breedingForm.reset();
       render();
+      showToast("Reprodução registrada!");
     } catch (err) {
-      handleSupabaseError(err, "formulário de reprodução");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao registrar reprodução", "error");
     }
   });
 
@@ -950,17 +1093,26 @@ const initApp = () => {
     event.preventDefault();
 
     try {
+      const medName = $("#medName").value.trim();
+      const medDate = $("#medDate").value;
+
+      if (!medName || medName.length > 100) throw new Error("Medicamento deve ter 1-100 caracteres");
+      if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
+      if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
+
       await insertMedication({
         cow_id: $("#medCowId").value,
-        medication_name: $("#medName").value.trim(),
-        dosage: $("#medDosage").value.trim(),
-        administration_date: $("#medDate").value,
+        medication_name: medName,
+        dosage: $("#medDosage").value.trim().substring(0, 100),
+        administration_date: medDate,
       });
 
       el.medicationForm.reset();
       render();
+      showToast("Medicação registrada!");
     } catch (err) {
-      handleSupabaseError(err, "formulário de medicação");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao registrar medicação", "error");
     }
   });
 
@@ -968,17 +1120,28 @@ const initApp = () => {
     event.preventDefault();
 
     try {
-      await savePriceQuote(Number.parseFloat(el.priceQuoteInput.value || "0"));
+      const price = validateNumber(el.priceQuoteInput.value || "0", 0, 100);
+      if (price === null) throw new Error("Cotação inválida (0-100)");
+      
+      await savePriceQuote(price);
       writeLocal();
       render();
       el.priceQuoteForm.reset();
+      showToast("Cotação atualizada!");
     } catch (err) {
-      handleSupabaseError(err, "salvar cotação");
+      if (err.authRequired) throw err;
+      showToast(err.message || "Erro ao salvar cotação", "error");
     }
   });
 
-  el.refreshButton.addEventListener("click", loadData);
-  el.exportDataButton?.addEventListener("click", exportDataBackup);
+  if (!el.refreshButton._listenerAttached) {
+    el.refreshButton._listenerAttached = true;
+    el.refreshButton.addEventListener("click", loadData);
+  }
+  if (el.exportDataButton && !el.exportDataButton._listenerAttached) {
+    el.exportDataButton._listenerAttached = true;
+    el.exportDataButton.addEventListener("click", exportDataBackup);
+  }
   el.milkDate.value = todayIso();
   loadData();
 };
