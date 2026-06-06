@@ -3,6 +3,13 @@ const PRICE_QUOTE_KEY = "milk_price_quote";
 const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
 
+// Thresholds para status de produção
+const PRODUCTION_THRESHOLDS = {
+  critical: 0.5,  // Menos de 50% da média = CRÍTICO
+  warning: 0.75,  // Menos de 75% da média = BAIXO
+  good: 1.0       // >= média = BOM
+};
+
 const state = {
   milk: [],
   animals: [],
@@ -65,6 +72,19 @@ const escapeHtml = (value) =>
     };
     return entities[character];
   });
+
+// Calcular status de produção (Bom/Baixo/Crítico)
+const getProductionStatus = (liters, monthAverage) => {
+  const ratio = monthAverage > 0 ? liters / monthAverage : 1;
+  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", color: "#10a981", emoji: "✓" };
+  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", color: "#f59e0b", emoji: "⚠" };
+  return { status: "Crítico", color: "#ef4444", emoji: "!" };
+};
+
+// Criar badge de status HTML
+const createStatusBadge = (status, color) => {
+  return `<span style="display: inline-block; padding: 4px 8px; border-radius: 6px; background-color: ${color}15; color: ${color}; font-size: 0.7rem; font-weight: 700; border: 1px solid ${color}40;">${status}</span>`;
+};
 
 const loginScreen = $("#loginScreen");
 const appShell = $("#appShell");
@@ -774,20 +794,28 @@ const renderSummary = () => {
 const renderMilk = () => {
   const price = Number(state.priceQuote || 0);
   const records = [...state.milk].sort((a, b) => b.date.localeCompare(a.date));
+  const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
+  const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
 
   el.historyList.innerHTML = records.length
     ? records
         .map(
-          (record) => `
+          (record) => {
+            const prodStatus = getProductionStatus(Number(record.liters || 0), monthAverage);
+            return `
             <article class="item" data-milk-id="${escapeHtml(record.id)}">
               <div>
-                <span>${formatDate(record.date)}</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span>${formatDate(record.date)}</span>
+                  ${createStatusBadge(prodStatus.status, prodStatus.color)}
+                </div>
                 <small>${formatMoney(price)} por litro</small>
               </div>
               <strong>${formatLiters(record.liters)} | ${formatMoney(Number(record.liters) * price)}</strong>
               ${recordActions("milk", record)}
             </article>
-          `
+          `;
+          }
         )
         .join("")
     : empty("Nenhuma produção registrada.");
@@ -1104,6 +1132,11 @@ const initApp = () => {
       const liters = validateNumber(litersValue, 0, 1000);
       if (liters === null) throw new Error("Litros inválido (0-1000)");
 
+      // Calcular alerta de produção baixa
+      const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
+      const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
+      const prodStatus = getProductionStatus(liters, monthAverage);
+
       await upsertMilk({
         date: dateValue,
         liters,
@@ -1112,7 +1145,16 @@ const initApp = () => {
 
       el.milkForm.reset();
       el.milkDate.value = todayIso();
-      showToast("Produção salva com sucesso!");
+      
+      // Mostrar toast com alerta se produção está baixa
+      if (prodStatus.status === "Crítico") {
+        showToast(`⚠️ Produção crítica! ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "error");
+      } else if (prodStatus.status === "Baixo") {
+        showToast(`⚠️ Produção baixa. ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "sync");
+      } else {
+        showToast("Produção salva com sucesso! ✓", "success");
+      }
+      
       render();
     } catch (err) {
       if (err.authRequired) throw err;
