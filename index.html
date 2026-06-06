@@ -11,6 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   </head>
   <body>
     <div id="loginScreen" class="login-screen">
@@ -179,7 +180,9 @@
         </div>
 
         <div class="section-title"><h2>Produção recente</h2></div>
-        <div id="productionChart" class="chart"></div>
+        <div id="productionChart" class="chart" style="position: relative; height: 300px;">
+          <canvas></canvas>
+        </div>
       </section>
 
       <section id="settings" class="panel">

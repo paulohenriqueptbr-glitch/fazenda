@@ -1,0 +1,32 @@
+{
+  "name": "controle-fazenda",
+  "version": "2.0.0",
+  "description": "Sistema PWA de gerenciamento de fazenda leiteira",
+  "main": "app.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "fazenda",
+    "leite",
+    "PWA",
+    "offline-first"
+  ],
+  "author": "Paulo Henriques",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "app.test.js"
+    ],
+    "testMatch": [
+      "**/*.test.js"
+    ]
+  }
+}

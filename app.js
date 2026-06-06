@@ -779,7 +779,7 @@ const renderMilk = () => {
     ? records
         .map(
           (record) => `
-            <article class="item">
+            <article class="item" data-milk-id="${escapeHtml(record.id)}">
               <div>
                 <span>${formatDate(record.date)}</span>
                 <small>${formatMoney(price)} por litro</small>
@@ -798,7 +798,7 @@ const renderAnimals = () => {
     ? state.animals
         .map(
           (animal) => `
-            <article class="item">
+            <article class="item" data-animal-id="${escapeHtml(animal.id)}">
               <div>
                 <span>${escapeHtml(animal.identification)}</span>
                 <small>${escapeHtml(animal.type)}</small>
@@ -871,6 +871,8 @@ const renderMedication = () => {
     : empty("Nenhuma medicação registrada.");
 };
 
+let productionChart = null;
+
 const renderReports = () => {
   const price = Number(state.priceQuote || 0);
   const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
@@ -882,32 +884,79 @@ const renderReports = () => {
   );
   const chartRecords = [...state.milk]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-10);
-  const maxLiters = chartRecords.reduce((max, record) => Math.max(max, Number(record.liters || 0)), 0);
+    .slice(-30); // 30 dias em vez de 10
 
   el.reportMonthTotal.textContent = formatLiters(monthLiters);
   el.reportMonthValue.textContent = formatMoney(monthLiters * price);
   el.reportAverage.textContent = formatLiters(average);
   el.reportBestDay.textContent = bestRecord ? `${formatDate(bestRecord.date)} - ${formatLiters(bestRecord.liters)}` : "-";
 
-  el.productionChart.innerHTML = chartRecords.length
-    ? chartRecords
-        .map((record) => {
-          const liters = Number(record.liters || 0);
-          const width = maxLiters ? Math.max(8, (liters / maxLiters) * 100) : 8;
-
-          return `
-            <div class="chart-row">
-              <span>${formatDate(record.date)}</span>
-              <div class="chart-track">
-                <div class="chart-bar" style="width: ${width}%"></div>
-              </div>
-              <strong>${formatLiters(liters)}</strong>
-            </div>
-          `;
-        })
-        .join("")
-    : empty("Nenhuma produção para montar o gráfico.");
+  // Chart.js gráfico interativo
+  if (chartRecords.length > 0 && Chart) {
+    const ctx = el.productionChart.getContext ? el.productionChart : document.createElement('canvas');
+    
+    if (!productionChart) {
+      el.productionChart.innerHTML = ''; // Limpar container
+      el.productionChart.appendChild(ctx);
+      productionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartRecords.map(r => formatDate(r.date)),
+          datasets: [
+            {
+              label: 'Produção (L)',
+              data: chartRecords.map(r => Number(r.liters || 0)),
+              borderColor: '#176c56',
+              backgroundColor: 'rgba(23, 108, 86, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 5,
+              pointBackgroundColor: '#176c56',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointHoverRadius: 7,
+            },
+            {
+              label: 'Média mensal',
+              data: chartRecords.map(() => average),
+              borderColor: '#b7791f',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              fill: false,
+              pointRadius: 0,
+              tension: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: true, position: 'top' },
+            tooltip: {
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              padding: 12,
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${formatLiters(ctx.parsed.y)}`,
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: (v) => formatLiters(v) }
+            }
+          }
+        }
+      });
+    } else {
+      productionChart.data.labels = chartRecords.map(r => formatDate(r.date));
+      productionChart.data.datasets[0].data = chartRecords.map(r => Number(r.liters || 0));
+      productionChart.data.datasets[1].data = chartRecords.map(() => average);
+      productionChart.update();
+    }
+  }
 };
 
 const render = () => {
@@ -919,6 +968,67 @@ const render = () => {
   renderBreeding();
   renderMedication();
   renderReports();
+};
+
+// Render otimizado - atualiza apenas elementos que mudaram
+const updateMilkItemInList = (record) => {
+  const price = Number(state.priceQuote || 0);
+  const existingEl = el.historyList.querySelector(`[data-milk-id="${escapeHtml(record.id)}"]`);
+  
+  const html = `
+    <article class="item" data-milk-id="${escapeHtml(record.id)}">
+      <div>
+        <span>${formatDate(record.date)}</span>
+        <small>${formatMoney(price)} por litro</small>
+      </div>
+      <strong>${formatLiters(record.liters)} | ${formatMoney(Number(record.liters) * price)}</strong>
+      ${recordActions("milk", record)}
+    </article>
+  `;
+
+  if (existingEl) {
+    existingEl.outerHTML = html;
+  } else {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    el.historyList.insertBefore(tempDiv.firstElementChild, el.historyList.firstChild);
+  }
+};
+
+const updateAnimalInList = (animal) => {
+  const existingEl = el.animalList.querySelector(`[data-animal-id="${escapeHtml(animal.id)}"]`);
+  
+  const html = `
+    <article class="item" data-animal-id="${escapeHtml(animal.id)}">
+      <div>
+        <span>${escapeHtml(animal.identification)}</span>
+        <small>${escapeHtml(animal.type)}</small>
+      </div>
+      <strong>${escapeHtml(animal.status)}</strong>
+      ${recordActions("animal", animal)}
+    </article>
+  `;
+
+  if (existingEl) {
+    existingEl.outerHTML = html;
+  }
+};
+
+// Atualizar apenas resumo sem recriar todos os lists
+const updateSummaryOnly = () => {
+  const price = Number(state.priceQuote || 0);
+  const todayRecord = state.milk.find((record) => record.date === todayIso());
+  const todayLiters = Number(todayRecord?.liters || 0);
+  const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
+  const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
+  const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
+
+  el.todayTotal.textContent = formatLiters(todayLiters);
+  el.todayValue.textContent = formatMoney(todayLiters * price);
+  el.monthTotal.textContent = formatLiters(monthLiters);
+  el.monthValue.textContent = formatMoney(monthLiters * price);
+  el.animalTotal.textContent = state.animals.length;
+  el.lactatingTotal.textContent = `${lactating} em lactação`;
 };
 
 const exportDataBackup = () => {
