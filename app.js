@@ -250,6 +250,7 @@ const savePriceQuote = async (value) => {
 
 const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
+  await requireSession();
 
   const [milkResult, animalResult, lactationResult, breedingResult, medicationResult] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }).range(0, PAGE_SIZE - 1),
