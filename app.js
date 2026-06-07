@@ -25,13 +25,19 @@ const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config
 const isLocalOrigin =
   ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
 const canUseLocalAccount = isLocalOrigin && !hasSupabase;
+// Senha local configurada via window.CONTROLE_LEITE_CONFIG.localPassword (injetada pelo server.js).
+// Sem senha configurada o modo local fica desabilitado mesmo em localhost.
 const LOCAL_ACCOUNT = {
   username: "admin",
-  password: "admin",
+  password: config.localPassword || "",
   id: "local-admin",
   label: "admin local",
 };
+const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(LOCAL_ACCOUNT.password);
 let currentUserId = null;
+// Atenção: este contador zera ao recarregar a página — ele apenas adiciona delay
+// entre tentativas na mesma sessão. A proteção real contra bruteforce deve ser
+// configurada no Supabase Auth (rate limit por IP/e-mail).
 let failedLoginAttempts = 0;
 
 const $ = (selector) => document.querySelector(selector);
@@ -852,12 +858,12 @@ const renderMilk = () => {
             <article class="item" data-milk-id="${escapeHtml(record.id)}">
               <div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span>${formatDate(record.date)}</span>
+                  <span>${escapeHtml(formatDate(record.date))}</span>
                   ${createStatusBadge(prodStatus.status, prodStatus.color)}
                 </div>
-                <small>${formatMoney(price)} por litro</small>
+                <small>${escapeHtml(formatMoney(price))} por litro</small>
               </div>
-              <strong>${formatLiters(record.liters)} | ${formatMoney(Number(record.liters) * price)}</strong>
+              <strong>${escapeHtml(formatLiters(record.liters))} | ${escapeHtml(formatMoney(Number(record.liters) * price))}</strong>
               ${recordActions("milk", record)}
             </article>
           `;
@@ -894,11 +900,11 @@ const renderLactations = () => {
             <article class="item">
               <div>
                 <span>${escapeHtml(record.cow_id)}</span>
-                <small>${formatDate(record.start_date)} -> ${
-            record.end_date ? formatDate(record.end_date) : "atual"
+                <small>${escapeHtml(formatDate(record.start_date))} -> ${
+            record.end_date ? escapeHtml(formatDate(record.end_date)) : "atual"
           }</small>
               </div>
-              <strong>${formatLiters(record.daily_liters)} / dia</strong>
+              <strong>${escapeHtml(formatLiters(record.daily_liters))} / dia</strong>
               ${recordActions("lactation", record)}
             </article>
           `
@@ -915,9 +921,9 @@ const renderBreeding = () => {
             <article class="item">
               <div>
                 <span>${escapeHtml(record.cow_id)}</span>
-                <small>Prenhez: ${formatDate(record.insemination_date)}</small>
+                <small>Prenhez: ${escapeHtml(formatDate(record.insemination_date))}</small>
               </div>
-              <strong>Parto: ${formatDate(record.expected_calving_date)}</strong>
+              <strong>Parto: ${escapeHtml(formatDate(record.expected_calving_date))}</strong>
               ${recordActions("breeding", record)}
             </article>
           `
@@ -934,7 +940,7 @@ const renderMedication = () => {
             <article class="item">
               <div>
                 <span>${escapeHtml(record.cow_id)}</span>
-                <small>${formatDate(record.administration_date)}</small>
+                <small>${escapeHtml(formatDate(record.administration_date))}</small>
               </div>
               <strong>${escapeHtml(record.medication_name)} - ${escapeHtml(record.dosage)}</strong>
               ${recordActions("medication", record)}
@@ -1052,10 +1058,10 @@ const updateMilkItemInList = (record) => {
   const html = `
     <article class="item" data-milk-id="${escapeHtml(record.id)}">
       <div>
-        <span>${formatDate(record.date)}</span>
-        <small>${formatMoney(price)} por litro</small>
+        <span>${escapeHtml(formatDate(record.date))}</span>
+        <small>${escapeHtml(formatMoney(price))} por litro</small>
       </div>
-      <strong>${formatLiters(record.liters)} | ${formatMoney(Number(record.liters) * price)}</strong>
+      <strong>${escapeHtml(formatLiters(record.liters))} | ${escapeHtml(formatMoney(Number(record.liters) * price))}</strong>
       ${recordActions("milk", record)}
     </article>
   `;
@@ -1348,10 +1354,12 @@ const checkSession = async () => {
   if (!hasSupabase || !db) {
     showLogin();
     showLoginError(
-      canUseLocalAccount
-        ? "Modo local: use admin / admin para entrar sem Supabase."
-        : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente.",
-      canUseLocalAccount ? "success" : "error"
+      canUseLocalAccountWithPassword
+        ? "Modo local ativo. Use admin e a senha configurada no servidor."
+        : canUseLocalAccount
+          ? "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso."
+          : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente.",
+      canUseLocalAccountWithPassword ? "success" : "error"
     );
     return;
   }
@@ -1387,7 +1395,7 @@ loginForm.addEventListener("submit", async (event) => {
   const email = $("#loginEmail").value.trim();
   const password = $("#loginPassword").value;
   const isLocalAdminLogin =
-    canUseLocalAccount && email.toLowerCase() === LOCAL_ACCOUNT.username && password === LOCAL_ACCOUNT.password;
+    canUseLocalAccountWithPassword && email.toLowerCase() === LOCAL_ACCOUNT.username && password === LOCAL_ACCOUNT.password;
 
   if (isLocalAdminLogin) {
     failedLoginAttempts = 0;
@@ -1450,7 +1458,7 @@ signupForm.addEventListener("submit", async (event) => {
   if (!hasSupabase || !db) {
     showLoginError(
       canUseLocalAccount
-        ? "No modo local, use admin / admin."
+        ? "No modo local não é possível criar contas. Use o login de administrador."
         : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente."
     );
     return;

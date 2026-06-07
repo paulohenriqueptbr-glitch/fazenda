@@ -57,6 +57,11 @@ http
         "VITE_SUPABASE_ANON_KEY",
         "VITE_SUPABASE_PUBLISHABLE_KEY"
       );
+      // LOCAL_ADMIN_PASSWORD só é exposta quando não há Supabase configurado (modo local).
+      // Em produção (com Supabase) essa chave não é lida pelo app.
+      const localPassword = (!supabaseUrl || !supabaseAnonKey)
+        ? (process.env.LOCAL_ADMIN_PASSWORD || "")
+        : "";
 
       response.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
@@ -66,6 +71,7 @@ http
         `window.CONTROLE_LEITE_CONFIG = ${JSON.stringify({
           supabaseUrl,
           supabaseAnonKey,
+          localPassword,
         })};`
       );
       return;
@@ -88,6 +94,9 @@ http
 
       response.writeHead(200, {
         "Content-Type": types[path.extname(file)] || "application/octet-stream",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
       });
       response.end(data);
     });
