@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-fazenda-v12";
+const CACHE_NAME = "controle-fazenda-v13";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -8,7 +8,7 @@ const APP_FILES = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-  "https://unpkg.com/lucide@latest",
+  "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
 ];
 
 self.addEventListener("install", (event) => {

@@ -25,19 +25,13 @@ const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config
 const isLocalOrigin =
   ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
 const canUseLocalAccount = isLocalOrigin && !hasSupabase;
-// Senha local configurada via window.CONTROLE_LEITE_CONFIG.localPassword (injetada pelo server.js).
-// Sem senha configurada o modo local fica desabilitado mesmo em localhost.
-const LOCAL_ACCOUNT = {
-  username: "admin",
-  password: config.localPassword || "",
-  id: "local-admin",
-  label: "admin local",
-};
-const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(LOCAL_ACCOUNT.password);
+// O modo local agora valida a senha via /api/local-login (POST no servidor).
+// A senha nunca é exposta no bundle JS do cliente.
+const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(config.localModeEnabled);
 let currentUserId = null;
 // Atenção: este contador zera ao recarregar a página — ele apenas adiciona delay
-// entre tentativas na mesma sessão. A proteção real contra bruteforce deve ser
-// configurada no Supabase Auth (rate limit por IP/e-mail).
+// entre tentativas na mesma sessão. A proteção real contra bruteforce é feita
+// no servidor (/api/local-login) e no Supabase Auth (rate limit por IP/e-mail).
 let failedLoginAttempts = 0;
 
 const $ = (selector) => document.querySelector(selector);
@@ -571,9 +565,9 @@ const deleteRecord = async (type, id) => {
       await requireSession();
       const animalId = String(id);
       await Promise.all([
-        db.from("lactation_records").delete().eq("cow_id", animalId),
-        db.from("breeding_records").delete().eq("cow_id", animalId),
-        db.from("medication_records").delete().eq("cow_id", animalId),
+        db.from("lactation_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
+        db.from("breeding_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
+        db.from("medication_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
       ]);
     } catch (err) {
       console.warn("Aviso ao limpar registros relacionados:", err);
@@ -599,10 +593,35 @@ const deleteRecord = async (type, id) => {
   writeLocal();
 };
 
+const MAX_SYNC_QUEUE_SIZE = 500;
+const MAX_SYNC_ITEM_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+const validateSyncPayload = (type, action, payload) => {
+  if (!payload || typeof payload !== "object") return false;
+  if (action === "delete") return true;
+  const allowedKeys = {
+    milk: ["date", "liters", "user_id"],
+    animal: ["identification", "type", "status", "user_id"],
+    lactation: ["cow_id", "start_date", "end_date", "daily_liters", "user_id"],
+    breeding: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
+    medication: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
+  };
+  const allowed = allowedKeys[type];
+  if (!allowed) return false;
+  const keys = Object.keys(payload);
+  return keys.every((k) => allowed.includes(k));
+};
+
 const processSyncQueue = async ({ refresh = true } = {}) => {
   if (!hasSupabase) return;
-  const queue = getSyncQueue();
+  let queue = getSyncQueue();
   if (queue.length === 0) return;
+
+  // Descartar itens muito antigos ou acima do limite máximo
+  const cutoff = Date.now() - MAX_SYNC_ITEM_AGE_MS;
+  queue = queue
+    .filter((item) => item.timestamp && item.timestamp > cutoff)
+    .slice(0, MAX_SYNC_QUEUE_SIZE);
 
   await requireSession();
   setStatus(`Sincronizando ${queue.length}...`, "syncing");
@@ -612,13 +631,19 @@ const processSyncQueue = async ({ refresh = true } = {}) => {
     try {
       const config = collections[item.type];
       if (!config) continue;
-      
+
+      // Rejeitar payloads com chaves não permitidas
+      if (!validateSyncPayload(item.type, item.action, item.payload)) {
+        console.warn("Payload inválido descartado da fila de sync:", item);
+        continue;
+      }
+
       if (item.action === "insert") {
         await db.from(config.table).insert({ ...item.payload, user_id: currentUserId });
       } else if (item.action === "update") {
-        await db.from(config.table).update(item.payload).eq("id", item.recordId);
+        await db.from(config.table).update(item.payload).eq("id", item.recordId).eq("user_id", currentUserId);
       } else if (item.action === "delete") {
-        await db.from(config.table).delete().eq("id", item.recordId);
+        await db.from(config.table).delete().eq("id", item.recordId).eq("user_id", currentUserId);
       } else if (item.action === "upsert") {
         await db.from(config.table).upsert({ ...item.payload, user_id: currentUserId }, { onConflict: "user_id,date" });
       }
@@ -677,7 +702,7 @@ const showEditModal = (type, record) => {
 
     const getInputsHTML = () => {
       if (type === "milk") {
-        return `<label>Litros: <input type="number" name="liters" min="0" max="1000" step="0.1" value="${record.liters}" required></label>`;
+        return `<label>Litros: <input type="number" name="liters" min="0" max="1000" step="0.1" value="${escapeHtml(String(record.liters ?? ''))}" required></label>`;
       } else if (type === "animal") {
         return `
           <label>Tipo: <input type="text" name="type" value="${escapeHtml(record.type)}" required></label>
@@ -685,16 +710,16 @@ const showEditModal = (type, record) => {
         `;
       } else if (type === "lactation") {
         return `
-          <label>Litros/dia: <input type="number" name="daily_liters" min="0" max="500" step="0.1" value="${record.daily_liters}" required></label>
-          <label>Fim (AAAA-MM-DD): <input type="date" name="end_date" value="${record.end_date || ''}"></label>
+          <label>Litros/dia: <input type="number" name="daily_liters" min="0" max="500" step="0.1" value="${escapeHtml(String(record.daily_liters ?? ''))}" required></label>
+          <label>Fim (AAAA-MM-DD): <input type="date" name="end_date" value="${escapeHtml(record.end_date || '')}"></label>
         `;
       } else if (type === "breeding") {
-        return `<label>Parto previsto: <input type="date" name="expected_calving_date" value="${record.expected_calving_date || ''}" required></label>`;
+        return `<label>Parto previsto: <input type="date" name="expected_calving_date" value="${escapeHtml(record.expected_calving_date || '')}" required></label>`;
       } else if (type === "medication") {
         return `
           <label>Medicamento: <input type="text" name="medication_name" value="${escapeHtml(record.medication_name)}" required></label>
           <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
-          <label>Data: <input type="date" name="administration_date" value="${record.administration_date}" required></label>
+          <label>Data: <input type="date" name="administration_date" value="${escapeHtml(record.administration_date || '')}" required></label>
         `;
       }
       return "";
@@ -1114,7 +1139,6 @@ const updateSummaryOnly = () => {
 const exportDataBackup = () => {
   const backup = {
     exported_at: new Date().toISOString(),
-    user_id: currentUserId,
     data: state,
     pending_sync: getSyncQueue(),
   };
@@ -1394,16 +1418,31 @@ loginForm.addEventListener("submit", async (event) => {
 
   const email = $("#loginEmail").value.trim();
   const password = $("#loginPassword").value;
-  const isLocalAdminLogin =
-    canUseLocalAccountWithPassword && email.toLowerCase() === LOCAL_ACCOUNT.username && password === LOCAL_ACCOUNT.password;
 
-  if (isLocalAdminLogin) {
-    failedLoginAttempts = 0;
-    currentUserId = LOCAL_ACCOUNT.id;
-    showApp(LOCAL_ACCOUNT.label);
-    initApp();
-    showToast("Modo local ativo.");
-    return;
+  // Login local: validação feita no servidor via /api/local-login
+  if (canUseLocalAccountWithPassword && email.toLowerCase() === "admin") {
+    try {
+      const res = await fetch("/api/local-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email.toLowerCase(), password }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        failedLoginAttempts = 0;
+        currentUserId = "local-admin";
+        showApp("admin local");
+        initApp();
+        showToast("Modo local ativo.");
+        return;
+      }
+      failedLoginAttempts += 1;
+      showLoginError(json.message || "Usuário ou senha incorretos.");
+      return;
+    } catch {
+      showLoginError("Erro ao verificar credenciais locais.");
+      return;
+    }
   }
 
   if (failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {

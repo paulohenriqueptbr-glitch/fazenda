@@ -2,8 +2,25 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
+const crypto = require("crypto");
+
 const root = __dirname;
 const port = 5173;
+
+// Rate-limit para login local: contador em memória (persiste enquanto o processo roda)
+const loginAttempts = { count: 0, lockedUntil: 0 };
+const MAX_LOCAL_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutos
+
+const timingSafeEqual = (a, b) => {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA); // consome tempo mesmo na falha
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+};
 
 const loadDotEnv = () => {
   const envPath = path.join(root, ".env");
@@ -57,11 +74,11 @@ http
         "VITE_SUPABASE_ANON_KEY",
         "VITE_SUPABASE_PUBLISHABLE_KEY"
       );
-      // LOCAL_ADMIN_PASSWORD só é exposta quando não há Supabase configurado (modo local).
-      // Em produção (com Supabase) essa chave não é lida pelo app.
-      const localPassword = (!supabaseUrl || !supabaseAnonKey)
-        ? (process.env.LOCAL_ADMIN_PASSWORD || "")
-        : "";
+      // localPassword NÃO é mais exposta no bundle JS do cliente.
+      // A validação da senha local agora é feita em /api/local-login (POST).
+      const localModeEnabled = (!supabaseUrl || !supabaseAnonKey)
+        ? Boolean(process.env.LOCAL_ADMIN_PASSWORD)
+        : false;
 
       response.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
@@ -71,9 +88,51 @@ http
         `window.CONTROLE_LEITE_CONFIG = ${JSON.stringify({
           supabaseUrl,
           supabaseAnonKey,
-          localPassword,
+          localModeEnabled,
         })};`
       );
+      return;
+    }
+
+    // Rota de login local — valida senha no servidor, nunca exposta no bundle JS
+    if (url === "/api/local-login" && request.method === "POST") {
+      const now = Date.now();
+
+      if (loginAttempts.lockedUntil > now) {
+        const waitSec = Math.ceil((loginAttempts.lockedUntil - now) / 1000);
+        response.writeHead(429, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ ok: false, message: `Bloqueado. Aguarde ${waitSec}s.` }));
+        return;
+      }
+
+      let body = "";
+      request.on("data", (chunk) => { body += chunk; });
+      request.on("end", () => {
+        let parsed;
+        try { parsed = JSON.parse(body); } catch { parsed = {}; }
+
+        const { username, password } = parsed;
+        const configuredPassword = process.env.LOCAL_ADMIN_PASSWORD || "";
+        const ok =
+          configuredPassword.length > 0 &&
+          timingSafeEqual(username, "admin") &&
+          timingSafeEqual(password, configuredPassword);
+
+        if (ok) {
+          loginAttempts.count = 0;
+          loginAttempts.lockedUntil = 0;
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ ok: true }));
+        } else {
+          loginAttempts.count += 1;
+          if (loginAttempts.count >= MAX_LOCAL_LOGIN_ATTEMPTS) {
+            loginAttempts.lockedUntil = Date.now() + LOCKOUT_MS;
+            loginAttempts.count = 0;
+          }
+          response.writeHead(401, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ ok: false, message: "Usuário ou senha incorretos." }));
+        }
+      });
       return;
     }
 
