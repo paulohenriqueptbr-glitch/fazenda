@@ -22,6 +22,15 @@ const state = {
 const config = window.CONTROLE_LEITE_CONFIG || {};
 const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
+const isLocalOrigin =
+  ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
+const canUseLocalAccount = isLocalOrigin && !hasSupabase;
+const LOCAL_ACCOUNT = {
+  username: "admin",
+  password: "admin",
+  id: "local-admin",
+  label: "admin local",
+};
 let currentUserId = null;
 let failedLoginAttempts = 0;
 
@@ -89,9 +98,14 @@ const createStatusBadge = (status, color) => {
 const loginScreen = $("#loginScreen");
 const appShell = $("#appShell");
 const loginForm = $("#loginForm");
+const signupForm = $("#signupForm");
 const loginError = $("#loginError");
 const logoutBtn = $("#logoutBtn");
 const userEmailEl = $("#userEmail");
+const authSubtitle = $("#authSubtitle");
+const authFooter = $("#authFooter");
+const showLoginButton = $("#showLoginButton");
+const showSignupButton = $("#showSignupButton");
 
 const el = {
   syncStatus: $("#syncStatus"),
@@ -140,14 +154,32 @@ const showApp = (email) => {
   if (userEmailEl) userEmailEl.textContent = email || "";
 };
 
-const showLogin = () => {
-  loginScreen.classList.remove("hidden");
-  appShell.classList.remove("visible");
-  loginError.classList.remove("visible");
+const setAuthMode = (mode) => {
+  const isSignup = mode === "signup";
+  loginForm.classList.toggle("hidden", isSignup);
+  signupForm.classList.toggle("hidden", !isSignup);
+  showLoginButton.classList.toggle("active", !isSignup);
+  showSignupButton.classList.toggle("active", isSignup);
+  if (authSubtitle) {
+    authSubtitle.textContent = isSignup ? "Crie sua conta para acessar o sistema" : "Faça login para acessar o sistema";
+  }
+  if (authFooter) {
+    authFooter.textContent = isSignup
+      ? "O acesso é protegido por e-mail e senha"
+      : "Acesso restrito ao administrador da fazenda";
+  }
+  loginError.classList.remove("visible", "success");
 };
 
-const showLoginError = (message) => {
+const showLogin = (mode = "login") => {
+  loginScreen.classList.remove("hidden");
+  appShell.classList.remove("visible");
+  setAuthMode(mode);
+};
+
+const showLoginError = (message, type = "error") => {
   loginError.textContent = message;
+  loginError.classList.toggle("success", type === "success");
   loginError.classList.add("visible");
 };
 
@@ -174,6 +206,20 @@ const supabaseErrorMessage = (error) => {
   }
 
   return "Erro ao comunicar com o servidor. Tente novamente.";
+};
+
+const authErrorMessage = (error) => {
+  const raw = String(error?.message || error?.code || error || "").toLowerCase();
+
+  if (raw.includes("already registered") || raw.includes("already exists")) {
+    return "Este e-mail já está cadastrado.";
+  }
+  if (raw.includes("password") && (raw.includes("6") || raw.includes("short"))) {
+    return "Use uma senha com pelo menos 6 caracteres.";
+  }
+  if (raw.includes("invalid email")) return "Informe um e-mail válido.";
+
+  return supabaseErrorMessage(error);
 };
 
 const handleSupabaseError = (error, context = "") => {
@@ -1301,7 +1347,12 @@ const initApp = () => {
 const checkSession = async () => {
   if (!hasSupabase || !db) {
     showLogin();
-    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis do ambiente.");
+    showLoginError(
+      canUseLocalAccount
+        ? "Modo local: use admin / admin para entrar sem Supabase."
+        : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente.",
+      canUseLocalAccount ? "success" : "error"
+    );
     return;
   }
 
@@ -1326,12 +1377,26 @@ const checkSession = async () => {
   }
 };
 
+showLoginButton.addEventListener("click", () => setAuthMode("login"));
+showSignupButton.addEventListener("click", () => setAuthMode("signup"));
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  loginError.classList.remove("visible");
+  loginError.classList.remove("visible", "success");
 
   const email = $("#loginEmail").value.trim();
   const password = $("#loginPassword").value;
+  const isLocalAdminLogin =
+    canUseLocalAccount && email.toLowerCase() === LOCAL_ACCOUNT.username && password === LOCAL_ACCOUNT.password;
+
+  if (isLocalAdminLogin) {
+    failedLoginAttempts = 0;
+    currentUserId = LOCAL_ACCOUNT.id;
+    showApp(LOCAL_ACCOUNT.label);
+    initApp();
+    showToast("Modo local ativo.");
+    return;
+  }
 
   if (failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
     showLoginError("Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
@@ -1369,6 +1434,77 @@ loginForm.addEventListener("submit", async (event) => {
   } catch (error) {
     showLoginError("Erro ao conectar. Tente novamente.");
     console.error(error);
+  }
+});
+
+signupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.classList.remove("visible", "success");
+
+  const name = $("#signupName").value.trim();
+  const email = $("#signupEmail").value.trim();
+  const password = $("#signupPassword").value;
+  const passwordConfirm = $("#signupPasswordConfirm").value;
+  const submitButton = signupForm.querySelector('button[type="submit"]');
+
+  if (!hasSupabase || !db) {
+    showLoginError(
+      canUseLocalAccount
+        ? "No modo local, use admin / admin."
+        : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente."
+    );
+    return;
+  }
+
+  if (!navigator.onLine) {
+    showLoginError("Sem internet. Conecte para criar uma conta.");
+    return;
+  }
+
+  if (password.length < 6) {
+    showLoginError("Use uma senha com pelo menos 6 caracteres.");
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showLoginError("As senhas não conferem.");
+    return;
+  }
+
+  try {
+    submitButton.disabled = true;
+    const { data, error } = await db.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (error) {
+      showLoginError(authErrorMessage(error));
+      return;
+    }
+
+    signupForm.reset();
+
+    if (data.session?.user) {
+      failedLoginAttempts = 0;
+      currentUserId = data.session.user.id;
+      showApp(data.session.user.email);
+      initApp();
+      return;
+    }
+
+    setAuthMode("login");
+    showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
+  } catch (error) {
+    showLoginError("Erro ao criar conta. Tente novamente.");
+    console.error(error);
+  } finally {
+    submitButton.disabled = false;
   }
 });
 

@@ -18,16 +18,31 @@
       <div class="login-card">
         <span class="login-icon" aria-hidden="true">CF</span>
         <h1>Controle Fazenda</h1>
-        <p class="login-subtitle">Faça login para acessar o sistema</p>
+        <p id="authSubtitle" class="login-subtitle">Faça login para acessar o sistema</p>
+        <div class="auth-tabs" aria-label="Acesso">
+          <button id="showLoginButton" class="auth-tab active" type="button">Entrar</button>
+          <button id="showSignupButton" class="auth-tab" type="button">Criar conta</button>
+        </div>
         <form id="loginForm" class="login-form">
-          <label for="loginEmail">E-mail</label>
-          <input id="loginEmail" type="email" placeholder="seu@email.com" autocomplete="email" required>
+          <label for="loginEmail">E-mail ou usuário</label>
+          <input id="loginEmail" type="text" placeholder="seu@email.com ou admin" autocomplete="username" required>
           <label for="loginPassword">Senha</label>
           <input id="loginPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required>
           <button type="submit">Entrar</button>
         </form>
+        <form id="signupForm" class="login-form hidden">
+          <label for="signupName">Nome</label>
+          <input id="signupName" type="text" placeholder="Seu nome" autocomplete="name">
+          <label for="signupEmail">E-mail</label>
+          <input id="signupEmail" type="email" placeholder="seu@email.com" autocomplete="email" required>
+          <label for="signupPassword">Senha</label>
+          <input id="signupPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
+          <label for="signupPasswordConfirm">Confirmar senha</label>
+          <input id="signupPasswordConfirm" type="password" placeholder="Repita a senha" autocomplete="new-password" minlength="6" required>
+          <button type="submit">Criar conta</button>
+        </form>
         <div id="loginError" class="login-error"></div>
-        <p class="login-footer">Acesso restrito ao administrador da fazenda</p>
+        <p id="authFooter" class="login-footer">Acesso restrito ao administrador da fazenda</p>
       </div>
     </div>
 

@@ -136,7 +136,7 @@ button {
 .login-card .login-subtitle {
   color: var(--muted);
   font-size: 0.9rem;
-  margin: 0 0 28px;
+  margin: 0 0 18px;
 }
 
 .login-card .login-icon {
@@ -149,6 +149,37 @@ button {
   display: grid;
   gap: 12px;
   text-align: left;
+}
+
+.login-form.hidden {
+  display: none;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  margin: 0 0 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.auth-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.auth-tab.active {
+  background: var(--panel);
+  color: var(--green-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 .login-form label {
@@ -208,6 +239,12 @@ button {
   font-size: 0.85rem;
   font-weight: 600;
   border: 1px solid #fecaca;
+}
+
+.login-error.success {
+  background: #ecfdf5;
+  color: var(--green-dark);
+  border-color: #a7f3d0;
 }
 
 .login-error.visible {
