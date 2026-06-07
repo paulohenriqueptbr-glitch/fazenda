@@ -15,6 +15,22 @@
   </head>
   <body>
     <div id="loginScreen" class="login-screen">
+      <div class="access-layout">
+      <section class="product-card" aria-labelledby="productTitle">
+        <span class="eyebrow">Gestão leiteira no celular</span>
+        <h2 id="productTitle">Controle Fazenda</h2>
+        <p>Registre a produção de leite, acompanhe o rebanho e consulte relatórios em uma PWA simples para pequenos produtores.</p>
+        <div class="feature-list" aria-label="Principais recursos">
+          <span>Produção diária</span>
+          <span>Rebanho e lactação</span>
+          <span>Saúde e gestação</span>
+          <span>Backup em JSON</span>
+        </div>
+        <div class="product-actions">
+          <a class="support-button" href="#" data-support-link>Falar no WhatsApp</a>
+          <a class="privacy-link" href="privacy.html">Política de privacidade</a>
+        </div>
+      </section>
       <div class="login-card">
         <span class="login-icon" aria-hidden="true">CF</span>
         <h1>Controle Fazenda</h1>
@@ -39,10 +55,19 @@
           <input id="signupPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
           <label for="signupPasswordConfirm">Confirmar senha</label>
           <input id="signupPasswordConfirm" type="password" placeholder="Repita a senha" autocomplete="new-password" minlength="6" required>
+          <label class="checkbox-row">
+            <input id="signupPrivacyConsent" type="checkbox" required>
+            <span>Li e aceito a <a href="privacy.html" target="_blank" rel="noopener">política de privacidade</a>.</span>
+          </label>
           <button type="submit">Criar conta</button>
         </form>
         <div id="loginError" class="login-error"></div>
         <p id="authFooter" class="login-footer">Acesso restrito ao administrador da fazenda</p>
+        <div class="auth-links">
+          <a href="privacy.html">Privacidade</a>
+          <a href="#" data-support-link>Suporte</a>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -210,6 +235,12 @@
         <p id="priceQuoteValue" class="price-quote-value"></p>
         <div class="section-title"><h2>Backup manual</h2></div>
         <button id="exportDataButton" class="ghost full-width" type="button">Exportar dados (JSON)</button>
+        <div class="section-title"><h2>Segurança e suporte</h2></div>
+        <p class="helper-text">Cada conta acessa apenas seus próprios dados quando o RLS está ativo no Supabase.</p>
+        <div class="settings-actions">
+          <a class="ghost link-button" href="privacy.html">Política de privacidade</a>
+          <a class="ghost link-button" href="#" data-support-link>Falar no WhatsApp</a>
+        </div>
       </section>
     </main>
 
@@ -251,9 +282,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/api/config.js"></script>
     <script src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"></script>
-    <script>
-      if (window.lucide) window.lucide.createIcons();
-    </script>
+    <script src="icons.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

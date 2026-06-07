@@ -79,6 +79,8 @@ http
       const localModeEnabled = (!supabaseUrl || !supabaseAnonKey)
         ? Boolean(process.env.LOCAL_ADMIN_PASSWORD)
         : false;
+      const supportWhatsapp = pickEnv("SUPPORT_WHATSAPP_NUMBER", "SUPPORT_WHATSAPP");
+      const supportEmail = pickEnv("SUPPORT_EMAIL");
 
       response.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
@@ -89,6 +91,8 @@ http
           supabaseUrl,
           supabaseAnonKey,
           localModeEnabled,
+          supportWhatsapp,
+          supportEmail,
         })};`
       );
       return;

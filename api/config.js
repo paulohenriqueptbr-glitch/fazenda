@@ -9,6 +9,8 @@ module.exports = function handler(request, response) {
     "VITE_SUPABASE_ANON_KEY",
     "VITE_SUPABASE_PUBLISHABLE_KEY"
   );
+  const supportWhatsapp = pickEnv("SUPPORT_WHATSAPP_NUMBER", "SUPPORT_WHATSAPP");
+  const supportEmail = pickEnv("SUPPORT_EMAIL");
 
   response.setHeader("Content-Type", "application/javascript; charset=utf-8");
   response.setHeader("Cache-Control", "no-store, max-age=0");
@@ -16,6 +18,8 @@ module.exports = function handler(request, response) {
     `window.CONTROLE_LEITE_CONFIG = ${JSON.stringify({
       supabaseUrl,
       supabaseAnonKey,
+      supportWhatsapp,
+      supportEmail,
     })};`
   );
 };

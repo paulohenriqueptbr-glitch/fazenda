@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Política de privacidade do Controle Fazenda.">
+    <title>Política de Privacidade - Controle Fazenda</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="legal-page">
+    <main class="legal-container">
+      <a class="back-link" href="index.html">Voltar ao app</a>
+      <h1>Política de Privacidade</h1>
+      <p class="legal-updated">Atualizada em 07/06/2026</p>
+
+      <section>
+        <h2>Resumo</h2>
+        <p>O Controle Fazenda guarda os dados necessários para você registrar produção de leite, rebanho, lactações, gestações, medicações, relatórios e configurações da fazenda.</p>
+      </section>
+
+      <section>
+        <h2>Dados coletados</h2>
+        <ul>
+          <li>Dados de conta, como nome, e-mail e senha gerenciada pelo Supabase Auth.</li>
+          <li>Dados da fazenda informados por você, como produção, animais, lactação, gestação, saúde e cotação do leite.</li>
+          <li>Dados salvos localmente no navegador para permitir uso offline e sincronização posterior.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Como usamos os dados</h2>
+        <p>Usamos os dados para entregar o funcionamento do app, manter seu histórico, gerar relatórios, sincronizar informações e permitir exportação de backup em JSON.</p>
+      </section>
+
+      <section>
+        <h2>Segurança</h2>
+        <p>O app usa login por Supabase Auth. As tabelas do Supabase devem estar com RLS ativo para separar os dados por usuário usando a coluna <code>user_id</code>.</p>
+      </section>
+
+      <section>
+        <h2>Compartilhamento</h2>
+        <p>Os dados são processados por serviços usados para hospedar e operar o app, como Vercel e Supabase. Não vendemos dados dos usuários.</p>
+      </section>
+
+      <section>
+        <h2>Backup e exclusão</h2>
+        <p>Você pode exportar um backup manual em JSON pela aba Config. Para pedir correção ou exclusão de dados, entre em contato pelo suporte.</p>
+      </section>
+
+      <section id="contato">
+        <h2>Contato</h2>
+        <p>Para suporte, dúvidas de privacidade ou solicitações sobre seus dados, use o canal abaixo.</p>
+        <a class="support-button" href="#" data-support-link>Falar com suporte</a>
+      </section>
+    </main>
+
+    <script src="/api/config.js"></script>
+    <script src="privacy.js"></script>
+  </body>
+</html>

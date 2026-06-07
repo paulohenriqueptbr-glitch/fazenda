@@ -116,6 +116,97 @@ button {
   background: #ffffff;
 }
 
+.access-layout {
+  width: min(100%, 920px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.product-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 32px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+}
+
+.product-card .eyebrow {
+  color: var(--green-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-card h2 {
+  margin: 10px 0 10px;
+  color: var(--ink);
+  font-size: 2rem;
+}
+
+.product-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0;
+}
+
+.feature-list span {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.product-actions,
+.settings-actions,
+.auth-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.support-button,
+.privacy-link,
+.link-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.support-button {
+  padding: 0 16px;
+  background: var(--green-dark);
+  color: #ffffff;
+}
+
+.privacy-link {
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--field);
+}
+
 .login-card {
   width: 100%;
   max-width: 400px;
@@ -201,6 +292,27 @@ button {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.checkbox-row input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 1px;
+}
+
+.checkbox-row a,
+.auth-links a {
+  color: var(--green-dark);
+  font-weight: 800;
+}
+
 .login-form input:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(31, 107, 91, 0.12);
@@ -255,6 +367,19 @@ button {
   margin-top: 20px;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.auth-links {
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 0.82rem;
+}
+
+.helper-text {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 /* Hide app when not logged in */
@@ -876,6 +1001,47 @@ button[type="submit"]:active,
   background: var(--green);
 }
 
+/* ===== LEGAL PAGE ===== */
+.legal-page {
+  background: #ffffff;
+}
+
+.legal-container {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 32px 18px 56px;
+}
+
+.legal-container h1 {
+  margin: 18px 0 6px;
+  color: var(--ink);
+  font-size: 2rem;
+}
+
+.legal-updated,
+.legal-container p,
+.legal-container li {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.legal-container section {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-container h2 {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+
+.back-link {
+  color: var(--green-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (min-width: 680px) {
   .app-shell {
@@ -913,7 +1079,31 @@ button[type="submit"]:active,
   }
 }
 
+@media (max-width: 860px) {
+  .login-screen {
+    align-items: flex-start;
+  }
+
+  .access-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-card,
+  .login-card {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 390px) {
+  .product-card,
+  .login-card {
+    padding: 28px 20px;
+  }
+
+  .feature-list {
+    grid-template-columns: 1fr;
+  }
+
   .status {
     align-self: flex-start;
   }

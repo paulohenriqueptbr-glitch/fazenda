@@ -22,6 +22,8 @@ const state = {
 const config = window.CONTROLE_LEITE_CONFIG || {};
 const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
+const supportWhatsapp = String(config.supportWhatsapp || "").replace(/\D/g, "");
+const supportEmail = String(config.supportEmail || "");
 const isLocalOrigin =
   ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
 const canUseLocalAccount = isLocalOrigin && !hasSupabase;
@@ -181,6 +183,27 @@ const showLoginError = (message, type = "error") => {
   loginError.textContent = message;
   loginError.classList.toggle("success", type === "success");
   loginError.classList.add("visible");
+};
+
+const supportUrl = () => {
+  const message = encodeURIComponent("Olá, preciso de suporte no Controle Fazenda.");
+  if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${message}`;
+  if (supportEmail) return `mailto:${supportEmail}?subject=Suporte Controle Fazenda`;
+  return "privacy.html#contato";
+};
+
+const setupSupportLinks = () => {
+  document.querySelectorAll("[data-support-link]").forEach((link) => {
+    const url = supportUrl();
+    link.setAttribute("href", url);
+    if (url.startsWith("https://")) {
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener");
+    } else {
+      link.removeAttribute("target");
+      link.removeAttribute("rel");
+    }
+  });
 };
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -1518,6 +1541,11 @@ signupForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (!$("#signupPrivacyConsent").checked) {
+    showLoginError("Aceite a política de privacidade para criar a conta.");
+    return;
+  }
+
   try {
     submitButton.disabled = true;
     const { data, error } = await db.auth.signUp({
@@ -1596,4 +1624,5 @@ window.addEventListener("offline", () => {
   setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error");
 });
 
+setupSupportLinks();
 checkSession();

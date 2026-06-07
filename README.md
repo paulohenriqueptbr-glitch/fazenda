@@ -5,6 +5,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 ## Funcionalidades
 
 - Login com e-mail e senha pelo Supabase Auth.
+- Cadastro de novos usuários pelo Supabase Auth.
 - Registro diário de litros produzidos.
 - Resumo de produção do dia e do mês.
 - Cadastro de animais.
@@ -13,10 +14,12 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - Relatórios com total mensal, valor estimado, média e gráfico recente.
 - Cotação do leite salva no Supabase.
 - Instalação como PWA no celular.
+- Página de privacidade e contato de suporte configurável.
 
 ## Arquivos principais
 
 - `index.html`: interface do app.
+- `privacy.html`: política de privacidade pública.
 - `app.js`: regras de tela, login e integração com Supabase.
 - `styles.css`: visual do app.
 - `manifest.webmanifest`: configuração de instalação PWA.
@@ -32,6 +35,8 @@ Crie um arquivo `.env` na pasta do projeto com suas credenciais públicas do Sup
 ```text
 SUPABASE_URL=https://SEU-PROJETO.supabase.co
 SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLIC
+SUPPORT_WHATSAPP_NUMBER=5582999999999
+SUPPORT_EMAIL=suporte@seudominio.com.br
 ```
 
 Depois rode:
@@ -55,9 +60,11 @@ O login local precisa de internet para validar e-mail e senha no Supabase. Depoi
 3. Abra o SQL Editor.
 4. Para banco novo, rode todo o conteúdo de `supabase-schema.sql`.
 5. Para banco já existente, prefira rodar `supabase-security-migration.sql`, que ativa RLS e adiciona políticas sem apagar tabelas.
+   - Se quiser apenas ligar RLS e políticas, use `supabase-rls-only.sql`.
 6. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
    - A aplicação também aceita `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-7. Não coloque `.env`, `config.js` ou chaves reais no repositório.
+7. Cadastre `SUPPORT_WHATSAPP_NUMBER` para o botão de WhatsApp e, se quiser, `SUPPORT_EMAIL`.
+8. Não coloque `.env`, `config.js` ou chaves reais no repositório.
 
 ## Publicar na Vercel
 
@@ -78,3 +85,4 @@ O login local precisa de internet para validar e-mail e senha no Supabase. Depoi
 - Ativar rate limit no Supabase Auth, por exemplo 5 tentativas de login por hora por IP.
 - Usar `supabase-security-migration.sql` para reforçar RLS, políticas e constraints em bancos já existentes.
 - A aba Config possui exportação manual em JSON para backup dos dados visíveis ao usuário logado.
+- A página `privacy.html` explica dados coletados, segurança, backup e contato.
