@@ -1,10 +1,9 @@
-const CACHE_NAME = "controle-fazenda-v11";
+const CACHE_NAME = "controle-fazenda-v12";
 const APP_FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./api/config.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -33,14 +32,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.pathname === "/api/config.js") {
+    // Nunca cachear — contém credenciais que podem ser rotacionadas.
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
+      fetch(event.request).catch(() => new Response("window.CONTROLE_LEITE_CONFIG = {};", {
+        headers: { "Content-Type": "application/javascript" }
+      }))
     );
     return;
   }
