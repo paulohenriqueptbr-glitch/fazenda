@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-fazenda-v10";
+const CACHE_NAME = "controle-fazenda-v11";
 const APP_FILES = [
   "./",
   "./index.html",
