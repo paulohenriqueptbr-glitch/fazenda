@@ -1,7 +1,10 @@
 const LOCAL_KEY = "controle-fazenda-data";
 const PRICE_QUOTE_KEY = "milk_price_quote";
+const CLIENT_PROFILE_KEY = "client_profile";
+const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
 const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
+const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 
 // Thresholds para status de produção
 const PRODUCTION_THRESHOLDS = {
@@ -17,6 +20,8 @@ const state = {
   breeding: [],
   medication: [],
   priceQuote: 0,
+  clientProfile: null,
+  subscription: null,
 };
 
 const config = window.CONTROLE_LEITE_CONFIG || {};
@@ -24,6 +29,10 @@ const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && wind
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
 const supportWhatsapp = String(config.supportWhatsapp || "").replace(/\D/g, "");
 const supportEmail = String(config.supportEmail || "");
+const trialDays = Number(config.trialDays || 14);
+const planPrice = Number(config.planPrice || 39);
+const pixKey = String(config.pixKey || "");
+const pixReceiver = String(config.pixReceiver || "");
 const isLocalOrigin =
   ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
 const canUseLocalAccount = isLocalOrigin && !hasSupabase;
@@ -37,15 +46,70 @@ let currentUserId = null;
 let failedLoginAttempts = 0;
 
 const $ = (selector) => document.querySelector(selector);
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const parseIsoDate = (isoDate) => {
+  if (!ISO_DATE_PATTERN.test(String(isoDate || ""))) return null;
+
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
+};
 const todayIso = () => {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
 };
+const addDaysIso = (isoDate, days) => {
+  const date = parseIsoDate(isoDate) || parseIsoDate(todayIso());
+  date.setDate(date.getDate() + Number(days || 0));
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+};
 const monthKey = () => todayIso().slice(0, 7);
 const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 const withCurrentUser = (payload) => (currentUserId ? { ...payload, user_id: currentUserId } : payload);
 const userStorageKey = (key) => (currentUserId ? `${key}:${currentUserId}` : key);
+
+const defaultClientProfile = () => ({
+  farmName: "",
+  ownerName: "",
+  whatsapp: "",
+  trialStartedAt: new Date().toISOString(),
+  onboardingDone: false,
+});
+
+const normalizeClientProfile = (profile = {}) => ({
+  farmName: String(profile?.farmName || ""),
+  ownerName: String(profile?.ownerName || ""),
+  whatsapp: String(profile?.whatsapp || ""),
+  trialStartedAt: String(profile?.trialStartedAt || new Date().toISOString()),
+  onboardingDone: Boolean(profile?.onboardingDone),
+});
+
+const defaultSubscription = () => ({
+  subscriptionStatus: "trial",
+  subscriptionDueDate: addDaysIso(todayIso(), trialDays),
+});
+
+const normalizeSubscription = (subscription = {}) => {
+  const defaults = defaultSubscription();
+  const data = subscription && typeof subscription === "object" ? subscription : {};
+  const rawStatus = String(data.subscriptionStatus || defaults.subscriptionStatus);
+  const dueDate = Object.prototype.hasOwnProperty.call(data, "subscriptionDueDate")
+    ? data.subscriptionDueDate
+    : defaults.subscriptionDueDate;
+
+  return {
+    subscriptionStatus: SUBSCRIPTION_STATUSES.has(rawStatus) ? rawStatus : defaults.subscriptionStatus,
+    subscriptionDueDate: String(dueDate || ""),
+  };
+};
+
+state.clientProfile = defaultClientProfile();
+state.subscription = defaultSubscription();
 
 const showToast = (message, type = "success") => {
   const container = document.getElementById("toastContainer");
@@ -55,9 +119,7 @@ const showToast = (message, type = "success") => {
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(20px)";
-    toast.style.transition = "all 0.3s";
+    toast.classList.add("is-hiding");
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 };
@@ -87,14 +149,15 @@ const escapeHtml = (value) =>
 // Calcular status de produção (Bom/Baixo/Crítico)
 const getProductionStatus = (liters, monthAverage) => {
   const ratio = monthAverage > 0 ? liters / monthAverage : 1;
-  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", color: "#10a981", emoji: "✓" };
-  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", color: "#f59e0b", emoji: "⚠" };
-  return { status: "Crítico", color: "#ef4444", emoji: "!" };
+  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", kind: "good" };
+  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", kind: "warning" };
+  return { status: "Crítico", kind: "critical" };
 };
 
 // Criar badge de status HTML
-const createStatusBadge = (status, color) => {
-  return `<span style="display: inline-block; padding: 4px 8px; border-radius: 6px; background-color: ${color}15; color: ${color}; font-size: 0.7rem; font-weight: 700; border: 1px solid ${color}40;">${status}</span>`;
+const createStatusBadge = (status) => {
+  const safeKind = ["good", "warning", "critical"].includes(status.kind) ? status.kind : "good";
+  return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
 };
 
 const loginScreen = $("#loginScreen");
@@ -132,12 +195,29 @@ const el = {
   priceQuoteForm: $("#priceQuoteForm"),
   priceQuoteInput: $("#priceQuoteInput"),
   priceQuoteValue: $("#priceQuoteValue"),
+  clientProfileForm: $("#clientProfileForm"),
+  farmNameInput: $("#farmNameInput"),
+  ownerNameInput: $("#ownerNameInput"),
+  clientWhatsappInput: $("#clientWhatsappInput"),
+  subscriptionStatusInput: $("#subscriptionStatusInput"),
+  subscriptionDueDateInput: $("#subscriptionDueDateInput"),
+  clientSummary: $("#clientSummary"),
+  planPriceValue: $("#planPriceValue"),
+  trialDaysValue: $("#trialDaysValue"),
+  pixKeyValue: $("#pixKeyValue"),
+  copyPixButton: $("#copyPixButton"),
+  subscribeButton: $("#subscribeButton"),
+  onboardingModal: $("#onboardingModal"),
+  onboardingForm: $("#onboardingForm"),
+  skipOnboardingButton: $("#skipOnboardingButton"),
   refreshButton: $("#refreshButton"),
   exportDataButton: $("#exportDataButton"),
+  printReportButton: $("#printReportButton"),
   reportMonthTotal: $("#reportMonthTotal"),
   reportMonthValue: $("#reportMonthValue"),
   reportAverage: $("#reportAverage"),
   reportBestDay: $("#reportBestDay"),
+  reportDetails: $("#reportDetails"),
   productionChart: $("#productionChart"),
 };
 
@@ -185,16 +265,24 @@ const showLoginError = (message, type = "error") => {
   loginError.classList.add("visible");
 };
 
-const supportUrl = () => {
-  const message = encodeURIComponent("Olá, preciso de suporte no Controle Fazenda.");
-  if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${message}`;
-  if (supportEmail) return `mailto:${supportEmail}?subject=Suporte Controle Fazenda`;
+const contactUrl = (message, subject = "Suporte Controle Fazenda") => {
+  const encodedMessage = encodeURIComponent(message);
+  if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${encodedMessage}`;
+  if (supportEmail) return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodedMessage}`;
   return "privacy.html#contato";
 };
 
+const supportUrl = () => contactUrl("Olá, preciso de suporte no Controle Fazenda.");
+
+const subscribeUrl = () =>
+  contactUrl(
+    `Olá, quero assinar o Controle Fazenda. Plano: ${formatMoney(planPrice)}/mês.`,
+    "Assinatura Controle Fazenda"
+  );
+
 const setupSupportLinks = () => {
-  document.querySelectorAll("[data-support-link]").forEach((link) => {
-    const url = supportUrl();
+  document.querySelectorAll("[data-support-link], [data-subscribe-link]").forEach((link) => {
+    const url = link.hasAttribute("data-subscribe-link") ? subscribeUrl() : supportUrl();
     link.setAttribute("href", url);
     if (url.startsWith("https://")) {
       link.setAttribute("target", "_blank");
@@ -282,6 +370,14 @@ const readLocal = () => {
   }
 };
 
+const safeParseJson = (value, fallback = {}) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
 const writeLocal = () => {
   localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(state));
 };
@@ -299,20 +395,40 @@ const loadLocal = () => {
   state.breeding = data.breeding || [];
   state.medication = data.medication || [];
   state.priceQuote = data.priceQuote || 0;
+  state.clientProfile = normalizeClientProfile(data.clientProfile);
+  state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
   setStatus("Local", "local");
 };
 
-const loadPriceQuote = async () => {
+const loadAppSettings = async () => {
   const { data, error } = await db
     .from("app_settings")
-    .select("value")
-    .eq("key", PRICE_QUOTE_KEY)
-    .eq("user_id", currentUserId)
-    .maybeSingle();
+    .select("key,value")
+    .eq("user_id", currentUserId);
 
   if (error) throw error;
 
-  state.priceQuote = Number(data?.value || 0);
+  const settings = Object.fromEntries((data || []).map((item) => [item.key, item.value]));
+  const clientProfile = safeParseJson(settings[CLIENT_PROFILE_KEY], {});
+  const adminSubscription = safeParseJson(settings[SUBSCRIPTION_ADMIN_KEY], null);
+  state.priceQuote = Number(settings[PRICE_QUOTE_KEY] || 0);
+  state.clientProfile = normalizeClientProfile(clientProfile);
+  state.subscription = normalizeSubscription(adminSubscription || clientProfile);
+};
+
+const saveAppSetting = async (key, value) => {
+  await requireSession();
+  const { error } = await db.from("app_settings").upsert(
+    {
+      key,
+      value,
+      user_id: currentUserId,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,key" }
+  );
+
+  if (error) throw error;
 };
 
 const savePriceQuote = async (value) => {
@@ -323,18 +439,32 @@ const savePriceQuote = async (value) => {
     return;
   }
 
-  await requireSession();
-  const { error } = await db.from("app_settings").upsert(
-    {
-      key: PRICE_QUOTE_KEY,
-      value: String(state.priceQuote),
-      user_id: currentUserId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,key" }
-  );
+  try {
+    await saveAppSetting(PRICE_QUOTE_KEY, String(state.priceQuote));
+  } catch (error) {
+    if (error.authRequired) throw error;
+    handleSupabaseError(error, "salvar cotação");
+    setStatus("Offline (pendente)", "error");
+    writeLocal();
+  }
+};
 
-  if (error) throw error;
+const saveClientProfile = async (profile) => {
+  state.clientProfile = normalizeClientProfile(profile);
+
+  if (!hasSupabase) {
+    writeLocal();
+    return;
+  }
+
+  try {
+    await saveAppSetting(CLIENT_PROFILE_KEY, JSON.stringify(state.clientProfile));
+  } catch (error) {
+    if (error.authRequired) throw error;
+    handleSupabaseError(error, "salvar dados do cliente");
+    setStatus("Offline (pendente)", "error");
+    writeLocal();
+  }
 };
 
 const loadSupabase = async () => {
@@ -363,7 +493,7 @@ const loadSupabase = async () => {
   state.lactations = lactationResult.data || [];
   state.breeding = breedingResult.data || [];
   state.medication = medicationResult.data || [];
-  await loadPriceQuote();
+  await loadAppSettings();
 
   setStatus("Online", "online");
 };
@@ -372,6 +502,7 @@ const loadData = async () => {
   if (!hasSupabase) {
     loadLocal();
     render();
+    maybeShowOnboarding();
     return;
   }
 
@@ -386,19 +517,27 @@ const loadData = async () => {
 
   populateCowSelects();
   render();
+  maybeShowOnboarding();
 };
 
 const populateCowSelects = () => {
   const options = state.animals
     .map(
       (animal) =>
-        `<option value="${escapeHtml(animal.identification)}">${escapeHtml(animal.identification)}</option>`
+        `<option value="${escapeHtml(animal.id)}">${escapeHtml(animal.identification)}</option>`
     )
     .join("");
 
   $("#lactCowId").innerHTML = options;
   $("#breedCowId").innerHTML = options;
   $("#medCowId").innerHTML = options;
+};
+
+const animalLabel = (cowId) => {
+  const animal = state.animals.find(
+    (item) => String(item.id) === String(cowId) || String(item.identification) === String(cowId)
+  );
+  return animal?.identification || cowId || "-";
 };
 
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
@@ -586,11 +725,18 @@ const deleteRecord = async (type, id) => {
   if (type === "animal" && hasSupabase) {
     try {
       await requireSession();
-      const animalId = String(id);
+      const animal = findRecord("animal", id);
+      const relatedIds = [animal?.id, animal?.identification].filter(Boolean).map(String);
       await Promise.all([
-        db.from("lactation_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
-        db.from("breeding_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
-        db.from("medication_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId),
+        ...relatedIds.map((animalId) =>
+          db.from("lactation_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId)
+        ),
+        ...relatedIds.map((animalId) =>
+          db.from("breeding_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId)
+        ),
+        ...relatedIds.map((animalId) =>
+          db.from("medication_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId)
+        ),
       ]);
     } catch (err) {
       console.warn("Aviso ao limpar registros relacionados:", err);
@@ -689,13 +835,12 @@ const processSyncQueue = async ({ refresh = true } = {}) => {
 };
 
 // Validação de datas
-const isValidDate = (dateStr) => {
-  const date = new Date(dateStr + "T00:00:00");
-  return !Number.isNaN(date.getTime());
-};
+const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
 
 const isNotFutureDate = (dateStr) => {
-  const date = new Date(dateStr + "T00:00:00");
+  const date = parseIsoDate(dateStr);
+  if (!date) return false;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return date <= today;
@@ -703,8 +848,10 @@ const isNotFutureDate = (dateStr) => {
 
 const isValidDateRange = (startStr, endStr) => {
   if (!endStr) return true;
-  const start = new Date(startStr + "T00:00:00");
-  const end = new Date(endStr + "T00:00:00");
+  const start = parseIsoDate(startStr);
+  const end = parseIsoDate(endStr);
+  if (!start || !end) return false;
+
   return start <= end;
 };
 
@@ -717,11 +864,6 @@ const showEditModal = (type, record) => {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
     modal.className = "edit-modal-overlay";
-    modal.style.cssText = `
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-      background: rgba(0,0,0,0.5); display: flex; align-items: center; 
-      justify-content: center; z-index: 1000;
-    `;
 
     const getInputsHTML = () => {
       if (type === "milk") {
@@ -749,13 +891,13 @@ const showEditModal = (type, record) => {
     };
 
     modal.innerHTML = `
-      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,0.2);">
-        <h2 style="margin-top: 0; font-size: 1.25rem;">Editar Registro</h2>
-        <form id="editForm" style="display: grid; gap: 12px;">
+      <div class="edit-modal-card">
+        <h2>Editar Registro</h2>
+        <form id="editForm" class="edit-modal-form">
           ${getInputsHTML()}
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
-            <button type="button" id="cancelBtn" style="padding: 10px; background: #ddd; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">Cancelar</button>
-            <button type="submit" style="padding: 10px; background: #176c56; color: white; border: none; border-radius: 4px; cursor: pointer;">Salvar</button>
+          <div class="edit-modal-actions">
+            <button type="button" id="cancelBtn" class="ghost">Cancelar</button>
+            <button type="submit">Salvar</button>
           </div>
         </form>
       </div>
@@ -864,6 +1006,92 @@ const handleRecordAction = async (event) => {
 
 const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;
 
+const subscriptionLabels = {
+  trial: "Teste",
+  active: "Ativa",
+  overdue: "Vencida",
+  blocked: "Bloqueada",
+  canceled: "Cancelada",
+};
+
+const daysUntil = (isoDate) => {
+  if (!isoDate || !isValidDate(isoDate)) return null;
+  const today = new Date(todayIso() + "T00:00:00");
+  const dueDate = new Date(isoDate + "T00:00:00");
+  return Math.ceil((dueDate - today) / (24 * 60 * 60 * 1000));
+};
+
+const subscriptionMessage = (profile) => {
+  const days = daysUntil(profile.subscriptionDueDate);
+  const label = subscriptionLabels[profile.subscriptionStatus] || "Indefinida";
+
+  if (profile.subscriptionStatus === "blocked") return "Acesso bloqueado. Fale com o suporte para regularizar.";
+  if (profile.subscriptionStatus === "overdue") return "Assinatura vencida. Regularize para manter o acesso.";
+  if (days === null) return `${label}. Vencimento ainda não definido.`;
+  if (days < 0) return `${label}. Venceu em ${formatDate(profile.subscriptionDueDate)}.`;
+  if (days === 0) return `${label}. Vence hoje.`;
+  return `${label}. Vence em ${days} dia${days === 1 ? "" : "s"}.`;
+};
+
+const applySubscriptionAccess = (profile) => {
+  const blocked = ["blocked", "canceled"].includes(profile.subscriptionStatus);
+  document.body.classList.toggle("subscription-blocked", blocked);
+  document
+    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button")
+    .forEach((control) => {
+      control.disabled = blocked;
+    });
+};
+
+const renderClientPanel = () => {
+  const profile = normalizeClientProfile(state.clientProfile);
+  const subscription = normalizeSubscription(state.subscription);
+  const displayProfile = { ...profile, ...subscription };
+  state.clientProfile = profile;
+  state.subscription = subscription;
+  applySubscriptionAccess(displayProfile);
+
+  if (el.farmNameInput) el.farmNameInput.value = profile.farmName || "";
+  if (el.ownerNameInput) el.ownerNameInput.value = profile.ownerName || "";
+  if (el.clientWhatsappInput) el.clientWhatsappInput.value = profile.whatsapp || "";
+  if (el.subscriptionStatusInput) el.subscriptionStatusInput.value = displayProfile.subscriptionStatus || "trial";
+  if (el.subscriptionDueDateInput) el.subscriptionDueDateInput.value = displayProfile.subscriptionDueDate || "";
+  if (el.planPriceValue) el.planPriceValue.textContent = `${formatMoney(planPrice)}/mês`;
+  if (el.trialDaysValue) el.trialDaysValue.textContent = `${trialDays} dias grátis`;
+  if (el.pixKeyValue) el.pixKeyValue.textContent = pixKey || "Configure PIX_KEY na Vercel";
+  if (el.copyPixButton) el.copyPixButton.disabled = !pixKey;
+  if (el.subscribeButton) {
+    el.subscribeButton.setAttribute("href", subscribeUrl());
+    if (subscribeUrl().startsWith("https://")) {
+      el.subscribeButton.setAttribute("target", "_blank");
+      el.subscribeButton.setAttribute("rel", "noopener");
+    }
+  }
+
+  if (el.clientSummary) {
+    const label = subscriptionLabels[displayProfile.subscriptionStatus] || "Indefinida";
+    el.clientSummary.innerHTML = `
+      <article>
+        <span>Fazenda</span>
+        <strong>${escapeHtml(profile.farmName || "Não informada")}</strong>
+      </article>
+      <article>
+        <span>Responsável</span>
+        <strong>${escapeHtml(profile.ownerName || "Não informado")}</strong>
+      </article>
+      <article>
+        <span>Assinatura</span>
+        <strong class="subscription-pill ${escapeHtml(displayProfile.subscriptionStatus || "trial")}">${escapeHtml(label)}</strong>
+      </article>
+      <article>
+        <span>Vencimento</span>
+        <strong>${escapeHtml(displayProfile.subscriptionDueDate ? formatDate(displayProfile.subscriptionDueDate) : "A definir")}</strong>
+      </article>
+      <p>${escapeHtml(subscriptionMessage(displayProfile))}</p>
+    `;
+  }
+};
+
 const renderPriceQuote = () => {
   const price = Number(state.priceQuote || 0);
   const formatted = price.toLocaleString("pt-BR", {
@@ -905,9 +1133,9 @@ const renderMilk = () => {
             return `
             <article class="item" data-milk-id="${escapeHtml(record.id)}">
               <div>
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="item-title-row">
                   <span>${escapeHtml(formatDate(record.date))}</span>
-                  ${createStatusBadge(prodStatus.status, prodStatus.color)}
+                  ${createStatusBadge(prodStatus)}
                 </div>
                 <small>${escapeHtml(formatMoney(price))} por litro</small>
               </div>
@@ -947,7 +1175,7 @@ const renderLactations = () => {
           (record) => `
             <article class="item">
               <div>
-                <span>${escapeHtml(record.cow_id)}</span>
+                <span>${escapeHtml(animalLabel(record.cow_id))}</span>
                 <small>${escapeHtml(formatDate(record.start_date))} -> ${
             record.end_date ? escapeHtml(formatDate(record.end_date)) : "atual"
           }</small>
@@ -968,7 +1196,7 @@ const renderBreeding = () => {
           (record) => `
             <article class="item">
               <div>
-                <span>${escapeHtml(record.cow_id)}</span>
+                <span>${escapeHtml(animalLabel(record.cow_id))}</span>
                 <small>Prenhez: ${escapeHtml(formatDate(record.insemination_date))}</small>
               </div>
               <strong>Parto: ${escapeHtml(formatDate(record.expected_calving_date))}</strong>
@@ -987,7 +1215,7 @@ const renderMedication = () => {
           (record) => `
             <article class="item">
               <div>
-                <span>${escapeHtml(record.cow_id)}</span>
+                <span>${escapeHtml(animalLabel(record.cow_id))}</span>
                 <small>${escapeHtml(formatDate(record.administration_date))}</small>
               </div>
               <strong>${escapeHtml(record.medication_name)} - ${escapeHtml(record.dosage)}</strong>
@@ -999,34 +1227,86 @@ const renderMedication = () => {
     : empty("Nenhuma medicação registrada.");
 };
 
-let productionChart = null;
-
-const renderReports = () => {
+const buildMonthlyReport = () => {
   const price = Number(state.priceQuote || 0);
-  const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
+  const currentMonth = monthKey();
+  const today = todayIso();
+  const calvingLimit = addDaysIso(today, 60);
+  const monthRecords = state.milk.filter((record) => record.date?.startsWith(currentMonth));
   const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
   const average = monthRecords.length ? monthLiters / monthRecords.length : 0;
   const bestRecord = monthRecords.reduce(
     (best, record) => (Number(record.liters || 0) > Number(best?.liters || 0) ? record : best),
     null
   );
+  const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
+  const medications = state.medication.filter((record) => record.administration_date?.startsWith(currentMonth));
+  const calvings = state.breeding.filter(
+    (record) => record.expected_calving_date >= today && record.expected_calving_date <= calvingLimit
+  );
+
+  return {
+    price,
+    monthRecords,
+    monthLiters,
+    monthValue: monthLiters * price,
+    average,
+    bestRecord,
+    lactating,
+    medications,
+    calvings,
+  };
+};
+
+const renderReportDetails = (report) => {
+  if (!el.reportDetails) return;
+
+  el.reportDetails.innerHTML = `
+    <article>
+      <span>Animais em lactação</span>
+      <strong>${escapeHtml(String(report.lactating))}</strong>
+      <small>${escapeHtml(String(state.animals.length))} animais cadastrados</small>
+    </article>
+    <article>
+      <span>Medicações no mês</span>
+      <strong>${escapeHtml(String(report.medications.length))}</strong>
+      <small>${escapeHtml(report.medications.slice(0, 2).map((item) => item.medication_name).join(", ") || "Nenhuma aplicação")}</small>
+    </article>
+    <article>
+      <span>Previsão de parto</span>
+      <strong>${escapeHtml(String(report.calvings.length))}</strong>
+      <small>${escapeHtml(report.calvings.slice(0, 2).map((item) => `${animalLabel(item.cow_id)}: ${formatDate(item.expected_calving_date)}`).join(", ") || "Sem partos nos próximos 60 dias")}</small>
+    </article>
+    <article>
+      <span>Faturamento estimado</span>
+      <strong>${escapeHtml(formatMoney(report.monthValue))}</strong>
+      <small>${escapeHtml(formatMoney(report.price))} por litro</small>
+    </article>
+  `;
+};
+
+let productionChart = null;
+
+const renderReports = () => {
+  const report = buildMonthlyReport();
   const chartRecords = [...state.milk]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-30); // 30 dias em vez de 10
 
-  el.reportMonthTotal.textContent = formatLiters(monthLiters);
-  el.reportMonthValue.textContent = formatMoney(monthLiters * price);
-  el.reportAverage.textContent = formatLiters(average);
-  el.reportBestDay.textContent = bestRecord ? `${formatDate(bestRecord.date)} - ${formatLiters(bestRecord.liters)}` : "-";
+  el.reportMonthTotal.textContent = formatLiters(report.monthLiters);
+  el.reportMonthValue.textContent = formatMoney(report.monthValue);
+  el.reportAverage.textContent = formatLiters(report.average);
+  el.reportBestDay.textContent = report.bestRecord ? `${formatDate(report.bestRecord.date)} - ${formatLiters(report.bestRecord.liters)}` : "-";
+  renderReportDetails(report);
 
   // Chart.js gráfico interativo
-  if (chartRecords.length > 0 && Chart) {
+  if (chartRecords.length > 0 && window.Chart && el.productionChart) {
     const ctx = el.productionChart.getContext ? el.productionChart : document.createElement('canvas');
     
     if (!productionChart) {
       el.productionChart.innerHTML = ''; // Limpar container
       el.productionChart.appendChild(ctx);
-      productionChart = new Chart(ctx, {
+      productionChart = new window.Chart(ctx, {
         type: 'line',
         data: {
           labels: chartRecords.map(r => formatDate(r.date)),
@@ -1047,7 +1327,7 @@ const renderReports = () => {
             },
             {
               label: 'Média mensal',
-              data: chartRecords.map(() => average),
+              data: chartRecords.map(() => report.average),
               borderColor: '#b7791f',
               borderWidth: 2,
               borderDash: [5, 5],
@@ -1081,13 +1361,14 @@ const renderReports = () => {
     } else {
       productionChart.data.labels = chartRecords.map(r => formatDate(r.date));
       productionChart.data.datasets[0].data = chartRecords.map(r => Number(r.liters || 0));
-      productionChart.data.datasets[1].data = chartRecords.map(() => average);
+      productionChart.data.datasets[1].data = chartRecords.map(() => report.average);
       productionChart.update();
     }
   }
 };
 
 const render = () => {
+  renderClientPanel();
   renderPriceQuote();
   renderSummary();
   renderMilk();
@@ -1177,6 +1458,88 @@ const exportDataBackup = () => {
   showToast("Backup exportado com sucesso!");
 };
 
+const printCurrentReport = () => {
+  renderReports();
+  document.body.classList.add("printing-report");
+  window.print();
+  setTimeout(() => document.body.classList.remove("printing-report"), 400);
+};
+
+const hideOnboarding = () => {
+  if (el.onboardingModal) el.onboardingModal.classList.add("hidden");
+};
+
+const maybeShowOnboarding = () => {
+  if (!el.onboardingModal || !currentUserId) return;
+  const profile = normalizeClientProfile(state.clientProfile);
+  if (profile.onboardingDone) {
+    hideOnboarding();
+    return;
+  }
+  el.onboardingModal.classList.remove("hidden");
+  const farmInput = $("#onboardingFarmName");
+  const ownerInput = $("#onboardingOwnerName");
+  const whatsappInput = $("#onboardingWhatsapp");
+  const priceInput = $("#onboardingPrice");
+  const dateInput = $("#onboardingFirstDate");
+  if (farmInput) farmInput.value = profile.farmName || "";
+  if (ownerInput) ownerInput.value = profile.ownerName || "";
+  if (whatsappInput) whatsappInput.value = profile.whatsapp || "";
+  if (priceInput) priceInput.value = state.priceQuote ? String(state.priceQuote) : "";
+  if (dateInput && !dateInput.value) dateInput.value = todayIso();
+};
+
+const completeOnboarding = async (skip = false) => {
+  const profile = normalizeClientProfile(state.clientProfile);
+  const formData = el.onboardingForm ? new FormData(el.onboardingForm) : new FormData();
+  const nextProfile = {
+    ...profile,
+    farmName: String(formData.get("farmName") || profile.farmName || "").trim(),
+    ownerName: String(formData.get("ownerName") || profile.ownerName || "").trim(),
+    whatsapp: String(formData.get("whatsapp") || profile.whatsapp || "").trim(),
+    onboardingDone: true,
+  };
+
+  if (!skip) {
+    const price = validateNumber(formData.get("price") || "0", 0, 100);
+    const firstAnimal = String(formData.get("firstAnimal") || "").trim();
+    const firstLitersRaw = formData.get("firstLiters");
+    const firstLiters = firstLitersRaw ? validateNumber(firstLitersRaw, 0, 1000) : null;
+    const firstDate = String(formData.get("firstDate") || todayIso());
+
+    if (!nextProfile.farmName) throw new Error("Informe o nome da fazenda.");
+    if (price === null) throw new Error("Preço do litro inválido.");
+    if (firstLitersRaw && firstLiters === null) throw new Error("Primeira produção inválida.");
+    if (!isValidDate(firstDate) || !isNotFutureDate(firstDate)) throw new Error("Data da primeira produção inválida.");
+
+    await savePriceQuote(price);
+
+    if (firstAnimal) {
+      await insertAnimal({
+        identification: firstAnimal,
+        type: "Bovino de Leite",
+        status: "Em lactação",
+        user_id: currentUserId,
+      });
+    }
+
+    if (firstLiters !== null) {
+      await upsertMilk({
+        date: firstDate,
+        liters: firstLiters,
+        user_id: currentUserId,
+      });
+    }
+  }
+
+  await saveClientProfile(nextProfile);
+  writeLocal();
+  hideOnboarding();
+  populateCowSelects();
+  render();
+  showToast(skip ? "Onboarding pulado. Você pode configurar depois." : "Primeira configuração concluída!");
+};
+
 let appInitialized = false;
 
 const initApp = () => {
@@ -1212,10 +1575,7 @@ const initApp = () => {
     inseminationInput._listenerAttached = true;
     inseminationInput.addEventListener("change", () => {
       if (!inseminationInput.value) return;
-      const [year, month, day] = inseminationInput.value.split("-");
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      date.setDate(date.getDate() + 285);
-      calvingInput.value = date.toISOString().split("T")[0];
+      calvingInput.value = addDaysIso(inseminationInput.value, 285);
     });
   }
 
@@ -1384,6 +1744,77 @@ const initApp = () => {
       showToast(err.message || "Erro ao salvar cotação", "error");
     }
   });
+
+  if (el.clientProfileForm && !el.clientProfileForm._listenerAttached) {
+    el.clientProfileForm._listenerAttached = true;
+    el.clientProfileForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        const profile = normalizeClientProfile(state.clientProfile);
+        const nextProfile = {
+          ...profile,
+          farmName: el.farmNameInput.value.trim(),
+          ownerName: el.ownerNameInput.value.trim(),
+          whatsapp: el.clientWhatsappInput.value.trim(),
+        };
+
+        await saveClientProfile(nextProfile);
+        writeLocal();
+        render();
+        showToast("Dados do cliente salvos!");
+      } catch (err) {
+        if (err.authRequired) throw err;
+        showToast(err.message || "Erro ao salvar dados do cliente", "error");
+      }
+    });
+  }
+
+  if (el.copyPixButton && !el.copyPixButton._listenerAttached) {
+    el.copyPixButton._listenerAttached = true;
+    el.copyPixButton.addEventListener("click", async () => {
+      if (!pixKey) {
+        showToast("Configure PIX_KEY na Vercel para usar este botão.", "error");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(pixKey);
+        showToast("Chave Pix copiada!");
+      } catch {
+        showToast("Não foi possível copiar. Selecione a chave Pix manualmente.", "error");
+      }
+    });
+  }
+
+  if (el.printReportButton && !el.printReportButton._listenerAttached) {
+    el.printReportButton._listenerAttached = true;
+    el.printReportButton.addEventListener("click", printCurrentReport);
+  }
+
+  if (el.onboardingForm && !el.onboardingForm._listenerAttached) {
+    el.onboardingForm._listenerAttached = true;
+    el.onboardingForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await completeOnboarding(false);
+      } catch (err) {
+        if (err.authRequired) throw err;
+        showToast(err.message || "Erro ao concluir configuração inicial", "error");
+      }
+    });
+  }
+
+  if (el.skipOnboardingButton && !el.skipOnboardingButton._listenerAttached) {
+    el.skipOnboardingButton._listenerAttached = true;
+    el.skipOnboardingButton.addEventListener("click", async () => {
+      try {
+        await completeOnboarding(true);
+      } catch (err) {
+        showToast(err.message || "Não foi possível pular agora", "error");
+      }
+    });
+  }
 
   if (!el.refreshButton._listenerAttached) {
     el.refreshButton._listenerAttached = true;

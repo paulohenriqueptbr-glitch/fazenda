@@ -11,6 +11,10 @@ module.exports = function handler(request, response) {
   );
   const supportWhatsapp = pickEnv("SUPPORT_WHATSAPP_NUMBER", "SUPPORT_WHATSAPP");
   const supportEmail = pickEnv("SUPPORT_EMAIL");
+  const trialDays = pickEnv("TRIAL_DAYS", "PLAN_TRIAL_DAYS") || "14";
+  const planPrice = pickEnv("PLAN_PRICE", "MONTHLY_PLAN_PRICE") || "39";
+  const pixKey = pickEnv("PIX_KEY", "PAYMENT_PIX_KEY");
+  const pixReceiver = pickEnv("PIX_RECEIVER", "PAYMENT_PIX_RECEIVER");
 
   response.setHeader("Content-Type", "application/javascript; charset=utf-8");
   response.setHeader("Cache-Control", "no-store, max-age=0");
@@ -20,6 +24,10 @@ module.exports = function handler(request, response) {
       supabaseAnonKey,
       supportWhatsapp,
       supportEmail,
+      trialDays,
+      planPrice,
+      pixKey,
+      pixReceiver,
     })};`
   );
 };

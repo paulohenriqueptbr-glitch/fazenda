@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 const crypto = require("crypto");
+const adminCustomersHandler = require("./api/admin-customers");
+const backupHandler = require("./api/backup");
 
 const root = __dirname;
 const port = 5173;
@@ -60,9 +62,72 @@ const types = {
 
 const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
 
+const apiHandlers = {
+  "/api/admin-customers": adminCustomersHandler,
+  "/api/backup": backupHandler,
+};
+
+const resolvePublicPath = (pathname) => {
+  let decodedPath;
+
+  try {
+    decodedPath = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+
+  const publicPath = decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+  const file = path.resolve(root, publicPath);
+  const relative = path.relative(root, file);
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  return file;
+};
+
+const parseRequestBody = (request) =>
+  new Promise((resolve) => {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      if (!body) {
+        resolve(undefined);
+        return;
+      }
+      try {
+        resolve(JSON.parse(body));
+      } catch {
+        resolve(body);
+      }
+    });
+  });
+
+const runApiHandler = async (handler, request, response, parsedUrl) => {
+  request.query = Object.fromEntries(parsedUrl.searchParams.entries());
+  request.body = await parseRequestBody(request);
+
+  const apiResponse = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    setHeader(name, value) {
+      response.setHeader(name, value);
+      return this;
+    },
+    send(payload) {
+      response.writeHead(this.statusCode);
+      response.end(payload);
+    },
+  };
+
+  await handler(request, apiResponse);
+};
+
 http
   .createServer((request, response) => {
-    const url = decodeURIComponent(request.url.split("?")[0]);
+    const parsedUrl = new URL(request.url, "http://127.0.0.1");
+    const url = parsedUrl.pathname;
 
     if (url === "/api/config.js") {
       const supabaseUrl = pickEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
@@ -81,6 +146,10 @@ http
         : false;
       const supportWhatsapp = pickEnv("SUPPORT_WHATSAPP_NUMBER", "SUPPORT_WHATSAPP");
       const supportEmail = pickEnv("SUPPORT_EMAIL");
+      const trialDays = pickEnv("TRIAL_DAYS", "PLAN_TRIAL_DAYS") || "14";
+      const planPrice = pickEnv("PLAN_PRICE", "MONTHLY_PLAN_PRICE") || "39";
+      const pixKey = pickEnv("PIX_KEY", "PAYMENT_PIX_KEY");
+      const pixReceiver = pickEnv("PIX_RECEIVER", "PAYMENT_PIX_RECEIVER");
 
       response.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
@@ -93,6 +162,10 @@ http
           localModeEnabled,
           supportWhatsapp,
           supportEmail,
+          trialDays,
+          planPrice,
+          pixKey,
+          pixReceiver,
         })};`
       );
       return;
@@ -140,9 +213,17 @@ http
       return;
     }
 
-    const file = path.resolve(root, url === "/" ? "index.html" : url.slice(1));
+    if (apiHandlers[url]) {
+      runApiHandler(apiHandlers[url], request, response, parsedUrl).catch((error) => {
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: error.message || "Erro interno." }));
+      });
+      return;
+    }
 
-    if (!file.startsWith(root)) {
+    const file = resolvePublicPath(url);
+
+    if (!file) {
       response.writeHead(403);
       response.end("Forbidden");
       return;
@@ -155,12 +236,19 @@ http
         return;
       }
 
-      response.writeHead(200, {
-        "Content-Type": types[path.extname(file)] || "application/octet-stream",
+      const ext = path.extname(file);
+      const headers = {
+        "Content-Type": types[ext] || "application/octet-stream",
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
         "Referrer-Policy": "strict-origin-when-cross-origin",
-      });
+      };
+
+      if (ext === ".html") {
+        headers["Cache-Control"] = "no-store, max-age=0";
+      }
+
+      response.writeHead(200, headers);
       response.end(data);
     });
   })

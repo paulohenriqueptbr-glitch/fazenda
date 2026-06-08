@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Painel interno do Controle Fazenda.">
+    <title>Admin - Controle Fazenda</title>
+    <link rel="stylesheet" href="styles.css?v=19">
+  </head>
+  <body class="admin-page">
+    <main class="admin-container">
+      <header class="admin-header">
+        <div>
+          <a class="back-link" href="index.html">Voltar ao app</a>
+          <h1>Admin interno</h1>
+          <p>Controle clientes, vencimentos e bloqueios sem mexer direto no banco.</p>
+        </div>
+        <a class="privacy-link" href="landing.html">Página comercial</a>
+      </header>
+
+      <section id="adminAuth" class="admin-auth">
+        <label for="adminTokenInput">Token de administrador</label>
+        <div class="admin-token-row">
+          <input id="adminTokenInput" type="password" placeholder="ADMIN_TOKEN da Vercel" autocomplete="off">
+          <button id="loadCustomersButton" type="button">Carregar clientes</button>
+        </div>
+      </section>
+
+      <section class="admin-metrics">
+        <article>
+          <span>Clientes</span>
+          <strong id="adminCustomerCount">0</strong>
+        </article>
+        <article>
+          <span>Ativos</span>
+          <strong id="adminActiveCount">0</strong>
+        </article>
+        <article>
+          <span>Vencidos/bloqueados</span>
+          <strong id="adminRiskCount">0</strong>
+        </article>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <h2>Clientes cadastrados</h2>
+          <button id="refreshCustomersButton" class="ghost" type="button">Atualizar</button>
+        </div>
+        <div id="adminMessage" class="admin-message"></div>
+        <div id="customerList" class="customer-list"></div>
+      </section>
+    </main>
+
+    <script src="admin.js?v=19"></script>
+  </body>
+</html>

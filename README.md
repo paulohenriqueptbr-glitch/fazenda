@@ -12,7 +12,13 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - Controle de lactação, reprodução e medicação.
 - Edição e exclusão de registros.
 - Relatórios com total mensal, valor estimado, média e gráfico recente.
+- Impressão de relatório mensal com lactação, medicações, previsão de parto e faturamento estimado.
+- Onboarding inicial para fazenda, preço do litro, primeiro animal e primeira produção.
+- Painel de cliente na aba Config com fazenda, responsável, WhatsApp, assinatura e vencimento.
+- Página comercial pública em `landing.html`.
+- Admin interno em `admin.html` para controlar status de assinatura.
 - Cotação do leite salva no Supabase.
+- Assinatura simples por WhatsApp e Pix manual.
 - Instalação como PWA no celular.
 - Página de privacidade e contato de suporte configurável.
 
@@ -20,12 +26,16 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 
 - `index.html`: interface do app.
 - `privacy.html`: política de privacidade pública.
+- `landing.html`: página comercial pública.
+- `admin.html`: painel interno para controlar clientes.
 - `app.js`: regras de tela, login e integração com Supabase.
 - `styles.css`: visual do app.
 - `manifest.webmanifest`: configuração de instalação PWA.
 - `service-worker.js`: cache básico do PWA.
 - `supabase-schema.sql`: estrutura do banco no Supabase.
 - `api/config.js`: carrega a configuração do Supabase pelas variáveis da Vercel.
+- `api/admin-customers.js`: endpoint server-side do admin interno.
+- `api/backup.js`: endpoint server-side para backup no Supabase Storage.
 - `config.example.js`: exemplo local, sem credenciais reais.
 
 ## Rodar localmente
@@ -37,6 +47,10 @@ SUPABASE_URL=https://SEU-PROJETO.supabase.co
 SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLIC
 SUPPORT_WHATSAPP_NUMBER=5582999999999
 SUPPORT_EMAIL=suporte@seudominio.com.br
+TRIAL_DAYS=14
+PLAN_PRICE=39
+PIX_KEY=sua-chave-pix
+PIX_RECEIVER=Seu Nome ou Empresa
 ```
 
 Depois rode:
@@ -64,7 +78,50 @@ O login local precisa de internet para validar e-mail e senha no Supabase. Depoi
 6. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
    - A aplicação também aceita `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 7. Cadastre `SUPPORT_WHATSAPP_NUMBER` para o botão de WhatsApp e, se quiser, `SUPPORT_EMAIL`.
-8. Não coloque `.env`, `config.js` ou chaves reais no repositório.
+8. Cadastre `TRIAL_DAYS`, `PLAN_PRICE`, `PIX_KEY` e `PIX_RECEIVER` para a página comercial e a área de assinatura.
+9. Não coloque `.env`, `config.js` ou chaves reais no repositório.
+
+## Vender o produto
+
+- Página comercial: publique `https://seu-dominio/landing`.
+- Login do cliente: `https://seu-dominio/`.
+- Privacidade: `https://seu-dominio/privacy`.
+- Assinatura inicial: use o botão WhatsApp e Pix manual.
+- Teste grátis: controle pelo status `Teste` e data de vencimento no `admin.html`.
+
+## Admin interno
+
+Cadastre estas variáveis privadas na Vercel:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
+ADMIN_TOKEN=crie-um-token-longo-para-o-admin
+```
+
+Depois acesse:
+
+```text
+https://seu-dominio/admin
+```
+
+Use o `ADMIN_TOKEN` para carregar clientes e alterar status de assinatura. A `service_role` fica somente no endpoint server-side.
+O admin grava status e vencimento em `subscription_admin`, uma chave separada do perfil editado pelo cliente. Rode a migração de segurança atualizada para impedir que usuários alterem essa chave pelo app.
+
+## Backup automático
+
+1. Crie um bucket privado no Supabase Storage, por exemplo `backups`.
+2. Cadastre na Vercel:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
+BACKUP_BUCKET=backups
+CRON_SECRET=crie-um-token-longo-para-o-cron
+```
+
+Mantenha `CRON_SECRET` ou `BACKUP_CRON_SECRET` configurado; o endpoint recusa backup sem segredo.
+
+3. O `vercel.json` agenda `/api/backup` diariamente às 03:00 UTC.
+4. O backup será gravado em `backups/controle-fazenda/AAAA-MM-DD.json`.
 
 ## Publicar na Vercel
 
@@ -81,6 +138,8 @@ O login local precisa de internet para validar e-mail e senha no Supabase. Depoi
 - O app usa apenas a chave pública anon do Supabase no navegador.
 - O isolamento dos dados deve ser feito com RLS no Supabase usando `user_id`.
 - Nunca use a `service_role` key no frontend ou em arquivos públicos.
+- Use `SUPABASE_SERVICE_ROLE_KEY` somente em variáveis de ambiente da Vercel para `api/admin-customers.js` e `api/backup.js`.
+- O status comercial do cliente fica em `app_settings.subscription_admin` e deve ser alterado apenas pelo endpoint server-side do admin.
 - Regenerar a anon/publishable key se ela já apareceu em commits antigos.
 - Ativar rate limit no Supabase Auth, por exemplo 5 tentativas de login por hora por IP.
 - Usar `supabase-security-migration.sql` para reforçar RLS, políticas e constraints em bancos já existentes.

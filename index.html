@@ -1,288 +1,324 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
-    <title>Controle Fazenda</title>
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  </head>
-  <body>
-    <div id="loginScreen" class="login-screen">
-      <div class="access-layout">
-      <section class="product-card" aria-labelledby="productTitle">
-        <span class="eyebrow">Gestão leiteira no celular</span>
-        <h2 id="productTitle">Controle Fazenda</h2>
-        <p>Registre a produção de leite, acompanhe o rebanho e consulte relatórios em uma PWA simples para pequenos produtores.</p>
-        <div class="feature-list" aria-label="Principais recursos">
-          <span>Produção diária</span>
-          <span>Rebanho e lactação</span>
-          <span>Saúde e gestação</span>
-          <span>Backup em JSON</span>
-        </div>
-        <div class="product-actions">
-          <a class="support-button" href="#" data-support-link>Falar no WhatsApp</a>
-          <a class="privacy-link" href="privacy.html">Política de privacidade</a>
-        </div>
-      </section>
-      <div class="login-card">
-        <span class="login-icon" aria-hidden="true">CF</span>
-        <h1>Controle Fazenda</h1>
-        <p id="authSubtitle" class="login-subtitle">Faça login para acessar o sistema</p>
-        <div class="auth-tabs" aria-label="Acesso">
-          <button id="showLoginButton" class="auth-tab active" type="button">Entrar</button>
-          <button id="showSignupButton" class="auth-tab" type="button">Criar conta</button>
-        </div>
-        <form id="loginForm" class="login-form">
-          <label for="loginEmail">E-mail ou usuário</label>
-          <input id="loginEmail" type="text" placeholder="seu@email.com ou admin" autocomplete="username" required>
-          <label for="loginPassword">Senha</label>
-          <input id="loginPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required>
-          <button type="submit">Entrar</button>
-        </form>
-        <form id="signupForm" class="login-form hidden">
-          <label for="signupName">Nome</label>
-          <input id="signupName" type="text" placeholder="Seu nome" autocomplete="name">
-          <label for="signupEmail">E-mail</label>
-          <input id="signupEmail" type="email" placeholder="seu@email.com" autocomplete="email" required>
-          <label for="signupPassword">Senha</label>
-          <input id="signupPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
-          <label for="signupPasswordConfirm">Confirmar senha</label>
-          <input id="signupPasswordConfirm" type="password" placeholder="Repita a senha" autocomplete="new-password" minlength="6" required>
-          <label class="checkbox-row">
-            <input id="signupPrivacyConsent" type="checkbox" required>
-            <span>Li e aceito a <a href="privacy.html" target="_blank" rel="noopener">política de privacidade</a>.</span>
-          </label>
-          <button type="submit">Criar conta</button>
-        </form>
-        <div id="loginError" class="login-error"></div>
-        <p id="authFooter" class="login-footer">Acesso restrito ao administrador da fazenda</p>
-        <div class="auth-links">
-          <a href="privacy.html">Privacidade</a>
-          <a href="#" data-support-link>Suporte</a>
-        </div>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
+<title>Controle Fazenda</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+
+<!--
+  SEGURANÇA: SRI (Subresource Integrity)
+  Os atributos integrity abaixo garantem que o browser só executa o script
+  se o hash do arquivo baixado bater exatamente com este valor.
+  Isso protege contra CDN comprometido ou ataque de supply chain.
+
+  COMO ATUALIZAR OS HASHES:
+    bash generate-sri.sh
+  (o script baixa cada arquivo e calcula o sha384 correto)
+
+  ATENÇÃO: ao atualizar a versão de qualquer lib, recalcule os hashes.
+-->
+
+<!-- chart.js — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<script
+  src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  crossorigin="anonymous"></script>
+
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="access-layout">
+    <section class="product-card" aria-labelledby="productTitle">
+      <span class="eyebrow">Gestão leiteira no celular</span>
+      <h2 id="productTitle">Controle Fazenda</h2>
+      <p>Registre a produção de leite, acompanhe o rebanho e consulte relatórios em uma PWA simples para pequenos produtores.</p>
+      <div class="feature-list" aria-label="Principais recursos">
+        <span>Produção diária</span>
+        <span>Rebanho e lactação</span>
+        <span>Saúde e gestação</span>
+        <span>Backup em JSON</span>
       </div>
+      <div class="product-actions">
+        <a class="support-button" href="#" data-support-link>Falar no WhatsApp</a>
+        <a class="privacy-link" href="privacy.html">Política de privacidade</a>
+      </div>
+    </section>
+
+    <div class="login-card">
+      <span class="login-icon" aria-hidden="true">CF</span>
+      <h1>Controle Fazenda</h1>
+      <p id="authSubtitle" class="login-subtitle">Faça login para acessar o sistema</p>
+
+      <div class="auth-tabs" aria-label="Acesso">
+        <button id="showLoginButton" class="auth-tab active" type="button">Entrar</button>
+        <button id="showSignupButton" class="auth-tab" type="button">Criar conta</button>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <label for="loginEmail">E-mail ou usuário</label>
+        <input id="loginEmail" type="text" placeholder="seu@email.com ou admin" autocomplete="username" required>
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required>
+        <button type="submit">Entrar</button>
+      </form>
+
+      <form id="signupForm" class="login-form hidden">
+        <label for="signupName">Nome</label>
+        <input id="signupName" type="text" placeholder="Seu nome" autocomplete="name">
+        <label for="signupEmail">E-mail</label>
+        <input id="signupEmail" type="email" placeholder="seu@email.com" autocomplete="email" required>
+        <label for="signupPassword">Senha</label>
+        <input id="signupPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
+        <label for="signupPasswordConfirm">Confirmar senha</label>
+        <input id="signupPasswordConfirm" type="password" placeholder="Repita a senha" autocomplete="new-password" minlength="6" required>
+        <label class="checkbox-row">
+          <input id="signupPrivacyConsent" type="checkbox" required>
+          <span>Li e aceito a <a href="privacy.html" target="_blank" rel="noopener noreferrer">política de privacidade</a>.</span>
+        </label>
+        <button type="submit">Criar conta</button>
+      </form>
+
+      <div id="loginError" class="login-error"></div>
+      <p id="authFooter" class="login-footer">Acesso restrito ao administrador da fazenda</p>
+      <div class="auth-links">
+        <a href="privacy.html">Privacidade</a>
+        <a href="#" data-support-link>Suporte</a>
       </div>
     </div>
+  </div>
+</div>
 
-    <main id="appShell" class="app-shell">
-      <div class="app-header">
-        <h1>Controle Fazenda</h1>
-        <div class="user-info">
-          <span id="syncStatus" class="status">Local</span>
-          <span id="userEmail" class="user-email"></span>
-          <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
-        </div>
+<main id="appShell" class="app-shell">
+  <div class="app-header">
+    <h1>Controle Fazenda</h1>
+    <div class="user-info">
+      <span id="syncStatus" class="status">Local</span>
+      <span id="userEmail" class="user-email"></span>
+      <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
+    </div>
+  </div>
+
+  <section class="summary-grid" aria-label="Resumo">
+    <article class="summary primary">
+      <span>Produção de hoje</span>
+      <strong id="todayTotal">0 L</strong>
+      <small id="todayValue">R$ 0,00</small>
+    </article>
+    <article class="summary">
+      <span>Mês atual</span>
+      <strong id="monthTotal">0 L</strong>
+      <small id="monthValue">R$ 0,00</small>
+    </article>
+    <article class="summary">
+      <span>Cotação do leite</span>
+      <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
+      <small>Altere em Configurações</small>
+    </article>
+    <article class="summary">
+      <span>Animais</span>
+      <strong id="animalTotal">0</strong>
+      <small id="lactatingTotal">0 em lactação</small>
+    </article>
+  </section>
+
+  <section id="milk" class="panel active">
+    <form id="milkForm" class="form-grid compact-form">
+      <div class="field">
+        <label for="milkDate">Data</label>
+        <input id="milkDate" type="date" required>
       </div>
+      <div class="field">
+        <label for="liters">Litros</label>
+        <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
+      </div>
+      <button type="submit">Salvar produção</button>
+    </form>
+    <div class="section-title">
+      <h2>Histórico</h2>
+      <button id="refreshButton" class="ghost" type="button">Atualizar</button>
+    </div>
+    <div id="historyList" class="list"></div>
+  </section>
 
-      <section class="summary-grid" aria-label="Resumo">
-        <article class="summary primary">
-          <span>Produção de hoje</span>
-          <strong id="todayTotal">0 L</strong>
-          <small id="todayValue">R$ 0,00</small>
-        </article>
-        <article class="summary">
-          <span>Mês atual</span>
-          <strong id="monthTotal">0 L</strong>
-          <small id="monthValue">R$ 0,00</small>
-        </article>
-        <article class="summary">
-          <span>Cotação do leite</span>
-          <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
-          <small>Altere em Configurações</small>
-        </article>
-        <article class="summary">
-          <span>Animais</span>
-          <strong id="animalTotal">0</strong>
-          <small id="lactatingTotal">0 em lactação</small>
-        </article>
-      </section>
+  <section id="animals" class="panel">
+    <form id="animalForm" class="form-grid">
+      <label for="animalName">Identificação</label>
+      <input id="animalName" type="text" placeholder="Ex.: BOV-0001" required>
+      <label for="animalType">Tipo</label>
+      <select id="animalType">
+        <option>Bovino de Leite</option>
+        <option>Caprino</option>
+        <option>Ovino</option>
+        <option>Suíno</option>
+      </select>
+      <label for="animalStatus">Status</label>
+      <select id="animalStatus">
+        <option>Em lactação</option>
+        <option>Seca</option>
+        <option>Prenhe</option>
+        <option>Para engorda</option>
+        <option>Disponível para venda</option>
+      </select>
+      <button type="submit">Cadastrar animal</button>
+    </form>
+    <div class="section-title"><h2>Rebanho</h2></div>
+    <div id="animalList" class="list"></div>
+  </section>
 
+  <section id="lactation" class="panel">
+    <form id="lactationForm" class="form-grid">
+      <label for="lactCowId">Vaca</label>
+      <select id="lactCowId"></select>
+      <label for="lactStart">Início</label>
+      <input id="lactStart" type="date" required>
+      <label for="lactEnd">Fim</label>
+      <input id="lactEnd" type="date">
+      <label for="lactLiters">Litros por dia</label>
+      <input id="lactLiters" type="number" min="0" step="0.1" inputmode="decimal" required>
+      <button type="submit">Registrar lactação</button>
+    </form>
+    <div class="section-title"><h2>Lactações</h2></div>
+    <div id="lactationList" class="list"></div>
+  </section>
 
+  <section id="breeding" class="panel">
+    <form id="breedingForm" class="form-grid">
+      <label for="breedCowId">Vaca</label>
+      <select id="breedCowId"></select>
+      <label for="inseminationDate">Data de prenhez</label>
+      <input id="inseminationDate" type="date" required>
+      <label for="expectedCalving">Previsão de parto</label>
+      <input id="expectedCalving" type="date" required>
+      <button type="submit">Registrar reprodução</button>
+    </form>
+    <div class="section-title"><h2>Reproduções</h2></div>
+    <div id="breedingList" class="list"></div>
+  </section>
 
-      <section id="milk" class="panel active">
-        <form id="milkForm" class="form-grid compact-form">
-          <div class="field">
-            <label for="milkDate">Data</label>
-            <input id="milkDate" type="date" required>
-          </div>
-          <div class="field">
-            <label for="liters">Litros</label>
-            <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
-          </div>
-          <button type="submit">Salvar produção</button>
-        </form>
-        <div class="section-title">
-          <h2>Histórico</h2>
-          <button id="refreshButton" class="ghost" type="button">Atualizar</button>
-        </div>
-        <div id="historyList" class="list"></div>
-      </section>
+  <section id="medication" class="panel">
+    <form id="medicationForm" class="form-grid">
+      <label for="medCowId">Vaca</label>
+      <select id="medCowId"></select>
+      <label for="medName">Medicamento</label>
+      <input id="medName" type="text" placeholder="Ex.: Vitamina A" required>
+      <label for="medDosage">Dosagem</label>
+      <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
+      <label for="medDate">Data de aplicação</label>
+      <input id="medDate" type="date" required>
+      <button type="submit">Registrar medicação</button>
+    </form>
+    <div class="section-title"><h2>Medicações</h2></div>
+    <div id="medicationList" class="list"></div>
+  </section>
 
-      <section id="animals" class="panel">
-        <form id="animalForm" class="form-grid">
-          <label for="animalName">Identificação</label>
-          <input id="animalName" type="text" placeholder="Ex.: BOV-0001" required>
+  <section id="reports" class="panel">
+    <div class="report-grid">
+      <article class="report-card">
+        <span>Produção no mês</span>
+        <strong id="reportMonthTotal">0 L</strong>
+      </article>
+      <article class="report-card">
+        <span>Valor estimado</span>
+        <strong id="reportMonthValue">R$ 0,00</strong>
+      </article>
+      <article class="report-card">
+        <span>Média por registro</span>
+        <strong id="reportAverage">0 L</strong>
+      </article>
+      <article class="report-card">
+        <span>Melhor dia</span>
+        <strong id="reportBestDay">-</strong>
+      </article>
+    </div>
+    <div class="section-title"><h2>Produção recente</h2></div>
+        <div id="productionChart" class="chart production-chart">
+      <canvas></canvas>
+    </div>
+  </section>
 
-          <label for="animalType">Tipo</label>
-          <select id="animalType">
-            <option>Bovino de Leite</option>
-            <option>Caprino</option>
-            <option>Ovino</option>
-            <option>Suíno</option>
-          </select>
+  <section id="settings" class="panel">
+    <form id="priceQuoteForm" class="form-grid">
+      <label for="priceQuoteInput">Cotação do leite (R$/L)</label>
+      <input id="priceQuoteInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,40" required>
+      <button type="submit">Salvar cotação</button>
+    </form>
+    <div class="section-title"><h2>Cotação atual</h2></div>
+    <p id="priceQuoteValue" class="price-quote-value"></p>
+    <div class="section-title"><h2>Backup manual</h2></div>
+    <button id="exportDataButton" class="ghost full-width" type="button">Exportar dados (JSON)</button>
+    <div class="section-title"><h2>Segurança e suporte</h2></div>
+    <p class="helper-text">Cada conta acessa apenas seus próprios dados quando o RLS está ativo no Supabase.</p>
+    <div class="settings-actions">
+      <a class="ghost link-button" href="privacy.html">Política de privacidade</a>
+      <a class="ghost link-button" href="#" data-support-link>Falar no WhatsApp</a>
+    </div>
+  </section>
+</main>
 
-          <label for="animalStatus">Status</label>
-          <select id="animalStatus">
-            <option>Em lactação</option>
-            <option>Seca</option>
-            <option>Prenhe</option>
-            <option>Para engorda</option>
-            <option>Disponível para venda</option>
-          </select>
+<!-- ===== BOTTOM NAVIGATION ===== -->
+<nav class="bottom-nav" aria-label="Navegação">
+  <button class="nav-item active" type="button" data-tab="milk">
+    <i class="nav-icon" data-lucide="milk"></i>
+    <span>Leite</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="animals">
+    <i class="nav-icon" data-lucide="tag"></i>
+    <span>Animais</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="lactation">
+    <i class="nav-icon" data-lucide="droplets"></i>
+    <span>Lactação</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="breeding">
+    <i class="nav-icon" data-lucide="calendar-heart"></i>
+    <span>Gestação</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="medication">
+    <i class="nav-icon" data-lucide="syringe"></i>
+    <span>Saúde</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="reports">
+    <i class="nav-icon" data-lucide="chart-column"></i>
+    <span>Relatórios</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="settings">
+    <i class="nav-icon" data-lucide="settings"></i>
+    <span>Config</span>
+  </button>
+</nav>
 
-          <button type="submit">Cadastrar animal</button>
-        </form>
-        <div class="section-title"><h2>Rebanho</h2></div>
-        <div id="animalList" class="list"></div>
-      </section>
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toastContainer" class="toast-container"></div>
 
-      <section id="lactation" class="panel">
-        <form id="lactationForm" class="form-grid">
-          <label for="lactCowId">Vaca</label>
-          <select id="lactCowId"></select>
-          <label for="lactStart">Início</label>
-          <input id="lactStart" type="date" required>
-          <label for="lactEnd">Fim</label>
-          <input id="lactEnd" type="date">
-          <label for="lactLiters">Litros por dia</label>
-          <input id="lactLiters" type="number" min="0" step="0.1" inputmode="decimal" required>
-          <button type="submit">Registrar lactação</button>
-        </form>
-        <div class="section-title"><h2>Lactações</h2></div>
-        <div id="lactationList" class="list"></div>
-      </section>
+<!--
+  SEGURANÇA: SRI nos scripts externos.
+  Execute "bash generate-sri.sh" e substitua os placeholders pelos hashes reais.
+  O atributo crossorigin="anonymous" é obrigatório para SRI funcionar.
+-->
 
-      <section id="breeding" class="panel">
-        <form id="breedingForm" class="form-grid">
-          <label for="breedCowId">Vaca</label>
-          <select id="breedCowId"></select>
-          <label for="inseminationDate">Data de prenhez</label>
-          <input id="inseminationDate" type="date" required>
-          <label for="expectedCalving">Previsão de parto</label>
-          <input id="expectedCalving" type="date" required>
-          <button type="submit">Registrar reprodução</button>
-        </form>
-        <div class="section-title"><h2>Reproduções</h2></div>
-        <div id="breedingList" class="list"></div>
-      </section>
+<!-- supabase-js — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"
+  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  crossorigin="anonymous"></script>
 
-      <section id="medication" class="panel">
-        <form id="medicationForm" class="form-grid">
-          <label for="medCowId">Vaca</label>
-          <select id="medCowId"></select>
-          <label for="medName">Medicamento</label>
-          <input id="medName" type="text" placeholder="Ex.: Vitamina A" required>
-          <label for="medDosage">Dosagem</label>
-          <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
-          <label for="medDate">Data de aplicação</label>
-          <input id="medDate" type="date" required>
-          <button type="submit">Registrar medicação</button>
-        </form>
-        <div class="section-title"><h2>Medicações</h2></div>
-        <div id="medicationList" class="list"></div>
-      </section>
+<script src="/api/config.js"></script>
 
-      <section id="reports" class="panel">
-        <div class="report-grid">
-          <article class="report-card">
-            <span>Produção no mês</span>
-            <strong id="reportMonthTotal">0 L</strong>
-          </article>
-          <article class="report-card">
-            <span>Valor estimado</span>
-            <strong id="reportMonthValue">R$ 0,00</strong>
-          </article>
-          <article class="report-card">
-            <span>Média por registro</span>
-            <strong id="reportAverage">0 L</strong>
-          </article>
-          <article class="report-card">
-            <span>Melhor dia</span>
-            <strong id="reportBestDay">-</strong>
-          </article>
-        </div>
+<!-- lucide — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<script
+  src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"
+  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  crossorigin="anonymous"></script>
 
-        <div class="section-title"><h2>Produção recente</h2></div>
-        <div id="productionChart" class="chart" style="position: relative; height: 300px;">
-          <canvas></canvas>
-        </div>
-      </section>
-
-      <section id="settings" class="panel">
-        <form id="priceQuoteForm" class="form-grid">
-          <label for="priceQuoteInput">Cotação do leite (R$/L)</label>
-          <input id="priceQuoteInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,40" required>
-          <button type="submit">Salvar cotação</button>
-        </form>
-        <div class="section-title"><h2>Cotação atual</h2></div>
-        <p id="priceQuoteValue" class="price-quote-value"></p>
-        <div class="section-title"><h2>Backup manual</h2></div>
-        <button id="exportDataButton" class="ghost full-width" type="button">Exportar dados (JSON)</button>
-        <div class="section-title"><h2>Segurança e suporte</h2></div>
-        <p class="helper-text">Cada conta acessa apenas seus próprios dados quando o RLS está ativo no Supabase.</p>
-        <div class="settings-actions">
-          <a class="ghost link-button" href="privacy.html">Política de privacidade</a>
-          <a class="ghost link-button" href="#" data-support-link>Falar no WhatsApp</a>
-        </div>
-      </section>
-    </main>
-
-    <!-- ===== BOTTOM NAVIGATION ===== -->
-    <nav class="bottom-nav" aria-label="Navegação">
-      <button class="nav-item active" type="button" data-tab="milk">
-        <i class="nav-icon" data-lucide="milk"></i>
-        <span>Leite</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="animals">
-        <i class="nav-icon" data-lucide="tag"></i>
-        <span>Animais</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="lactation">
-        <i class="nav-icon" data-lucide="droplets"></i>
-        <span>Lactação</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="breeding">
-        <i class="nav-icon" data-lucide="calendar-heart"></i>
-        <span>Gestação</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="medication">
-        <i class="nav-icon" data-lucide="syringe"></i>
-        <span>Saúde</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="reports">
-        <i class="nav-icon" data-lucide="chart-column"></i>
-        <span>Relatórios</span>
-      </button>
-      <button class="nav-item" type="button" data-tab="settings">
-        <i class="nav-icon" data-lucide="settings"></i>
-        <span>Config</span>
-      </button>
-    </nav>
-
-    <!-- ===== TOAST CONTAINER ===== -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/api/config.js"></script>
-    <script src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"></script>
-    <script src="icons.js"></script>
-    <script src="app.js"></script>
-  </body>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
 </html>

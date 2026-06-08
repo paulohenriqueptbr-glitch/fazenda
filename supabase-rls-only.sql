@@ -50,23 +50,51 @@ begin
       target_table
     );
 
-    execute format(
-      'create policy %I on public.%I for insert with check (auth.uid() = user_id)',
-      target_table || '_insert',
-      target_table
-    );
+    if target_table = 'app_settings' then
+      execute format(
+        'create policy %I on public.%I for insert with check (auth.uid() = user_id and %I <> %L)',
+        target_table || '_insert',
+        target_table,
+        'key',
+        'subscription_admin'
+      );
 
-    execute format(
-      'create policy %I on public.%I for update using (auth.uid() = user_id) with check (auth.uid() = user_id)',
-      target_table || '_update',
-      target_table
-    );
+      execute format(
+        'create policy %I on public.%I for update using (auth.uid() = user_id and %I <> %L) with check (auth.uid() = user_id and %I <> %L)',
+        target_table || '_update',
+        target_table,
+        'key',
+        'subscription_admin',
+        'key',
+        'subscription_admin'
+      );
 
-    execute format(
-      'create policy %I on public.%I for delete using (auth.uid() = user_id)',
-      target_table || '_delete',
-      target_table
-    );
+      execute format(
+        'create policy %I on public.%I for delete using (auth.uid() = user_id and %I <> %L)',
+        target_table || '_delete',
+        target_table,
+        'key',
+        'subscription_admin'
+      );
+    else
+      execute format(
+        'create policy %I on public.%I for insert with check (auth.uid() = user_id)',
+        target_table || '_insert',
+        target_table
+      );
+
+      execute format(
+        'create policy %I on public.%I for update using (auth.uid() = user_id) with check (auth.uid() = user_id)',
+        target_table || '_update',
+        target_table
+      );
+
+      execute format(
+        'create policy %I on public.%I for delete using (auth.uid() = user_id)',
+        target_table || '_delete',
+        target_table
+      );
+    end if;
   end loop;
 end $$;
 

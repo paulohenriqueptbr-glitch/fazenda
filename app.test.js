@@ -33,11 +33,17 @@ const createMockState = () => ({
 // ============================================================================
 
 describe("Validação de Datas", () => {
+  const parseIsoDate = (dateStr) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ""))) return null;
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+      ? date
+      : null;
+  };
+
   test("isValidDate aceita datas válidas", () => {
-    const isValidDate = (dateStr) => {
-      const date = new Date(dateStr + "T00:00:00");
-      return !Number.isNaN(date.getTime());
-    };
+    const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
     
     expect(isValidDate("2026-06-06")).toBe(true);
     expect(isValidDate("2026-01-01")).toBe(true);
@@ -45,10 +51,7 @@ describe("Validação de Datas", () => {
   });
 
   test("isValidDate rejeita datas inválidas", () => {
-    const isValidDate = (dateStr) => {
-      const date = new Date(dateStr + "T00:00:00");
-      return !Number.isNaN(date.getTime());
-    };
+    const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
     
     expect(isValidDate("2026-13-01")).toBe(false);
     expect(isValidDate("2026-06-31")).toBe(false);
@@ -64,7 +67,8 @@ describe("Validação de Datas", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     const isNotFutureDate = (dateStr) => {
-      const date = new Date(dateStr + "T00:00:00");
+      const date = parseIsoDate(dateStr);
+      if (!date) return false;
       const todayCheck = new Date();
       todayCheck.setHours(0, 0, 0, 0);
       return date <= todayCheck;
@@ -75,7 +79,8 @@ describe("Validação de Datas", () => {
 
   test("isNotFutureDate aceita datas passadas e hoje", () => {
     const isNotFutureDate = (dateStr) => {
-      const date = new Date(dateStr + "T00:00:00");
+      const date = parseIsoDate(dateStr);
+      if (!date) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return date <= today;
@@ -88,8 +93,9 @@ describe("Validação de Datas", () => {
   test("isValidDateRange valida que fim >= início", () => {
     const isValidDateRange = (startStr, endStr) => {
       if (!endStr) return true;
-      const start = new Date(startStr + "T00:00:00");
-      const end = new Date(endStr + "T00:00:00");
+      const start = parseIsoDate(startStr);
+      const end = parseIsoDate(endStr);
+      if (!start || !end) return false;
       return start <= end;
     };
 
@@ -269,12 +275,12 @@ describe("Lógica de Negócio", () => {
   });
 
   test("Calcula data de parto (285 dias após inseminação)", () => {
-    const insemDate = new Date("2026-05-01");
+    const insemDate = new Date(2026, 4, 1);
     insemDate.setDate(insemDate.getDate() + 285);
     
-    // Deve ser aproximadamente 7 de julho
-    expect(insemDate.getMonth()).toBe(6); // Julho (0-indexed)
-    expect(insemDate.getDate()).toBeGreaterThan(1);
+    expect(insemDate.getFullYear()).toBe(2027);
+    expect(insemDate.getMonth()).toBe(1); // Fevereiro (0-indexed)
+    expect(insemDate.getDate()).toBe(10);
   });
 });
 

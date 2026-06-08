@@ -6,17 +6,18 @@
     <meta name="theme-color" content="#ffffff">
     <meta name="description" content="Política de privacidade do Controle Fazenda.">
     <title>Política de Privacidade - Controle Fazenda</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=19">
   </head>
   <body class="legal-page">
     <main class="legal-container">
       <a class="back-link" href="index.html">Voltar ao app</a>
+      <a class="back-link secondary" href="landing.html">Conhecer planos</a>
       <h1>Política de Privacidade</h1>
       <p class="legal-updated">Atualizada em 07/06/2026</p>
 
       <section>
         <h2>Resumo</h2>
-        <p>O Controle Fazenda guarda os dados necessários para você registrar produção de leite, rebanho, lactações, gestações, medicações, relatórios e configurações da fazenda.</p>
+        <p>O Controle Fazenda guarda os dados necessários para você registrar produção de leite, rebanho, lactações, gestações, medicações, relatórios, configurações da fazenda e informações comerciais da assinatura.</p>
       </section>
 
       <section>
@@ -24,13 +25,14 @@
         <ul>
           <li>Dados de conta, como nome, e-mail e senha gerenciada pelo Supabase Auth.</li>
           <li>Dados da fazenda informados por você, como produção, animais, lactação, gestação, saúde e cotação do leite.</li>
+          <li>Dados de atendimento e assinatura, como nome da fazenda, responsável, WhatsApp, status comercial e vencimento.</li>
           <li>Dados salvos localmente no navegador para permitir uso offline e sincronização posterior.</li>
         </ul>
       </section>
 
       <section>
         <h2>Como usamos os dados</h2>
-        <p>Usamos os dados para entregar o funcionamento do app, manter seu histórico, gerar relatórios, sincronizar informações e permitir exportação de backup em JSON.</p>
+        <p>Usamos os dados para entregar o funcionamento do app, manter seu histórico, gerar relatórios, sincronizar informações, controlar assinatura, prestar suporte e permitir exportação de backup em JSON.</p>
       </section>
 
       <section>
@@ -45,7 +47,7 @@
 
       <section>
         <h2>Backup e exclusão</h2>
-        <p>Você pode exportar um backup manual em JSON pela aba Config. Para pedir correção ou exclusão de dados, entre em contato pelo suporte.</p>
+        <p>Você pode exportar um backup manual em JSON pela aba Config. Quando configurado pelo responsável do sistema, também pode existir backup automático seguro no Supabase Storage. Para pedir correção ou exclusão de dados, entre em contato pelo suporte.</p>
       </section>
 
       <section id="contato">
@@ -56,6 +58,6 @@
     </main>
 
     <script src="/api/config.js"></script>
-    <script src="privacy.js"></script>
+    <script src="privacy.js?v=19"></script>
   </body>
 </html>

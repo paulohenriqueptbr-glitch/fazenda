@@ -1,21 +1,38 @@
-const CACHE_NAME = "controle-fazenda-v15";
+const CACHE_NAME = "controle-fazenda-v19";
 const APP_FILES = [
   "./",
   "./index.html",
+  "./landing.html",
+  "./admin.html",
   "./privacy.html",
-  "./styles.css",
-  "./icons.js",
-  "./privacy.js",
-  "./app.js",
+  "./styles.css?v=19",
+  "./icons.js?v=19",
+  "./privacy.js?v=19",
+  "./landing.js?v=19",
+  "./admin.js?v=19",
+  "./app.js?v=19",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
   "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
 ];
 
+const isConfigRequest = (url) => url.pathname === "/api/config.js";
+const isApiRequest = (url) => url.pathname.startsWith("/api/");
+const emptyConfigResponse = () =>
+  new Response("window.CONTROLE_LEITE_CONFIG = {};", {
+    headers: { "Content-Type": "application/javascript; charset=utf-8" },
+  });
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_FILES)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(APP_FILES.map((file) => cache.add(file).catch(() => null)))
+    )
+  );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -28,23 +45,41 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
-    return;
-  }
+  if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
 
-  if (url.pathname === "/api/config.js") {
-    // Nunca cachear — contém credenciais que podem ser rotacionadas.
+  if (isConfigRequest(url)) {
     event.respondWith(
-      fetch(event.request).catch(() => new Response("window.CONTROLE_LEITE_CONFIG = {};", {
-        headers: { "Content-Type": "application/javascript" }
-      }))
+      caches.open(CACHE_NAME).then(async (cache) => {
+        try {
+          const response = await fetch(event.request);
+          if (response && response.ok) cache.put(event.request, response.clone());
+          return response;
+        } catch {
+          return (await cache.match(event.request)) || emptyConfigResponse();
+        }
+      })
     );
     return;
   }
 
+  if (isApiRequest(url)) return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then(async (cached) => {
+      try {
+        const response = await fetch(event.request);
+        if (response && response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, response.clone());
+        }
+        return response;
+      } catch {
+        if (cached) return cached;
+        if (event.request.mode === "navigate") return caches.match("./index.html");
+        return Response.error();
+      }
+    })
   );
 });
