@@ -28,6 +28,8 @@ env/
 !.env.example
 /config.js
 /config.local.js
+node_modules/
+*.log
 *.pyc
 .pytest_cache/
 .mypy_cache/

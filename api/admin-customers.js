@@ -8,6 +8,10 @@ const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolea
 const sendJson = (response, status, payload) => {
   response.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store, max-age=0");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   response.send(JSON.stringify(payload));
 };
 
@@ -148,7 +152,8 @@ module.exports = async function handler(request, response) {
 
       sendJson(response, 200, { customers: Array.from(customers.values()) });
     } catch (error) {
-      sendJson(response, 500, { error: error.message || "Erro ao carregar clientes." });
+      console.error("Erro ao carregar clientes:", error);
+      sendJson(response, 500, { error: "Erro ao carregar clientes." });
     }
     return;
   }
@@ -186,7 +191,8 @@ module.exports = async function handler(request, response) {
 
       sendJson(response, 200, { ok: true, subscription: nextSubscription });
     } catch (error) {
-      sendJson(response, 500, { error: error.message || "Erro ao atualizar cliente." });
+      console.error("Erro ao atualizar cliente:", error);
+      sendJson(response, 500, { error: "Erro ao atualizar cliente." });
     }
     return;
   }

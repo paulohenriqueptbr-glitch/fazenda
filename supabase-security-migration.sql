@@ -101,7 +101,10 @@ drop policy if exists "lactation_records_insert" on lactation_records;
 drop policy if exists "lactation_records_update" on lactation_records;
 drop policy if exists "lactation_records_delete" on lactation_records;
 create policy "lactation_records_select" on lactation_records for select using (auth.uid() = user_id);
-create policy "lactation_records_insert" on lactation_records for insert with check (auth.uid() = user_id);
+create policy "lactation_records_insert" on lactation_records for insert with check (
+  auth.uid() = user_id
+  and exists (select 1 from animals where id = cow_id and user_id = auth.uid())
+);
 create policy "lactation_records_update" on lactation_records for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "lactation_records_delete" on lactation_records for delete using (auth.uid() = user_id);
 
@@ -110,7 +113,10 @@ drop policy if exists "breeding_records_insert" on breeding_records;
 drop policy if exists "breeding_records_update" on breeding_records;
 drop policy if exists "breeding_records_delete" on breeding_records;
 create policy "breeding_records_select" on breeding_records for select using (auth.uid() = user_id);
-create policy "breeding_records_insert" on breeding_records for insert with check (auth.uid() = user_id);
+create policy "breeding_records_insert" on breeding_records for insert with check (
+  auth.uid() = user_id
+  and exists (select 1 from animals where id = cow_id and user_id = auth.uid())
+);
 create policy "breeding_records_update" on breeding_records for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "breeding_records_delete" on breeding_records for delete using (auth.uid() = user_id);
 
@@ -119,7 +125,10 @@ drop policy if exists "medication_records_insert" on medication_records;
 drop policy if exists "medication_records_update" on medication_records;
 drop policy if exists "medication_records_delete" on medication_records;
 create policy "medication_records_select" on medication_records for select using (auth.uid() = user_id);
-create policy "medication_records_insert" on medication_records for insert with check (auth.uid() = user_id);
+create policy "medication_records_insert" on medication_records for insert with check (
+  auth.uid() = user_id
+  and exists (select 1 from animals where id = cow_id and user_id = auth.uid())
+);
 create policy "medication_records_update" on medication_records for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "medication_records_delete" on medication_records for delete using (auth.uid() = user_id);
 

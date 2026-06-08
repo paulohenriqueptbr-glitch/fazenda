@@ -8,7 +8,7 @@ if (privacySupportLink) {
   if (privacySupportWhatsapp) {
     privacySupportLink.href = `https://wa.me/${privacySupportWhatsapp}?text=${privacySupportMessage}`;
     privacySupportLink.target = "_blank";
-    privacySupportLink.rel = "noopener";
+    privacySupportLink.rel = "noopener noreferrer";
   } else if (privacySupportEmail) {
     privacySupportLink.href = `mailto:${privacySupportEmail}?subject=Suporte Controle Fazenda`;
   } else {

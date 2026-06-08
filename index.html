@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=19">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -25,10 +25,10 @@
   ATENÇÃO: ao atualizar a versão de qualquer lib, recalcule os hashes.
 -->
 
-<!-- chart.js — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<!-- chart.js -->
 <script
   src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
-  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
   crossorigin="anonymous"></script>
 
 </head>
@@ -300,25 +300,26 @@
 
 <!--
   SEGURANÇA: SRI nos scripts externos.
-  Execute "bash generate-sri.sh" e substitua os placeholders pelos hashes reais.
-  O atributo crossorigin="anonymous" é obrigatório para SRI funcionar.
+  Ao atualizar a versão de uma biblioteca, execute "bash generate-sri.sh"
+  e substitua o hash correspondente. O atributo crossorigin="anonymous"
+  é obrigatório para SRI funcionar.
 -->
 
-<!-- supabase-js — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<!-- supabase-js -->
 <script
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"
-  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  integrity="sha384-CQbEv3UOeYwlaBLdPF5KqEagCP39Q1KpvJC6Gwa3UGjZAwMvpA+0TFxSSnrgb4MX"
   crossorigin="anonymous"></script>
 
 <script src="/api/config.js"></script>
 
-<!-- lucide — SUBSTITUA O HASH ABAIXO PELO GERADO POR generate-sri.sh -->
+<!-- lucide -->
 <script
   src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"
-  integrity="sha384-SUBSTITUA_PELO_HASH_GERADO_VIA_generate-sri.sh"
+  integrity="sha384-wHFvAtjmgnkA2PJcMsDaCgdipf7X7YV44X/igbLHpvGiq6T5/PvFKl93grpvtbQT"
   crossorigin="anonymous"></script>
 
-<script src="icons.js"></script>
-<script src="app.js"></script>
+<script src="icons.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

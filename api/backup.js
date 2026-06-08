@@ -13,6 +13,10 @@ const PAGE_SIZE = 1000;
 const sendJson = (response, status, payload) => {
   response.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store, max-age=0");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   response.send(JSON.stringify(payload));
 };
 
@@ -111,6 +115,7 @@ module.exports = async function handler(request, response) {
       tables: tables.length,
     });
   } catch (error) {
-    sendJson(response, 500, { error: error.message || "Erro ao gerar backup." });
+    console.error("Erro ao gerar backup:", error);
+    sendJson(response, 500, { error: "Erro ao gerar backup." });
   }
 };

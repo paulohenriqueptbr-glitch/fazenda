@@ -23,7 +23,7 @@ const setupLandingLinks = () => {
     link.href = url;
     if (url.startsWith("https://")) {
       link.target = "_blank";
-      link.rel = "noopener";
+      link.rel = "noopener noreferrer";
     }
   });
 
@@ -32,7 +32,7 @@ const setupLandingLinks = () => {
     link.href = url;
     if (url.startsWith("https://")) {
       link.target = "_blank";
-      link.rel = "noopener";
+      link.rel = "noopener noreferrer";
     }
   });
 };

@@ -203,6 +203,10 @@ create policy "medication_records_delete" on medication_records for delete
 
 -- APP_SETTINGS
 create policy "app_settings_select" on app_settings for select using (auth.uid() = user_id);
-create policy "app_settings_insert" on app_settings for insert with check (auth.uid() = user_id);
-create policy "app_settings_update" on app_settings for update using (auth.uid() = user_id);
-create policy "app_settings_delete" on app_settings for delete using (auth.uid() = user_id);
+create policy "app_settings_insert" on app_settings for insert
+  with check (auth.uid() = user_id and key <> 'subscription_admin');
+create policy "app_settings_update" on app_settings for update
+  using (auth.uid() = user_id and key <> 'subscription_admin')
+  with check (auth.uid() = user_id and key <> 'subscription_admin');
+create policy "app_settings_delete" on app_settings for delete
+  using (auth.uid() = user_id and key <> 'subscription_admin');

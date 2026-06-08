@@ -76,6 +76,24 @@ begin
         'key',
         'subscription_admin'
       );
+    elsif target_table in ('lactation_records', 'breeding_records', 'medication_records') then
+      execute format(
+        'create policy %I on public.%I for insert with check (auth.uid() = user_id and exists (select 1 from public.animals where id = cow_id and user_id = auth.uid()))',
+        target_table || '_insert',
+        target_table
+      );
+
+      execute format(
+        'create policy %I on public.%I for update using (auth.uid() = user_id) with check (auth.uid() = user_id)',
+        target_table || '_update',
+        target_table
+      );
+
+      execute format(
+        'create policy %I on public.%I for delete using (auth.uid() = user_id)',
+        target_table || '_delete',
+        target_table
+      );
     else
       execute format(
         'create policy %I on public.%I for insert with check (auth.uid() = user_id)',

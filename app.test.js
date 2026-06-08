@@ -13,17 +13,17 @@ const createMockState = () => ({
     { id: "3", date: "2026-06-04", liters: 30.0 },
   ],
   animals: [
-    { id: "a1", identification: "BOV-0001", type: "Bovino", status: "Em lactação" },
-    { id: "a2", identification: "BOV-0002", type: "Bovino", status: "Seca" },
+    { id: "11111111-1111-4111-8111-111111111111", identification: "BOV-0001", type: "Bovino", status: "Em lactação" },
+    { id: "22222222-2222-4222-8222-222222222222", identification: "BOV-0002", type: "Bovino", status: "Seca" },
   ],
   lactations: [
-    { id: "l1", cow_id: "BOV-0001", start_date: "2026-01-01", daily_liters: 28 },
+    { id: "l1", cow_id: "11111111-1111-4111-8111-111111111111", start_date: "2026-01-01", daily_liters: 28 },
   ],
   breeding: [
-    { id: "b1", cow_id: "BOV-0002", insemination_date: "2026-05-01", expected_calving_date: "2026-07-20" },
+    { id: "b1", cow_id: "22222222-2222-4222-8222-222222222222", insemination_date: "2026-05-01", expected_calving_date: "2026-07-20" },
   ],
   medication: [
-    { id: "m1", cow_id: "BOV-0001", medication_name: "Antibiótico X", dosage: "500mg", administration_date: "2026-06-05" },
+    { id: "m1", cow_id: "11111111-1111-4111-8111-111111111111", medication_name: "Antibiótico X", dosage: "500mg", administration_date: "2026-06-05" },
   ],
   priceQuote: 2.50,
 });
@@ -271,7 +271,7 @@ describe("Lógica de Negócio", () => {
     
     const activeLactations = state.lactations.filter((l) => !l.end_date);
     expect(activeLactations.length).toBe(1);
-    expect(activeLactations[0].cow_id).toBe("BOV-0001");
+    expect(activeLactations[0].cow_id).toBe("11111111-1111-4111-8111-111111111111");
   });
 
   test("Calcula data de parto (285 dias após inseminação)", () => {

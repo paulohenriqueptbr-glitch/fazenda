@@ -31,8 +31,6 @@ const supportWhatsapp = String(config.supportWhatsapp || "").replace(/\D/g, "");
 const supportEmail = String(config.supportEmail || "");
 const trialDays = Number(config.trialDays || 14);
 const planPrice = Number(config.planPrice || 39);
-const pixKey = String(config.pixKey || "");
-const pixReceiver = String(config.pixReceiver || "");
 const isLocalOrigin =
   ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
 const canUseLocalAccount = isLocalOrigin && !hasSupabase;
@@ -286,7 +284,7 @@ const setupSupportLinks = () => {
     link.setAttribute("href", url);
     if (url.startsWith("https://")) {
       link.setAttribute("target", "_blank");
-      link.setAttribute("rel", "noopener");
+      link.setAttribute("rel", "noopener noreferrer");
     } else {
       link.removeAttribute("target");
       link.removeAttribute("rel");
@@ -1058,13 +1056,13 @@ const renderClientPanel = () => {
   if (el.subscriptionDueDateInput) el.subscriptionDueDateInput.value = displayProfile.subscriptionDueDate || "";
   if (el.planPriceValue) el.planPriceValue.textContent = `${formatMoney(planPrice)}/mês`;
   if (el.trialDaysValue) el.trialDaysValue.textContent = `${trialDays} dias grátis`;
-  if (el.pixKeyValue) el.pixKeyValue.textContent = pixKey || "Configure PIX_KEY na Vercel";
-  if (el.copyPixButton) el.copyPixButton.disabled = !pixKey;
+  if (el.pixKeyValue) el.pixKeyValue.textContent = "Solicite a chave pelo WhatsApp";
+  if (el.copyPixButton) el.copyPixButton.disabled = false;
   if (el.subscribeButton) {
     el.subscribeButton.setAttribute("href", subscribeUrl());
     if (subscribeUrl().startsWith("https://")) {
       el.subscribeButton.setAttribute("target", "_blank");
-      el.subscribeButton.setAttribute("rel", "noopener");
+      el.subscribeButton.setAttribute("rel", "noopener noreferrer");
     }
   }
 
@@ -1441,10 +1439,11 @@ const updateSummaryOnly = () => {
 };
 
 const exportDataBackup = () => {
+  const pendingSyncCount = getSyncQueue().length;
   const backup = {
     exported_at: new Date().toISOString(),
     data: state,
-    pending_sync: getSyncQueue(),
+    pending_sync_count: pendingSyncCount,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1773,17 +1772,7 @@ const initApp = () => {
   if (el.copyPixButton && !el.copyPixButton._listenerAttached) {
     el.copyPixButton._listenerAttached = true;
     el.copyPixButton.addEventListener("click", async () => {
-      if (!pixKey) {
-        showToast("Configure PIX_KEY na Vercel para usar este botão.", "error");
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(pixKey);
-        showToast("Chave Pix copiada!");
-      } catch {
-        showToast("Não foi possível copiar. Selecione a chave Pix manualmente.", "error");
-      }
+      window.location.href = subscribeUrl();
     });
   }
 
