@@ -25,8 +25,8 @@ echo ""
 sri "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" \
     "chart.js@4.4.0"
 
-sri "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" \
-    "@supabase/supabase-js@2 (UMD)"
+sri "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js" \
+    "@supabase/supabase-js@2.108.0 (UMD)"
 
 sri "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js" \
     "lucide@0.383.0"

@@ -37,6 +37,21 @@ const canUseLocalAccount = isLocalOrigin && !hasSupabase;
 // O modo local agora valida a senha via /api/local-login (POST no servidor).
 // A senha nunca é exposta no bundle JS do cliente.
 const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(config.localModeEnabled);
+const supabaseUnavailableMessage = () => {
+  if (canUseLocalAccountWithPassword) {
+    return "Modo local ativo. Use admin e a senha configurada no servidor.";
+  }
+  if (canUseLocalAccount) {
+    return "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso.";
+  }
+  if (!window.supabase) {
+    return "Biblioteca do Supabase não carregou. Recarregue a página e confira se o CDN não foi bloqueado.";
+  }
+  if (!config.supabaseUrl || !config.supabaseAnonKey) {
+    return "Configuração do Supabase não encontrada. Confira SUPABASE_URL e SUPABASE_ANON_KEY no ambiente.";
+  }
+  return "Supabase indisponível no momento. Tente novamente.";
+};
 let currentUserId = null;
 // Atenção: este contador zera ao recarregar a página — ele apenas adiciona delay
 // entre tentativas na mesma sessão. A proteção real contra bruteforce é feita
@@ -1820,14 +1835,7 @@ const initApp = () => {
 const checkSession = async () => {
   if (!hasSupabase || !db) {
     showLogin();
-    showLoginError(
-      canUseLocalAccountWithPassword
-        ? "Modo local ativo. Use admin e a senha configurada no servidor."
-        : canUseLocalAccount
-          ? "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso."
-          : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente.",
-      canUseLocalAccountWithPassword ? "success" : "error"
-    );
+    showLoginError(supabaseUnavailableMessage(), canUseLocalAccountWithPassword ? "success" : "error");
     return;
   }
 
@@ -1894,7 +1902,7 @@ loginForm.addEventListener("submit", async (event) => {
   }
 
   if (!hasSupabase || !db) {
-    showLoginError("Configuração do Supabase não encontrada. Confira as variáveis do ambiente.");
+    showLoginError(supabaseUnavailableMessage());
     return;
   }
 
@@ -1941,7 +1949,7 @@ signupForm.addEventListener("submit", async (event) => {
     showLoginError(
       canUseLocalAccount
         ? "No modo local não é possível criar contas. Use o login de administrador."
-        : "Configuração do Supabase não encontrada. Confira as variáveis do ambiente."
+        : supabaseUnavailableMessage()
     );
     return;
   }
