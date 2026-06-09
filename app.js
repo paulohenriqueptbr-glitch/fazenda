@@ -2,6 +2,7 @@ const LOCAL_KEY = "controle-fazenda-data";
 const PRICE_QUOTE_KEY = "milk_price_quote";
 const CLIENT_PROFILE_KEY = "client_profile";
 const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
+const OPTIONAL_TABLES = new Set(["crop_events", "reminders"]);
 const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
 const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
@@ -20,6 +21,7 @@ const state = {
   breeding: [],
   medication: [],
   cropEvents: [],
+  reminders: [],
   priceQuote: 0,
   clientProfile: null,
   subscription: null,
@@ -210,6 +212,7 @@ const el = {
   breedingList: $("#breedingList"),
   medicationList: $("#medicationList"),
   cropEventList: $("#cropEventList"),
+  alertList: $("#alertList"),
   milkForm: $("#milkForm"),
   milkDate: $("#milkDate"),
   animalForm: $("#animalForm"),
@@ -217,6 +220,12 @@ const el = {
   breedingForm: $("#breedingForm"),
   medicationForm: $("#medicationForm"),
   cropForm: $("#cropForm"),
+  reminderForm: $("#reminderForm"),
+  reminderDate: $("#reminderDate"),
+  alertOverdueTotal: $("#alertOverdueTotal"),
+  alertTodayTotal: $("#alertTodayTotal"),
+  alertWeekTotal: $("#alertWeekTotal"),
+  alertOpenTotal: $("#alertOpenTotal"),
   priceQuoteForm: $("#priceQuoteForm"),
   priceQuoteInput: $("#priceQuoteInput"),
   priceQuoteValue: $("#priceQuoteValue"),
@@ -344,10 +353,13 @@ const supabaseErrorMessage = (error) => {
   return "Erro ao comunicar com o servidor. Tente novamente.";
 };
 
-const isMissingCropEventsTable = (error) =>
+const isMissingOptionalTable = (error, table) =>
   Boolean(error) &&
+  OPTIONAL_TABLES.has(table) &&
   (["42P01", "PGRST205"].includes(error.code) ||
-    String(error.message || "").toLowerCase().includes("crop_events"));
+    String(error.message || "").toLowerCase().includes(table));
+
+const isMissingCropEventsTable = (error) => isMissingOptionalTable(error, "crop_events");
 
 const authErrorMessage = (error) => {
   const raw = String(error?.message || error?.code || error || "").toLowerCase();
@@ -435,6 +447,7 @@ const loadLocal = () => {
   state.breeding = asArray(data.breeding);
   state.medication = asArray(data.medication);
   state.cropEvents = asArray(data.cropEvents);
+  state.reminders = asArray(data.reminders);
   state.priceQuote = Number(data.priceQuote || 0);
   state.clientProfile = normalizeClientProfile(data.clientProfile);
   state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
@@ -512,13 +525,14 @@ const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
   await requireSession();
 
-  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult] = await Promise.all([
+  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult, reminderResult] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("animals").select("*").order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("lactation_records").select("*").order("start_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("breeding_records").select("*").order("insemination_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("medication_records").select("*").order("administration_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("crop_events").select("*").order("event_date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("reminders").select("*").order("due_date", { ascending: true }).range(0, PAGE_SIZE - 1),
   ]);
 
   const error =
@@ -527,12 +541,16 @@ const loadSupabase = async () => {
     lactationResult.error ||
     breedingResult.error ||
     medicationResult.error ||
-    (isMissingCropEventsTable(cropResult.error) ? null : cropResult.error);
+    (isMissingOptionalTable(cropResult.error, "crop_events") ? null : cropResult.error) ||
+    (isMissingOptionalTable(reminderResult.error, "reminders") ? null : reminderResult.error);
 
   if (error) throw error;
 
   if (isMissingCropEventsTable(cropResult.error)) {
     console.warn("Tabela crop_events ainda nao existe no Supabase. Usando lavoura local.");
+  }
+  if (isMissingOptionalTable(reminderResult.error, "reminders")) {
+    console.warn("Tabela reminders ainda nao existe no Supabase. Usando lembretes locais.");
   }
 
   state.milk = milkResult.data || [];
@@ -540,7 +558,8 @@ const loadSupabase = async () => {
   state.lactations = lactationResult.data || [];
   state.breeding = breedingResult.data || [];
   state.medication = medicationResult.data || [];
-  state.cropEvents = isMissingCropEventsTable(cropResult.error) ? asArray(readLocal().cropEvents) : (cropResult.data || []);
+  state.cropEvents = isMissingOptionalTable(cropResult.error, "crop_events") ? asArray(readLocal().cropEvents) : (cropResult.data || []);
+  state.reminders = isMissingOptionalTable(reminderResult.error, "reminders") ? asArray(readLocal().reminders) : (reminderResult.data || []);
   await loadAppSettings();
 
   setStatus("Online", "online");
