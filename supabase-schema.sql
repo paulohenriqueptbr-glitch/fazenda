@@ -5,6 +5,7 @@
 -- ============================================================================
 
 drop table if exists medication_records cascade;
+drop table if exists crop_events cascade;
 drop table if exists breeding_records cascade;
 drop table if exists lactation_records cascade;
 drop table if exists animals cascade;
@@ -108,6 +109,29 @@ create index idx_medication_user on medication_records(user_id, administration_d
 create index idx_medication_cow  on medication_records(cow_id);
 
 -- ============================================================================
+-- TABELA: LAVOURA
+-- Registra manejos como plantio, pulverizacao, adubacao, colheita e observacao.
+-- ============================================================================
+create table crop_events (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users on delete cascade,
+  plot_name    text not null,
+  crop_name    text not null,
+  event_type   text not null,
+  event_date   date not null,
+  product      text,
+  dosage       text,
+  area_tasks   numeric(10, 2) check (area_tasks is null or area_tasks >= 0),
+  notes        text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+
+  check (event_date <= current_date)
+);
+
+create index idx_crop_events_user_date on crop_events(user_id, event_date desc);
+
+-- ============================================================================
 -- TABELA: CONFIGURAÇÕES DO APP (per usuário)
 -- ============================================================================
 create table app_settings (
@@ -133,6 +157,7 @@ alter table animals            enable row level security;
 alter table lactation_records  enable row level security;
 alter table breeding_records   enable row level security;
 alter table medication_records enable row level security;
+alter table crop_events        enable row level security;
 alter table app_settings       enable row level security;
 
 -- ============================================================================
@@ -200,6 +225,12 @@ create policy "medication_records_update" on medication_records for update
 
 create policy "medication_records_delete" on medication_records for delete
   using (auth.uid() = user_id);
+
+-- CROP_EVENTS
+create policy "crop_events_select" on crop_events for select using (auth.uid() = user_id);
+create policy "crop_events_insert" on crop_events for insert with check (auth.uid() = user_id);
+create policy "crop_events_update" on crop_events for update using (auth.uid() = user_id);
+create policy "crop_events_delete" on crop_events for delete using (auth.uid() = user_id);
 
 -- APP_SETTINGS
 create policy "app_settings_select" on app_settings for select using (auth.uid() = user_id);

@@ -54,7 +54,7 @@
     color: var(--ink);
     border-color: #334155;
   }
-  input:focus, select:focus { 
+  input:focus, select:focus, textarea:focus { 
     border-color: #22c55e;
     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
   }
@@ -100,7 +100,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -110,7 +111,8 @@ button {
 
 button:disabled,
 input:disabled,
-select:disabled {
+select:disabled,
+textarea:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }
@@ -119,7 +121,8 @@ select:disabled {
 .subscription-blocked #animalForm,
 .subscription-blocked #lactationForm,
 .subscription-blocked #breedingForm,
-.subscription-blocked #medicationForm {
+.subscription-blocked #medicationForm,
+.subscription-blocked #cropForm {
   opacity: 0.72;
 }
 
@@ -127,7 +130,8 @@ select:disabled {
 .subscription-blocked #animalForm::after,
 .subscription-blocked #lactationForm::after,
 .subscription-blocked #breedingForm::after,
-.subscription-blocked #medicationForm::after {
+.subscription-blocked #medicationForm::after,
+.subscription-blocked #cropForm::after {
   content: "Assinatura bloqueada. Regularize no suporte.";
   grid-column: 1 / -1;
   padding: 10px 12px;
@@ -772,7 +776,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 48px;
   border: 2px solid var(--line);
@@ -785,8 +790,15 @@ select {
   font-size: 1rem;
 }
 
+textarea {
+  min-height: 96px;
+  padding-top: 12px;
+  resize: vertical;
+}
+
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.1);
   background: white;

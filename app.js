@@ -19,6 +19,7 @@ const state = {
   lactations: [],
   breeding: [],
   medication: [],
+  cropEvents: [],
   priceQuote: 0,
   clientProfile: null,
   subscription: null,
@@ -82,7 +83,11 @@ const addDaysIso = (isoDate, days) => {
   return date.toISOString().slice(0, 10);
 };
 const monthKey = () => todayIso().slice(0, 7);
-const localId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+const localId = () => {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
 const withCurrentUser = (payload) => (currentUserId ? { ...payload, user_id: currentUserId } : payload);
 const userStorageKey = (key) => (currentUserId ? `${key}:${currentUserId}` : key);
 
@@ -140,6 +145,11 @@ const showToast = (message, type = "success") => {
 const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const formatTasks = (value) => {
+  const tasks = Number(value || 0);
+  if (!tasks) return "";
+  return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
+};
 
 const formatDate = (isoDate) => {
   if (!isoDate) return "-";
@@ -199,12 +209,14 @@ const el = {
   lactationList: $("#lactationList"),
   breedingList: $("#breedingList"),
   medicationList: $("#medicationList"),
+  cropEventList: $("#cropEventList"),
   milkForm: $("#milkForm"),
   milkDate: $("#milkDate"),
   animalForm: $("#animalForm"),
   lactationForm: $("#lactationForm"),
   breedingForm: $("#breedingForm"),
   medicationForm: $("#medicationForm"),
+  cropForm: $("#cropForm"),
   priceQuoteForm: $("#priceQuoteForm"),
   priceQuoteInput: $("#priceQuoteInput"),
   priceQuoteValue: $("#priceQuoteValue"),
@@ -332,6 +344,11 @@ const supabaseErrorMessage = (error) => {
   return "Erro ao comunicar com o servidor. Tente novamente.";
 };
 
+const isMissingCropEventsTable = (error) =>
+  Boolean(error) &&
+  (["42P01", "PGRST205"].includes(error.code) ||
+    String(error.message || "").toLowerCase().includes("crop_events"));
+
 const authErrorMessage = (error) => {
   const raw = String(error?.message || error?.code || error || "").toLowerCase();
 
@@ -377,7 +394,8 @@ const requireSession = async () => {
 
 const readLocal = () => {
   try {
-    return JSON.parse(localStorage.getItem(userStorageKey(LOCAL_KEY))) || {};
+    const data = JSON.parse(localStorage.getItem(userStorageKey(LOCAL_KEY))) || {};
+    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
   } catch {
     return {};
   }
@@ -391,8 +409,17 @@ const safeParseJson = (value, fallback = {}) => {
   }
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const writeLocal = () => {
-  localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(state));
+  try {
+    localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(state));
+    return true;
+  } catch (error) {
+    console.error("Erro ao salvar dados locais:", error);
+    showToast("Nao foi possivel salvar no armazenamento local.", "error");
+    return false;
+  }
 };
 
 const setStatus = (message, kind = "local") => {
@@ -402,12 +429,13 @@ const setStatus = (message, kind = "local") => {
 
 const loadLocal = () => {
   const data = readLocal();
-  state.milk = data.milk || [];
-  state.animals = data.animals || [];
-  state.lactations = data.lactations || [];
-  state.breeding = data.breeding || [];
-  state.medication = data.medication || [];
-  state.priceQuote = data.priceQuote || 0;
+  state.milk = asArray(data.milk);
+  state.animals = asArray(data.animals);
+  state.lactations = asArray(data.lactations);
+  state.breeding = asArray(data.breeding);
+  state.medication = asArray(data.medication);
+  state.cropEvents = asArray(data.cropEvents);
+  state.priceQuote = Number(data.priceQuote || 0);
   state.clientProfile = normalizeClientProfile(data.clientProfile);
   state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
   setStatus("Local", "local");
@@ -484,12 +512,13 @@ const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
   await requireSession();
 
-  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult] = await Promise.all([
+  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("animals").select("*").order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("lactation_records").select("*").order("start_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("breeding_records").select("*").order("insemination_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("medication_records").select("*").order("administration_date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("crop_events").select("*").order("event_date", { ascending: false }).range(0, PAGE_SIZE - 1),
   ]);
 
   const error =
@@ -497,15 +526,21 @@ const loadSupabase = async () => {
     animalResult.error ||
     lactationResult.error ||
     breedingResult.error ||
-    medicationResult.error;
+    medicationResult.error ||
+    (isMissingCropEventsTable(cropResult.error) ? null : cropResult.error);
 
   if (error) throw error;
+
+  if (isMissingCropEventsTable(cropResult.error)) {
+    console.warn("Tabela crop_events ainda nao existe no Supabase. Usando lavoura local.");
+  }
 
   state.milk = milkResult.data || [];
   state.animals = animalResult.data || [];
   state.lactations = lactationResult.data || [];
   state.breeding = breedingResult.data || [];
   state.medication = medicationResult.data || [];
+  state.cropEvents = isMissingCropEventsTable(cropResult.error) ? asArray(readLocal().cropEvents) : (cropResult.data || []);
   await loadAppSettings();
 
   setStatus("Online", "online");
@@ -541,9 +576,10 @@ const populateCowSelects = () => {
     )
     .join("");
 
-  $("#lactCowId").innerHTML = options;
-  $("#breedCowId").innerHTML = options;
-  $("#medCowId").innerHTML = options;
+  ["#lactCowId", "#breedCowId", "#medCowId"].forEach((selector) => {
+    const select = $(selector);
+    if (select) select.innerHTML = options;
+  });
 };
 
 const animalLabel = (cowId) => {
@@ -554,20 +590,33 @@ const animalLabel = (cowId) => {
 };
 
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
+const MAX_SYNC_QUEUE_SIZE = 500;
+const MAX_SYNC_ITEM_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
 const getSyncQueue = () => {
-  try { return JSON.parse(localStorage.getItem(userStorageKey(SYNC_QUEUE_KEY))) || []; } catch { return []; }
+  try {
+    const queue = JSON.parse(localStorage.getItem(userStorageKey(SYNC_QUEUE_KEY))) || [];
+    return Array.isArray(queue) ? queue : [];
+  } catch {
+    return [];
+  }
 };
 
 const saveSyncQueue = (queue) => {
-  localStorage.setItem(userStorageKey(SYNC_QUEUE_KEY), JSON.stringify(queue));
+  try {
+    localStorage.setItem(userStorageKey(SYNC_QUEUE_KEY), JSON.stringify(asArray(queue).slice(-MAX_SYNC_QUEUE_SIZE)));
+    return true;
+  } catch (error) {
+    console.error("Erro ao salvar fila offline:", error);
+    showToast("Nao foi possivel salvar a fila offline.", "error");
+    return false;
+  }
 };
 
 const enqueueMutation = (type, action, payload, recordId = null) => {
   if (!hasSupabase) return;
   const queue = getSyncQueue();
-  queue.push({ id: localId(), type, action, payload, recordId, timestamp: Date.now() });
-  saveSyncQueue(queue);
+  saveSyncQueue([...queue, { id: localId(), type, action, payload, recordId, timestamp: Date.now() }]);
 };
 
 const upsertMilk = async (record) => {
@@ -692,12 +741,44 @@ const insertMedication = async (record) => {
   writeLocal();
 };
 
+const insertCropEvent = async (record) => {
+  const newId = localId();
+  const payload = {
+    plot_name: record.plot_name,
+    crop_name: record.crop_name,
+    event_type: record.event_type,
+    event_date: record.event_date,
+    product: record.product || null,
+    dosage: record.dosage || null,
+    area_tasks: record.area_tasks ?? null,
+    notes: record.notes || null,
+  };
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("crop_events").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar manejo da lavoura");
+      enqueueMutation("crop", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
+  }
+
+  state.cropEvents.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
+};
+
 const collections = {
   milk: { stateKey: "milk", table: "milk_records" },
   animal: { stateKey: "animals", table: "animals" },
   lactation: { stateKey: "lactations", table: "lactation_records" },
   breeding: { stateKey: "breeding", table: "breeding_records" },
   medication: { stateKey: "medication", table: "medication_records" },
+  crop: { stateKey: "cropEvents", table: "crop_events" },
 };
 
 const findRecord = (type, id) => {
@@ -713,7 +794,7 @@ const updateRecord = async (type, id, changes) => {
   if (hasSupabase) {
     try {
       await requireSession();
-      const { error } = await db.from(config.table).update(changes).eq("id", id);
+      const { error } = await db.from(config.table).update(changes).eq("id", id).eq("user_id", currentUserId);
       if (error) throw error;
       await loadSupabase();
       return;
@@ -731,16 +812,28 @@ const updateRecord = async (type, id, changes) => {
   writeLocal();
 };
 
+const animalReferenceIds = (animal) =>
+  new Set([animal?.id, animal?.identification].filter(Boolean).map((value) => String(value)));
+
+const removeLocalAnimalRelations = (animal) => {
+  const ids = animalReferenceIds(animal);
+  if (ids.size === 0) return;
+
+  state.lactations = state.lactations.filter((record) => !ids.has(String(record.cow_id)));
+  state.breeding = state.breeding.filter((record) => !ids.has(String(record.cow_id)));
+  state.medication = state.medication.filter((record) => !ids.has(String(record.cow_id)));
+};
+
 const deleteRecord = async (type, id) => {
   const config = collections[type];
   if (!config || !id) return;
+  const record = findRecord(type, id);
 
   if (type === "animal" && hasSupabase) {
     try {
       await requireSession();
-      const animal = findRecord("animal", id);
-      const relatedIds = [animal?.id, animal?.identification].filter(Boolean).map(String);
-      await Promise.all([
+      const relatedIds = [record?.id].filter(Boolean).map(String);
+      const cleanupResults = await Promise.all([
         ...relatedIds.map((animalId) =>
           db.from("lactation_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId)
         ),
@@ -751,6 +844,8 @@ const deleteRecord = async (type, id) => {
           db.from("medication_records").delete().eq("cow_id", animalId).eq("user_id", currentUserId)
         ),
       ]);
+      const cleanupError = cleanupResults.find((result) => result.error)?.error;
+      if (cleanupError) throw cleanupError;
     } catch (err) {
       console.warn("Aviso ao limpar registros relacionados:", err);
     }
@@ -759,7 +854,7 @@ const deleteRecord = async (type, id) => {
   if (hasSupabase) {
     try {
       await requireSession();
-      const { error } = await db.from(config.table).delete().eq("id", id);
+      const { error } = await db.from(config.table).delete().eq("id", id).eq("user_id", currentUserId);
       if (error) throw error;
       await loadSupabase();
       return;
@@ -772,21 +867,20 @@ const deleteRecord = async (type, id) => {
   }
 
   state[config.stateKey] = state[config.stateKey].filter((record) => String(record.id) !== String(id));
+  if (type === "animal") removeLocalAnimalRelations(record);
   writeLocal();
 };
 
-const MAX_SYNC_QUEUE_SIZE = 500;
-const MAX_SYNC_ITEM_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
-
 const validateSyncPayload = (type, action, payload) => {
-  if (!payload || typeof payload !== "object") return false;
   if (action === "delete") return true;
+  if (!payload || typeof payload !== "object") return false;
   const allowedKeys = {
     milk: ["date", "liters", "user_id"],
     animal: ["identification", "type", "status", "user_id"],
     lactation: ["cow_id", "start_date", "end_date", "daily_liters", "user_id"],
     breeding: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
     medication: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
+    crop: ["plot_name", "crop_name", "event_type", "event_date", "product", "dosage", "area_tasks", "notes", "user_id"],
   };
   const allowed = allowedKeys[type];
   if (!allowed) return false;
@@ -801,9 +895,16 @@ const processSyncQueue = async ({ refresh = true } = {}) => {
 
   // Descartar itens muito antigos ou acima do limite máximo
   const cutoff = Date.now() - MAX_SYNC_ITEM_AGE_MS;
+  const originalLength = queue.length;
   queue = queue
     .filter((item) => item.timestamp && item.timestamp > cutoff)
     .slice(0, MAX_SYNC_QUEUE_SIZE);
+  if (queue.length !== originalLength) saveSyncQueue(queue);
+
+  if (queue.length === 0) {
+    setStatus("Online", "online");
+    return;
+  }
 
   await requireSession();
   setStatus(`Sincronizando ${queue.length}...`, "syncing");
@@ -873,6 +974,41 @@ const validateNumber = (value, min = 0, max = 10000) => {
   return Number.isFinite(num) && num >= min && num <= max ? num : null;
 };
 
+const cleanText = (value, maxLength) => String(value || "").trim().slice(0, maxLength);
+
+const optionalText = (value, maxLength) => cleanText(value, maxLength) || null;
+
+const normalizeCropEventInput = (data) => {
+  const plotName = cleanText(data.plot_name ?? data.plotName, 100);
+  const cropName = cleanText(data.crop_name ?? data.cropName, 100);
+  const eventType = cleanText(data.event_type ?? data.eventType, 80);
+  const eventDate = String(data.event_date ?? data.eventDate ?? "");
+  const areaRaw = data.area_tasks ?? data.areaTasks ?? "";
+  const areaTasks = areaRaw === "" || areaRaw === null || areaRaw === undefined
+    ? null
+    : validateNumber(areaRaw, 0, 100000);
+
+  if (!plotName) throw new Error("Talhao/area deve ter 1-100 caracteres");
+  if (!cropName) throw new Error("Cultura deve ter 1-100 caracteres");
+  if (!eventType) throw new Error("Manejo deve ter 1-80 caracteres");
+  if (!isValidDate(eventDate)) throw new Error("Data invalida");
+  if (!isNotFutureDate(eventDate)) throw new Error("Nao pode registrar manejo futuro");
+  if (areaTasks === null && areaRaw !== "" && areaRaw !== null && areaRaw !== undefined) {
+    throw new Error("Area em tarefas invalida");
+  }
+
+  return {
+    plot_name: plotName,
+    crop_name: cropName,
+    event_type: eventType,
+    event_date: eventDate,
+    product: optionalText(data.product, 120),
+    dosage: optionalText(data.dosage, 80),
+    area_tasks: areaTasks,
+    notes: optionalText(data.notes, 500),
+  };
+};
+
 const showEditModal = (type, record) => {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
@@ -898,6 +1034,17 @@ const showEditModal = (type, record) => {
           <label>Medicamento: <input type="text" name="medication_name" value="${escapeHtml(record.medication_name)}" required></label>
           <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
           <label>Data: <input type="date" name="administration_date" value="${escapeHtml(record.administration_date || '')}" required></label>
+        `;
+      } else if (type === "crop") {
+        return `
+          <label>Talhão/área: <input type="text" name="plot_name" value="${escapeHtml(record.plot_name || '')}" required></label>
+          <label>Cultura: <input type="text" name="crop_name" value="${escapeHtml(record.crop_name || '')}" required></label>
+          <label>Manejo: <input type="text" name="event_type" value="${escapeHtml(record.event_type || '')}" required></label>
+          <label>Data: <input type="date" name="event_date" value="${escapeHtml(record.event_date || '')}" required></label>
+          <label>Produto/insumo: <input type="text" name="product" value="${escapeHtml(record.product || '')}"></label>
+          <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
+          <label>Área (tarefas): <input type="number" name="area_tasks" min="0" max="100000" step="0.01" value="${escapeHtml(String(record.area_tasks ?? ''))}"></label>
+          <label>Observações: <textarea name="notes" rows="3">${escapeHtml(record.notes || '')}</textarea></label>
         `;
       }
       return "";
@@ -983,6 +1130,30 @@ const editRecord = async (type, id) => {
         dosage: (data.dosage || "").trim(),
         administration_date: data.administration_date,
       });
+    } else if (type === "crop") {
+      const plotName = (data.plot_name || "").trim();
+      const cropName = (data.crop_name || "").trim();
+      const eventType = (data.event_type || "").trim();
+      const eventDate = data.event_date;
+      const areaTasks = data.area_tasks ? validateNumber(data.area_tasks, 0, 100000) : null;
+
+      if (!plotName || plotName.length > 100) throw new Error("Talhão/área deve ter 1-100 caracteres");
+      if (!cropName || cropName.length > 100) throw new Error("Cultura deve ter 1-100 caracteres");
+      if (!eventType || eventType.length > 80) throw new Error("Manejo deve ter 1-80 caracteres");
+      if (!isValidDate(eventDate)) throw new Error("Data inválida");
+      if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
+      if (data.area_tasks && areaTasks === null) throw new Error("Área em tarefas inválida");
+
+      await updateRecord(type, id, {
+        plot_name: plotName,
+        crop_name: cropName,
+        event_type: eventType,
+        event_date: eventDate,
+        product: (data.product || "").trim().substring(0, 120) || null,
+        dosage: (data.dosage || "").trim().substring(0, 80) || null,
+        area_tasks: areaTasks,
+        notes: (data.notes || "").trim().substring(0, 500) || null,
+      });
     }
     populateCowSelects();
     render();
@@ -1050,7 +1221,7 @@ const applySubscriptionAccess = (profile) => {
   const blocked = ["blocked", "canceled"].includes(profile.subscriptionStatus);
   document.body.classList.toggle("subscription-blocked", blocked);
   document
-    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button")
+    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button")
     .forEach((control) => {
       control.disabled = blocked;
     });
@@ -1240,6 +1411,38 @@ const renderMedication = () => {
     : empty("Nenhuma medicação registrada.");
 };
 
+const renderCropEvents = () => {
+  if (!el.cropEventList) return;
+
+  const records = [...state.cropEvents].sort((a, b) =>
+    String(b.event_date || "").localeCompare(String(a.event_date || ""))
+  );
+
+  el.cropEventList.innerHTML = records.length
+    ? records
+        .map((record) => {
+          const details = [
+            record.product ? `Produto: ${record.product}` : "",
+            record.dosage ? `Dose: ${record.dosage}` : "",
+          ].filter(Boolean);
+          const areaLabel = formatTasks(record.area_tasks);
+          return `
+            <article class="item">
+              <div>
+                <span>${escapeHtml(record.plot_name)} - ${escapeHtml(record.event_type)}</span>
+                <small>${escapeHtml(formatDate(record.event_date))} | ${escapeHtml(record.crop_name)}</small>
+                ${details.length ? `<small>${escapeHtml(details.join(" | "))}</small>` : ""}
+                ${record.notes ? `<small>${escapeHtml(record.notes)}</small>` : ""}
+              </div>
+              <strong>${escapeHtml(areaLabel || record.event_type)}</strong>
+              ${recordActions("crop", record)}
+            </article>
+          `;
+        })
+        .join("")
+    : empty("Nenhum manejo de lavoura registrado.");
+};
+
 const buildMonthlyReport = () => {
   const price = Number(state.priceQuote || 0);
   const currentMonth = monthKey();
@@ -1389,6 +1592,7 @@ const render = () => {
   renderLactations();
   renderBreeding();
   renderMedication();
+  renderCropEvents();
   renderReports();
 };
 
@@ -1741,6 +1945,47 @@ const initApp = () => {
     }
   });
 
+  if (el.cropForm) {
+    el.cropForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        const plotName = $("#cropPlot").value.trim();
+        const cropName = $("#cropName").value.trim();
+        const eventType = $("#cropEventType").value.trim();
+        const eventDate = $("#cropDate").value;
+        const areaTasksRaw = $("#cropAreaTasks").value;
+        const areaTasks = areaTasksRaw ? validateNumber(areaTasksRaw, 0, 100000) : null;
+
+        if (!plotName || plotName.length > 100) throw new Error("Talhão/área deve ter 1-100 caracteres");
+        if (!cropName || cropName.length > 100) throw new Error("Cultura deve ter 1-100 caracteres");
+        if (!eventType || eventType.length > 80) throw new Error("Manejo deve ter 1-80 caracteres");
+        if (!isValidDate(eventDate)) throw new Error("Data inválida");
+        if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
+        if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
+
+        await insertCropEvent({
+          plot_name: plotName,
+          crop_name: cropName,
+          event_type: eventType,
+          event_date: eventDate,
+          product: $("#cropProduct").value.trim().substring(0, 120),
+          dosage: $("#cropDosage").value.trim().substring(0, 80),
+          area_tasks: areaTasks,
+          notes: $("#cropNotes").value.trim().substring(0, 500),
+        });
+
+        el.cropForm.reset();
+        $("#cropDate").value = todayIso();
+        render();
+        showToast("Manejo da lavoura salvo!");
+      } catch (err) {
+        if (err.authRequired) throw err;
+        showToast(err.message || "Erro ao salvar manejo", "error");
+      }
+    });
+  }
+
   el.priceQuoteForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -1829,6 +2074,7 @@ const initApp = () => {
     el.exportDataButton.addEventListener("click", exportDataBackup);
   }
   el.milkDate.value = todayIso();
+  if ($("#cropDate")) $("#cropDate").value = todayIso();
   loadData();
 };
 

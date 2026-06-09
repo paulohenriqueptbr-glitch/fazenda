@@ -9,6 +9,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - Registro diário de litros produzidos.
 - Resumo de produção do dia e do mês.
 - Cadastro de animais.
+- Ambiente de lavoura para plantio, pulverização, adubação, colheita e observações por tarefa.
 - Controle de lactação, reprodução e medicação.
 - Edição e exclusão de registros.
 - Relatórios com total mensal, valor estimado, média e gráfico recente.

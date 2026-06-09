@@ -6,8 +6,10 @@ const tables = [
   "lactation_records",
   "breeding_records",
   "medication_records",
+  "crop_events",
   "app_settings",
 ];
+const optionalTables = new Set(["crop_events"]);
 const PAGE_SIZE = 1000;
 
 const sendJson = (response, status, payload) => {
@@ -35,7 +37,10 @@ const fetchSupabaseJson = async (url, serviceRoleKey) => {
   const response = await fetch(url, { headers: supabaseHeaders(serviceRoleKey) });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(data?.message || data?.error || `Supabase retornou ${response.status}`);
+    const error = new Error(data?.message || data?.error || `Supabase retornou ${response.status}`);
+    error.status = response.status;
+    error.code = data?.code;
+    throw error;
   }
   return data;
 };
@@ -89,7 +94,17 @@ module.exports = async function handler(request, response) {
     };
 
     for (const table of tables) {
-      backup.tables[table] = await fetchSupabaseTable(supabaseUrl, table, serviceRoleKey);
+      try {
+        backup.tables[table] = await fetchSupabaseTable(supabaseUrl, table, serviceRoleKey);
+      } catch (error) {
+        const missingOptionalTable =
+          optionalTables.has(table) &&
+          (error.status === 404 ||
+            ["42P01", "PGRST205"].includes(error.code) ||
+            String(error.message || "").includes("does not exist"));
+        if (!missingOptionalTable) throw error;
+        backup.tables[table] = [];
+      }
     }
 
     const fileName = `controle-fazenda/${new Date().toISOString().slice(0, 10)}.json`;

@@ -18,6 +18,7 @@ declare
     'lactation_records',
     'breeding_records',
     'medication_records',
+    'crop_events',
     'app_settings'
   ];
 begin
@@ -127,6 +128,7 @@ where schemaname = 'public'
     'lactation_records',
     'breeding_records',
     'medication_records',
+    'crop_events',
     'app_settings'
   )
 order by tablename;
@@ -143,6 +145,7 @@ where schemaname = 'public'
     'lactation_records',
     'breeding_records',
     'medication_records',
+    'crop_events',
     'app_settings'
   )
 order by tablename, policyname;

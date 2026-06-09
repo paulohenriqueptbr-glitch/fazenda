@@ -131,6 +131,7 @@ npm start
 | `lactation_records` | Lactações |
 | `breeding_records` | Reprodução/Gestação |
 | `medication_records` | Medicações |
+| `crop_events` | Manejos da lavoura |
 | `app_settings` | Cotação do leite |
 
 ---

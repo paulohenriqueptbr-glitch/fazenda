@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -219,6 +219,37 @@
     <div id="medicationList" class="list"></div>
   </section>
 
+  <section id="crops" class="panel">
+    <form id="cropForm" class="form-grid">
+      <label for="cropPlot">Talhão/área</label>
+      <input id="cropPlot" type="text" placeholder="Ex.: Talhão 1" required>
+      <label for="cropName">Cultura</label>
+      <input id="cropName" type="text" placeholder="Ex.: Milho, capim, cana" required>
+      <label for="cropEventType">Manejo</label>
+      <select id="cropEventType">
+        <option>Plantio</option>
+        <option>Pulverização</option>
+        <option>Adubação</option>
+        <option>Colheita</option>
+        <option>Irrigação</option>
+        <option>Observação</option>
+      </select>
+      <label for="cropDate">Data</label>
+      <input id="cropDate" type="date" required>
+      <label for="cropProduct">Produto/insumo</label>
+      <input id="cropProduct" type="text" placeholder="Opcional">
+      <label for="cropDosage">Dosagem</label>
+      <input id="cropDosage" type="text" placeholder="Ex.: 2 L/tarefa">
+      <label for="cropAreaTasks">Área (tarefas)</label>
+      <input id="cropAreaTasks" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 3">
+      <label for="cropNotes">Observações</label>
+      <textarea id="cropNotes" rows="3" placeholder="Detalhes do manejo"></textarea>
+      <button type="submit">Salvar manejo</button>
+    </form>
+    <div class="section-title"><h2>Lavoura</h2></div>
+    <div id="cropEventList" class="list"></div>
+  </section>
+
   <section id="reports" class="panel">
     <div class="report-grid">
       <article class="report-card">
@@ -285,6 +316,10 @@
     <i class="nav-icon" data-lucide="syringe"></i>
     <span>Saúde</span>
   </button>
+  <button class="nav-item" type="button" data-tab="crops">
+    <i class="nav-icon" data-lucide="sprout"></i>
+    <span>Lavoura</span>
+  </button>
   <button class="nav-item" type="button" data-tab="reports">
     <i class="nav-icon" data-lucide="chart-column"></i>
     <span>Relatórios</span>
@@ -320,6 +355,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

@@ -25,6 +25,10 @@ const createMockState = () => ({
   medication: [
     { id: "m1", cow_id: "11111111-1111-4111-8111-111111111111", medication_name: "Antibiótico X", dosage: "500mg", administration_date: "2026-06-05" },
   ],
+  cropEvents: [
+    { id: "c1", plot_name: "Talhão 1", crop_name: "Milho", event_type: "Plantio", event_date: "2026-06-02", area_tasks: 3 },
+    { id: "c2", plot_name: "Talhão 2", crop_name: "Capim", event_type: "Pulverização", event_date: "2026-06-07", area_tasks: 1.5 },
+  ],
   priceQuote: 2.50,
 });
 
@@ -170,6 +174,17 @@ describe("Validação de Números", () => {
     // Lactação impossível (>500L/dia)
     expect(validateNumber(1000, 0, 500)).toBe(null);
   });
+
+  test("validateNumber aceita area da lavoura em tarefas", () => {
+    const validateNumber = (value, min = 0, max = 10000) => {
+      const num = Number.parseFloat(value);
+      return Number.isFinite(num) && num >= min && num <= max ? num : null;
+    };
+
+    expect(validateNumber(3, 0, 100000)).toBe(3);
+    expect(validateNumber(1.5, 0, 100000)).toBe(1.5);
+    expect(validateNumber(-1, 0, 100000)).toBe(null);
+  });
 });
 
 // ============================================================================
@@ -282,6 +297,17 @@ describe("Lógica de Negócio", () => {
     expect(insemDate.getMonth()).toBe(1); // Fevereiro (0-indexed)
     expect(insemDate.getDate()).toBe(10);
   });
+
+  test("Conta manejos da lavoura no mes corretamente", () => {
+    const state = createMockState();
+    const currentMonth = "2026-06";
+
+    const monthCropEvents = state.cropEvents.filter((record) => record.event_date?.startsWith(currentMonth));
+
+    expect(monthCropEvents.length).toBe(2);
+    expect(monthCropEvents.map((record) => record.event_type)).toContain("Plantio");
+    expect(monthCropEvents.map((record) => record.event_type)).toContain("Pulverização");
+  });
 });
 
 // ============================================================================
@@ -344,6 +370,17 @@ describe("Formatação de Dados", () => {
 
     const result = formatMoney(71.25);
     expect(result).toContain("R$");
+  });
+
+  test("Formata area da lavoura em tarefas", () => {
+    const formatTasks = (value) => {
+      const tasks = Number(value || 0);
+      if (!tasks) return "";
+      return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
+    };
+
+    expect(formatTasks(1)).toBe("1 tarefa");
+    expect(formatTasks(2)).toBe("2 tarefas");
   });
 
   test("Formata data para português", () => {
