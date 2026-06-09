@@ -264,6 +264,18 @@ const actionButtons = (type, id) => `
 
 const recordActions = (type, record) => (record.id ? actionButtons(type, record.id) : "");
 
+const reminderActions = (record) => {
+  if (!record.id) return "";
+  const actionLabel = record.done ? "Reabrir" : "Concluir";
+  return `
+    <div class="item-actions">
+      <button type="button" data-action="toggle-reminder" data-type="reminder" data-id="${escapeHtml(record.id)}">${actionLabel}</button>
+      <button type="button" data-action="edit" data-type="reminder" data-id="${escapeHtml(record.id)}">Editar</button>
+      <button type="button" data-action="delete" data-type="reminder" data-id="${escapeHtml(record.id)}">Excluir</button>
+    </div>
+  `;
+};
+
 const showApp = (email) => {
   loginScreen.classList.add("hidden");
   appShell.classList.add("visible");
@@ -762,16 +774,7 @@ const insertMedication = async (record) => {
 
 const insertCropEvent = async (record) => {
   const newId = localId();
-  const payload = {
-    plot_name: record.plot_name,
-    crop_name: record.crop_name,
-    event_type: record.event_type,
-    event_date: record.event_date,
-    product: record.product || null,
-    dosage: record.dosage || null,
-    area_tasks: record.area_tasks ?? null,
-    notes: record.notes || null,
-  };
+  const payload = normalizeCropEventInput(record);
   if (hasSupabase) {
     try {
       await requireSession();
@@ -791,6 +794,28 @@ const insertCropEvent = async (record) => {
   writeLocal();
 };
 
+const insertReminder = async (record) => {
+  const newId = localId();
+  const payload = normalizeReminderInput(record);
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("reminders").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar lembrete");
+      enqueueMutation("reminder", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
+  }
+
+  state.reminders.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
+};
+
 const collections = {
   milk: { stateKey: "milk", table: "milk_records" },
   animal: { stateKey: "animals", table: "animals" },
@@ -798,6 +823,7 @@ const collections = {
   breeding: { stateKey: "breeding", table: "breeding_records" },
   medication: { stateKey: "medication", table: "medication_records" },
   crop: { stateKey: "cropEvents", table: "crop_events" },
+  reminder: { stateKey: "reminders", table: "reminders" },
 };
 
 const findRecord = (type, id) => {
@@ -900,6 +926,7 @@ const validateSyncPayload = (type, action, payload) => {
     breeding: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
     medication: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
     crop: ["plot_name", "crop_name", "event_type", "event_date", "product", "dosage", "area_tasks", "notes", "user_id"],
+    reminder: ["title", "category", "due_date", "notes", "done", "completed_at", "user_id"],
   };
   const allowed = allowedKeys[type];
   if (!allowed) return false;
@@ -1028,6 +1055,26 @@ const normalizeCropEventInput = (data) => {
   };
 };
 
+const normalizeReminderInput = (data) => {
+  const title = cleanText(data.title, 120);
+  const dueDate = String(data.due_date ?? data.dueDate ?? "");
+  const category = cleanText(data.category || "Geral", 40) || "Geral";
+  const notes = optionalText(data.notes, 300);
+  const done = Boolean(data.done);
+
+  if (!title) throw new Error("Lembrete deve ter 1-120 caracteres");
+  if (!isValidDate(dueDate)) throw new Error("Data do lembrete invalida");
+
+  return {
+    title,
+    category,
+    due_date: dueDate,
+    notes,
+    done,
+    completed_at: done ? (data.completed_at || new Date().toISOString()) : null,
+  };
+};
+
 const showEditModal = (type, record) => {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
@@ -1064,6 +1111,13 @@ const showEditModal = (type, record) => {
           <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
           <label>Área (tarefas): <input type="number" name="area_tasks" min="0" max="100000" step="0.01" value="${escapeHtml(String(record.area_tasks ?? ''))}"></label>
           <label>Observações: <textarea name="notes" rows="3">${escapeHtml(record.notes || '')}</textarea></label>
+        `;
+      } else if (type === "reminder") {
+        return `
+          <label>Titulo: <input type="text" name="title" value="${escapeHtml(record.title || '')}" required></label>
+          <label>Categoria: <input type="text" name="category" value="${escapeHtml(record.category || 'Geral')}" required></label>
+          <label>Data: <input type="date" name="due_date" value="${escapeHtml(record.due_date || '')}" required></label>
+          <label>Observacoes: <textarea name="notes" rows="3">${escapeHtml(record.notes || '')}</textarea></label>
         `;
       }
       return "";
@@ -1173,6 +1227,12 @@ const editRecord = async (type, id) => {
         area_tasks: areaTasks,
         notes: (data.notes || "").trim().substring(0, 500) || null,
       });
+    } else if (type === "reminder") {
+      await updateRecord(type, id, {
+        ...normalizeReminderInput(data),
+        done: Boolean(record.done),
+        completed_at: record.completed_at || null,
+      });
     }
     populateCowSelects();
     render();
@@ -1192,6 +1252,18 @@ const removeRecord = async (type, id) => {
   render();
 };
 
+const toggleReminder = async (id) => {
+  const reminder = findRecord("reminder", id);
+  if (!reminder) return;
+  const done = !reminder.done;
+  await updateRecord("reminder", id, {
+    done,
+    completed_at: done ? new Date().toISOString() : null,
+  });
+  render();
+  showToast(done ? "Lembrete concluido." : "Lembrete reaberto.");
+};
+
 const handleRecordAction = async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button) return;
@@ -1201,6 +1273,7 @@ const handleRecordAction = async (event) => {
   try {
     if (action === "edit") await editRecord(type, id);
     if (action === "delete") await removeRecord(type, id);
+    if (action === "toggle-reminder") await toggleReminder(id);
   } catch (error) {
     console.error(error);
     showToast("Não foi possível concluir a ação.", "error");
@@ -1208,6 +1281,135 @@ const handleRecordAction = async (event) => {
 };
 
 const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;
+
+const diffDays = (fromIso, toIso) => {
+  const from = parseIsoDate(fromIso);
+  const to = parseIsoDate(toIso);
+  if (!from || !to) return null;
+  from.setHours(0, 0, 0, 0);
+  to.setHours(0, 0, 0, 0);
+  return Math.round((to - from) / (24 * 60 * 60 * 1000));
+};
+
+const daysFromToday = (isoDate) => diffDays(todayIso(), isoDate);
+
+const alertStatus = (dueDate, done = false) => {
+  if (done) return "done";
+  const days = daysFromToday(dueDate);
+  if (days === null) return "upcoming";
+  if (days < 0) return "overdue";
+  if (days === 0) return "today";
+  if (days <= 7) return "week";
+  return "upcoming";
+};
+
+const alertStatusLabel = (dueDate, done = false) => {
+  const status = alertStatus(dueDate, done);
+  const days = daysFromToday(dueDate);
+  if (status === "done") return "Concluido";
+  if (status === "overdue") return `${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"} atrasado`;
+  if (status === "today") return "Hoje";
+  if (status === "week") return `Em ${days} dia${days === 1 ? "" : "s"}`;
+  return formatDate(dueDate);
+};
+
+const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false }) => ({
+  id,
+  title,
+  due_date,
+  category,
+  notes,
+  type,
+  done,
+  status: alertStatus(due_date, done),
+});
+
+const cropFollowUpRules = [
+  { match: "plantio", days: 30, title: "Revisar desenvolvimento da lavoura" },
+  { match: "pulver", days: 15, title: "Checar efeito da pulverizacao" },
+  { match: "aduba", days: 30, title: "Avaliar resposta da adubacao" },
+  { match: "irriga", days: 7, title: "Revisar irrigacao" },
+  { match: "observ", days: 7, title: "Retornar observacao da lavoura" },
+];
+
+const buildAutomaticAlerts = () => {
+  const today = todayIso();
+  const alerts = [];
+
+  if (!state.milk.some((record) => record.date === today)) {
+    alerts.push(makeAlert({
+      id: "auto-milk-today",
+      title: "Registrar producao de leite de hoje",
+      due_date: today,
+      category: "Leite",
+      notes: "Ainda nao existe producao lancada para hoje.",
+    }));
+  }
+
+  state.breeding.forEach((record) => {
+    const days = daysFromToday(record.expected_calving_date);
+    if (days === null || days < -15 || days > 60) return;
+    alerts.push(makeAlert({
+      id: `auto-calving-${record.id || record.cow_id}-${record.expected_calving_date}`,
+      title: `Parto previsto: ${animalLabel(record.cow_id)}`,
+      due_date: record.expected_calving_date,
+      category: "Gestacao",
+      notes: `Prenhez registrada em ${formatDate(record.insemination_date)}.`,
+    }));
+  });
+
+  state.lactations.forEach((record) => {
+    if (record.end_date) return;
+    const daysActive = diffDays(record.start_date, today);
+    if (daysActive === null || daysActive < 300) return;
+    alerts.push(makeAlert({
+      id: `auto-lactation-${record.id || record.cow_id}`,
+      title: `Revisar lactacao longa: ${animalLabel(record.cow_id)}`,
+      due_date: today,
+      category: "Lactacao",
+      notes: `${daysActive} dias desde ${formatDate(record.start_date)}.`,
+    }));
+  });
+
+  state.cropEvents.forEach((record) => {
+    const eventType = String(record.event_type || "").toLowerCase();
+    const rule = cropFollowUpRules.find((item) => eventType.includes(item.match));
+    if (!rule || !isValidDate(record.event_date)) return;
+    const dueDate = addDaysIso(record.event_date, rule.days);
+    const days = daysFromToday(dueDate);
+    if (days === null || days < -15 || days > 45) return;
+    alerts.push(makeAlert({
+      id: `auto-crop-${record.id || record.plot_name}-${dueDate}`,
+      title: rule.title,
+      due_date: dueDate,
+      category: "Lavoura",
+      notes: `${record.plot_name || "Area"} - ${record.crop_name || record.event_type || "manejo"}.`,
+    }));
+  });
+
+  return alerts;
+};
+
+const buildAlerts = () => {
+  const manual = state.reminders.map((record) =>
+    makeAlert({
+      id: record.id,
+      title: record.title,
+      due_date: record.due_date,
+      category: record.category || "Geral",
+      notes: record.notes || "",
+      type: "manual",
+      done: Boolean(record.done),
+    })
+  );
+
+  return [...buildAutomaticAlerts(), ...manual].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const statusOrder = { overdue: 0, today: 1, week: 2, upcoming: 3, done: 4 };
+    return (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3)
+      || String(a.due_date || "").localeCompare(String(b.due_date || ""));
+  });
+};
 
 const subscriptionLabels = {
   trial: "Teste",
@@ -1462,6 +1664,46 @@ const renderCropEvents = () => {
     : empty("Nenhum manejo de lavoura registrado.");
 };
 
+const renderAlertItem = (alert) => {
+  const isManual = alert.type === "manual";
+  return `
+    <article class="item alert-item ${escapeHtml(alert.status)}">
+      <div>
+        <div class="item-title-row">
+          <span>${escapeHtml(alert.title)}</span>
+          <span class="alert-pill ${escapeHtml(alert.status)}">${escapeHtml(alertStatusLabel(alert.due_date, alert.done))}</span>
+        </div>
+        <small>${escapeHtml(alert.category)} | ${escapeHtml(formatDate(alert.due_date))}</small>
+        ${alert.notes ? `<small>${escapeHtml(alert.notes)}</small>` : ""}
+      </div>
+      <strong>${escapeHtml(isManual ? "Lembrete" : "Automatico")}</strong>
+      ${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : ""}
+    </article>
+  `;
+};
+
+const renderAlerts = () => {
+  if (!el.alertList) return;
+
+  const alerts = buildAlerts();
+  const activeAlerts = alerts.filter((alert) => !alert.done);
+  const counts = {
+    overdue: activeAlerts.filter((alert) => alert.status === "overdue").length,
+    today: activeAlerts.filter((alert) => alert.status === "today").length,
+    week: activeAlerts.filter((alert) => alert.status === "week").length,
+    open: activeAlerts.length,
+  };
+
+  if (el.alertOverdueTotal) el.alertOverdueTotal.textContent = String(counts.overdue);
+  if (el.alertTodayTotal) el.alertTodayTotal.textContent = String(counts.today);
+  if (el.alertWeekTotal) el.alertWeekTotal.textContent = String(counts.week);
+  if (el.alertOpenTotal) el.alertOpenTotal.textContent = String(counts.open);
+
+  el.alertList.innerHTML = alerts.length
+    ? alerts.map(renderAlertItem).join("")
+    : empty("Nenhum alerta no momento.");
+};
+
 const buildMonthlyReport = () => {
   const price = Number(state.priceQuote || 0);
   const currentMonth = monthKey();
@@ -1612,6 +1854,7 @@ const render = () => {
   renderBreeding();
   renderMedication();
   renderCropEvents();
+  renderAlerts();
   renderReports();
 };
 
@@ -2001,6 +2244,29 @@ const initApp = () => {
       } catch (err) {
         if (err.authRequired) throw err;
         showToast(err.message || "Erro ao salvar manejo", "error");
+      }
+    });
+  }
+
+  if (el.reminderForm) {
+    el.reminderForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        await insertReminder({
+          title: $("#reminderTitle").value,
+          category: $("#reminderCategory").value,
+          due_date: $("#reminderDate").value,
+          notes: $("#reminderNotes").value,
+        });
+
+        el.reminderForm.reset();
+        if (el.reminderDate) el.reminderDate.value = todayIso();
+        render();
+        showToast("Lembrete salvo!");
+      } catch (err) {
+        if (err.authRequired) throw err;
+        showToast(err.message || "Erro ao salvar lembrete", "error");
       }
     });
   }
