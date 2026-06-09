@@ -35,6 +35,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - `manifest.webmanifest`: configuração de instalação PWA.
 - `service-worker.js`: cache básico do PWA.
 - `supabase-schema.sql`: estrutura do banco no Supabase.
+- `supabase-reminders-migration.sql`: cria lembretes em banco existente.
 - `api/config.js`: carrega a configuração do Supabase pelas variáveis da Vercel.
 - `api/admin-customers.js`: endpoint server-side do admin interno.
 - `api/backup.js`: endpoint server-side para backup no Supabase Storage.

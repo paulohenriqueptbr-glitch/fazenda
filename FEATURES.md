@@ -29,19 +29,14 @@ Para ativar: Configure seu SO para Dark Mode
 - Hover para detalhes
 - Responsivo para celulares
 
-### ⚡ **Render Optimization**
-- Atualização targetizada de elementos (não recria DOM inteiro)
-- Eliminação de flickering
-- ~5x mais rápido com muitos registros
-- Melhor experiência em dispositivos antigos
-
-**Técnicas:**
-- Virtual DOM updates
-- Data attributes para tracking
-- Atualização seletiva de listas
+### Robustez offline
+- Fila de sincronizacao limitada para evitar crescimento infinito
+- Fallback local quando tabelas novas ainda nao foram migradas
+- Limpeza local de registros relacionados ao excluir animal
+- Validacao centralizada para manejos de lavoura
 
 ### ✅ **Testes Automatizados**
-- 40+ testes das funções críticas
+- Testes das funções críticas
 - Validação de datas
 - Validação de números
 - Validação de strings
@@ -138,6 +133,7 @@ npm start
 | `breeding_records` | Reprodução/Gestação |
 | `medication_records` | Medicações |
 | `crop_events` | Manejos da lavoura |
+| `reminders` | Lembretes e alertas manuais |
 | `app_settings` | Cotação do leite |
 
 ---
@@ -190,9 +186,7 @@ npm run test:coverage
 
 | Métrica | v1.5 | v2.0 | Melhoria |
 |---------|------|------|----------|
-| Render (100 registros) | 150ms | 30ms | **5x** ⚡ |
 | Memória | 5.2MB | 3.8MB | **-27%** 📉 |
-| Flickering | Sim | Não | ✅ |
 | Gráficos | Barras estáticas | Chart.js interativo | ✅ |
 | Dark Mode | Não | Sim (automático) | ✅ |
 
