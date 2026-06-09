@@ -10,6 +10,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - Resumo de produção do dia e do mês.
 - Cadastro de animais.
 - Ambiente de lavoura para plantio, pulverização, adubação, colheita e observações por tarefa.
+- Calendario de alertas com lembretes manuais, parto previsto, producao pendente e retornos de lavoura.
 - Controle de lactação, reprodução e medicação.
 - Edição e exclusão de registros.
 - Relatórios com total mensal, valor estimado, média e gráfico recente.
@@ -76,6 +77,7 @@ O login local precisa de internet para validar e-mail e senha no Supabase. Depoi
 4. Para banco novo, rode todo o conteúdo de `supabase-schema.sql`.
 5. Para banco já existente, prefira rodar `supabase-security-migration.sql`, que ativa RLS e adiciona políticas sem apagar tabelas.
    - Se quiser apenas ligar RLS e políticas, use `supabase-rls-only.sql`.
+   - Para habilitar lembretes em banco existente, rode tambem `supabase-reminders-migration.sql`.
 6. No painel da Vercel, cadastre as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
    - A aplicação também aceita `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 7. Cadastre `SUPPORT_WHATSAPP_NUMBER` para o botão de WhatsApp e, se quiser, `SUPPORT_EMAIL`.

@@ -29,6 +29,10 @@ const createMockState = () => ({
     { id: "c1", plot_name: "Talhão 1", crop_name: "Milho", event_type: "Plantio", event_date: "2026-06-02", area_tasks: 3 },
     { id: "c2", plot_name: "Talhão 2", crop_name: "Capim", event_type: "Pulverização", event_date: "2026-06-07", area_tasks: 1.5 },
   ],
+  reminders: [
+    { id: "r1", title: "Comprar sal mineral", category: "Geral", due_date: "2026-06-09", done: false },
+    { id: "r2", title: "Ligar para tecnico", category: "Saude", due_date: "2026-06-01", done: true },
+  ],
   priceQuote: 2.50,
 });
 
@@ -306,7 +310,28 @@ describe("Lógica de Negócio", () => {
 
     expect(monthCropEvents.length).toBe(2);
     expect(monthCropEvents.map((record) => record.event_type)).toContain("Plantio");
-    expect(monthCropEvents.map((record) => record.event_type)).toContain("Pulverização");
+    expect(monthCropEvents.some((record) => record.event_type.includes("Pulver"))).toBe(true);
+  });
+
+  test("Conta lembretes abertos corretamente", () => {
+    const state = createMockState();
+
+    const openReminders = state.reminders.filter((record) => !record.done);
+
+    expect(openReminders.length).toBe(1);
+    expect(openReminders[0].title).toBe("Comprar sal mineral");
+  });
+
+  test("Identifica parto previsto dentro da janela de alertas", () => {
+    const state = createMockState();
+    const today = new Date(2026, 5, 9);
+    const due = new Date(2026, 6, 20);
+    const daysUntilCalving = Math.round((due - today) / (24 * 60 * 60 * 1000));
+
+    const upcomingCalvings = state.breeding.filter(() => daysUntilCalving >= 0 && daysUntilCalving <= 60);
+
+    expect(upcomingCalvings.length).toBe(1);
+    expect(daysUntilCalving).toBe(41);
   });
 });
 

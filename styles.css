@@ -122,7 +122,8 @@ textarea:disabled {
 .subscription-blocked #lactationForm,
 .subscription-blocked #breedingForm,
 .subscription-blocked #medicationForm,
-.subscription-blocked #cropForm {
+.subscription-blocked #cropForm,
+.subscription-blocked #reminderForm {
   opacity: 0.72;
 }
 
@@ -131,7 +132,8 @@ textarea:disabled {
 .subscription-blocked #lactationForm::after,
 .subscription-blocked #breedingForm::after,
 .subscription-blocked #medicationForm::after,
-.subscription-blocked #cropForm::after {
+.subscription-blocked #cropForm::after,
+.subscription-blocked #reminderForm::after {
   content: "Assinatura bloqueada. Regularize no suporte.";
   grid-column: 1 / -1;
   padding: 10px 12px;
@@ -1159,9 +1161,98 @@ button[type="submit"]:active,
   color: var(--danger);
 }
 
+.alert-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.alert-summary article {
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.alert-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.alert-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.alert-item {
+  border-left: 4px solid var(--line);
+}
+
+.alert-item.overdue {
+  border-left-color: var(--danger);
+}
+
+.alert-item.today {
+  border-left-color: var(--amber);
+}
+
+.alert-item.week {
+  border-left-color: var(--blue);
+}
+
+.alert-item.done {
+  opacity: 0.72;
+}
+
+.alert-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid rgba(16, 169, 129, 0.25);
+  border-radius: 6px;
+  background: rgba(16, 169, 129, 0.08);
+  color: var(--green-dark);
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.alert-pill.overdue {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+}
+
+.alert-pill.today {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+  color: #b7791f;
+}
+
+.alert-pill.week {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--blue);
+}
+
+.alert-pill.done {
+  color: var(--muted);
+}
+
 .item-title-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -1662,6 +1753,10 @@ button[type="submit"]:active,
   }
 
   .report-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .alert-summary {
     grid-template-columns: repeat(4, 1fr);
   }
 

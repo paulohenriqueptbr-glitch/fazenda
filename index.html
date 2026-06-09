@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -250,6 +250,35 @@
     <div id="cropEventList" class="list"></div>
   </section>
 
+  <section id="alerts" class="panel">
+    <form id="reminderForm" class="form-grid">
+      <label for="reminderTitle">Lembrete</label>
+      <input id="reminderTitle" type="text" maxlength="120" placeholder="Ex.: Vacinar lote A" required>
+      <label for="reminderCategory">Categoria</label>
+      <select id="reminderCategory">
+        <option>Geral</option>
+        <option>Leite</option>
+        <option>Saude</option>
+        <option>Gestacao</option>
+        <option>Lavoura</option>
+        <option>Financeiro</option>
+      </select>
+      <label for="reminderDate">Data</label>
+      <input id="reminderDate" type="date" required>
+      <label for="reminderNotes">Observacoes</label>
+      <textarea id="reminderNotes" rows="3" maxlength="300" placeholder="Detalhes opcionais"></textarea>
+      <button type="submit">Salvar lembrete</button>
+    </form>
+    <div class="alert-summary" aria-label="Resumo dos alertas">
+      <article><span>Atrasados</span><strong id="alertOverdueTotal">0</strong></article>
+      <article><span>Hoje</span><strong id="alertTodayTotal">0</strong></article>
+      <article><span>7 dias</span><strong id="alertWeekTotal">0</strong></article>
+      <article><span>Abertos</span><strong id="alertOpenTotal">0</strong></article>
+    </div>
+    <div class="section-title"><h2>Alertas</h2></div>
+    <div id="alertList" class="list"></div>
+  </section>
+
   <section id="reports" class="panel">
     <div class="report-grid">
       <article class="report-card">
@@ -320,6 +349,10 @@
     <i class="nav-icon" data-lucide="sprout"></i>
     <span>Lavoura</span>
   </button>
+  <button class="nav-item" type="button" data-tab="alerts">
+    <i class="nav-icon" data-lucide="bell"></i>
+    <span>Alertas</span>
+  </button>
   <button class="nav-item" type="button" data-tab="reports">
     <i class="nav-icon" data-lucide="chart-column"></i>
     <span>Relatórios</span>
@@ -355,6 +388,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

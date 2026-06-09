@@ -5,6 +5,7 @@
 -- ============================================================================
 
 drop table if exists medication_records cascade;
+drop table if exists reminders cascade;
 drop table if exists crop_events cascade;
 drop table if exists breeding_records cascade;
 drop table if exists lactation_records cascade;
@@ -132,6 +133,23 @@ create table crop_events (
 create index idx_crop_events_user_date on crop_events(user_id, event_date desc);
 
 -- ============================================================================
+-- TABELA: LEMBRETES E ALERTAS MANUAIS
+-- ============================================================================
+create table reminders (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users on delete cascade,
+  title        text not null,
+  category     text not null default 'Geral',
+  due_date     date not null,
+  notes        text,
+  done         boolean not null default false,
+  created_at   timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+create index idx_reminders_user_due on reminders(user_id, done, due_date);
+
+-- ============================================================================
 -- TABELA: CONFIGURAÇÕES DO APP (per usuário)
 -- ============================================================================
 create table app_settings (
@@ -158,6 +176,7 @@ alter table lactation_records  enable row level security;
 alter table breeding_records   enable row level security;
 alter table medication_records enable row level security;
 alter table crop_events        enable row level security;
+alter table reminders          enable row level security;
 alter table app_settings       enable row level security;
 
 -- ============================================================================
@@ -231,6 +250,12 @@ create policy "crop_events_select" on crop_events for select using (auth.uid() =
 create policy "crop_events_insert" on crop_events for insert with check (auth.uid() = user_id);
 create policy "crop_events_update" on crop_events for update using (auth.uid() = user_id);
 create policy "crop_events_delete" on crop_events for delete using (auth.uid() = user_id);
+
+-- REMINDERS
+create policy "reminders_select" on reminders for select using (auth.uid() = user_id);
+create policy "reminders_insert" on reminders for insert with check (auth.uid() = user_id);
+create policy "reminders_update" on reminders for update using (auth.uid() = user_id);
+create policy "reminders_delete" on reminders for delete using (auth.uid() = user_id);
 
 -- APP_SETTINGS
 create policy "app_settings_select" on app_settings for select using (auth.uid() = user_id);

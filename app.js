@@ -1442,7 +1442,7 @@ const applySubscriptionAccess = (profile) => {
   const blocked = ["blocked", "canceled"].includes(profile.subscriptionStatus);
   document.body.classList.toggle("subscription-blocked", blocked);
   document
-    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button")
+    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button, #reminderForm input, #reminderForm select, #reminderForm textarea, #reminderForm button")
     .forEach((control) => {
       control.disabled = blocked;
     });
@@ -1858,67 +1858,6 @@ const render = () => {
   renderReports();
 };
 
-// Render otimizado - atualiza apenas elementos que mudaram
-const updateMilkItemInList = (record) => {
-  const price = Number(state.priceQuote || 0);
-  const existingEl = el.historyList.querySelector(`[data-milk-id="${escapeHtml(record.id)}"]`);
-  
-  const html = `
-    <article class="item" data-milk-id="${escapeHtml(record.id)}">
-      <div>
-        <span>${escapeHtml(formatDate(record.date))}</span>
-        <small>${escapeHtml(formatMoney(price))} por litro</small>
-      </div>
-      <strong>${escapeHtml(formatLiters(record.liters))} | ${escapeHtml(formatMoney(Number(record.liters) * price))}</strong>
-      ${recordActions("milk", record)}
-    </article>
-  `;
-
-  if (existingEl) {
-    existingEl.outerHTML = html;
-  } else {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    el.historyList.insertBefore(tempDiv.firstElementChild, el.historyList.firstChild);
-  }
-};
-
-const updateAnimalInList = (animal) => {
-  const existingEl = el.animalList.querySelector(`[data-animal-id="${escapeHtml(animal.id)}"]`);
-  
-  const html = `
-    <article class="item" data-animal-id="${escapeHtml(animal.id)}">
-      <div>
-        <span>${escapeHtml(animal.identification)}</span>
-        <small>${escapeHtml(animal.type)}</small>
-      </div>
-      <strong>${escapeHtml(animal.status)}</strong>
-      ${recordActions("animal", animal)}
-    </article>
-  `;
-
-  if (existingEl) {
-    existingEl.outerHTML = html;
-  }
-};
-
-// Atualizar apenas resumo sem recriar todos os lists
-const updateSummaryOnly = () => {
-  const price = Number(state.priceQuote || 0);
-  const todayRecord = state.milk.find((record) => record.date === todayIso());
-  const todayLiters = Number(todayRecord?.liters || 0);
-  const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
-  const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
-  const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
-
-  el.todayTotal.textContent = formatLiters(todayLiters);
-  el.todayValue.textContent = formatMoney(todayLiters * price);
-  el.monthTotal.textContent = formatLiters(monthLiters);
-  el.monthValue.textContent = formatMoney(monthLiters * price);
-  el.animalTotal.textContent = state.animals.length;
-  el.lactatingTotal.textContent = `${lactating} em lactação`;
-};
-
 const exportDataBackup = () => {
   const pendingSyncCount = getSyncQueue().length;
   const backup = {
@@ -2038,7 +1977,8 @@ const initApp = () => {
         button.addEventListener("click", () => {
           document.querySelectorAll(".nav-item, .panel").forEach((element) => element.classList.remove("active"));
           button.classList.add("active");
-          $(`#${button.dataset.tab}`).classList.add("active");
+          const panel = $(`#${button.dataset.tab}`);
+          if (panel) panel.classList.add("active");
         });
       }
     });
@@ -2360,6 +2300,7 @@ const initApp = () => {
   }
   el.milkDate.value = todayIso();
   if ($("#cropDate")) $("#cropDate").value = todayIso();
+  if (el.reminderDate) el.reminderDate.value = todayIso();
   loadData();
 };
 
