@@ -123,6 +123,7 @@ textarea:disabled {
 .subscription-blocked #breedingForm,
 .subscription-blocked #medicationForm,
 .subscription-blocked #cropForm,
+.subscription-blocked #stockForm,
 .subscription-blocked #reminderForm {
   opacity: 0.72;
 }
@@ -133,6 +134,7 @@ textarea:disabled {
 .subscription-blocked #breedingForm::after,
 .subscription-blocked #medicationForm::after,
 .subscription-blocked #cropForm::after,
+.subscription-blocked #stockForm::after,
 .subscription-blocked #reminderForm::after {
   content: "Assinatura bloqueada. Regularize no suporte.";
   grid-column: 1 / -1;
@@ -943,6 +945,15 @@ button[type="submit"]:active,
 }
 
 .item-actions button[data-action="delete"] {
+  color: var(--danger);
+}
+
+.stock-low {
+  border-color: rgba(239, 68, 68, 0.38);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.stock-low strong {
   color: var(--danger);
 }
 

@@ -10,7 +10,7 @@
 <title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -38,16 +38,8 @@
     <section class="product-card" aria-labelledby="productTitle">
       <span class="eyebrow">Gestão leiteira no celular</span>
       <h2 id="productTitle">Agro+</h2>
-      <p>Registre a produção de leite, acompanhe o rebanho e consulte relatórios em uma PWA simples para pequenos produtores.</p>
-      <div class="feature-list" aria-label="Principais recursos">
-        <span>Produção diária</span>
-        <span>Rebanho e lactação</span>
-        <span>Saúde e gestação</span>
-        <span>Backup em JSON</span>
-      </div>
       <div class="product-actions">
         <a class="support-button" href="#" data-support-link>Falar no WhatsApp</a>
-        <a class="privacy-link" href="privacy.html">Política de privacidade</a>
       </div>
     </section>
 
@@ -63,7 +55,7 @@
 
       <form id="loginForm" class="login-form">
         <label for="loginEmail">E-mail ou usuário</label>
-        <input id="loginEmail" type="text" placeholder="seu@email.com ou admin" autocomplete="username" required>
+        <input id="loginEmail" type="text" placeholder="seu@email.com" autocomplete="username" required>
         <label for="loginPassword">Senha</label>
         <input id="loginPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required>
         <button type="submit">Entrar</button>
@@ -86,7 +78,6 @@
       </form>
 
       <div id="loginError" class="login-error"></div>
-      <p id="authFooter" class="login-footer">Acesso restrito ao administrador da fazenda</p>
       <div class="auth-links">
         <a href="privacy.html">Privacidade</a>
         <a href="#" data-support-link>Suporte</a>
@@ -127,6 +118,10 @@
       <button class="quick-action" type="button" data-tab="crops">
         <i data-lucide="sprout"></i>
         <span>Lavoura</span>
+      </button>
+      <button class="quick-action" type="button" data-tab="stock">
+        <i data-lucide="package"></i>
+        <span>Estoque</span>
       </button>
     </div>
   </section>
@@ -317,6 +312,40 @@
     <div id="cropEventList" class="list"></div>
   </section>
 
+  <section id="stock" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Controle de insumos</span>
+        <h2>Estoque</h2>
+      </div>
+      <p>Cadastre produtos, medicamentos, racao e materiais usados na rotina da fazenda.</p>
+    </div>
+    <form id="stockForm" class="form-grid">
+      <label for="stockItemName">Item</label>
+      <input id="stockItemName" type="text" maxlength="120" placeholder="Ex.: Racao, vacina, sal mineral" required>
+      <label for="stockCategory">Categoria</label>
+      <select id="stockCategory">
+        <option>Insumo</option>
+        <option>Medicamento</option>
+        <option>Alimentacao</option>
+        <option>Lavoura</option>
+        <option>Material</option>
+        <option>Outro</option>
+      </select>
+      <label for="stockQuantity">Quantidade</label>
+      <input id="stockQuantity" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Ex.: 25" required>
+      <label for="stockUnit">Unidade</label>
+      <input id="stockUnit" type="text" maxlength="30" placeholder="Ex.: kg, L, un" required>
+      <label for="stockMinQuantity">Estoque minimo</label>
+      <input id="stockMinQuantity" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Opcional">
+      <label for="stockNotes">Observacoes</label>
+      <textarea id="stockNotes" rows="3" maxlength="300" placeholder="Fornecedor, validade ou local de armazenamento"></textarea>
+      <button type="submit">Salvar item</button>
+    </form>
+    <div class="section-title"><h2>Itens em estoque</h2></div>
+    <div id="stockList" class="list"></div>
+  </section>
+
   <section id="alerts" class="panel">
     <div class="panel-head">
       <div>
@@ -445,6 +474,10 @@
     <i class="nav-icon" data-lucide="sprout"></i>
     <span>Lavoura</span>
   </button>
+  <button class="nav-item" type="button" data-tab="stock">
+    <i class="nav-icon" data-lucide="package"></i>
+    <span>Estoque</span>
+  </button>
   <button class="nav-item" type="button" data-tab="alerts">
     <i class="nav-icon" data-lucide="bell"></i>
     <span>Alertas</span>
@@ -481,6 +514,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

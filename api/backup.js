@@ -7,10 +7,11 @@ const tables = [
   "breeding_records",
   "medication_records",
   "crop_events",
+  "stock_items",
   "reminders",
   "app_settings",
 ];
-const optionalTables = new Set(["crop_events", "reminders"]);
+const optionalTables = new Set(["crop_events", "stock_items", "reminders"]);
 const PAGE_SIZE = 1000;
 
 const sendJson = (response, status, payload) => {

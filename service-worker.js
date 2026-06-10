@@ -1,4 +1,4 @@
-const CACHE_NAME = "agro-plus-v27";
+const CACHE_NAME = "agro-plus-v28";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -10,7 +10,7 @@ const APP_FILES = [
   "./privacy.js?v=20",
   "./landing.js?v=20",
   "./admin.js?v=19",
-  "./app.js?v=26",
+  "./app.js?v=27",
   "./vendor/supabase.js?v=2.108.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",

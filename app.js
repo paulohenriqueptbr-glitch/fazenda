@@ -2,7 +2,7 @@ const LOCAL_KEY = "controle-fazenda-data";
 const PRICE_QUOTE_KEY = "milk_price_quote";
 const CLIENT_PROFILE_KEY = "client_profile";
 const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
-const OPTIONAL_TABLES = new Set(["crop_events", "reminders"]);
+const OPTIONAL_TABLES = new Set(["crop_events", "reminders", "stock_items"]);
 const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
 const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
@@ -21,6 +21,7 @@ const state = {
   breeding: [],
   medication: [],
   cropEvents: [],
+  stockItems: [],
   reminders: [],
   priceQuote: 0,
   clientProfile: null,
@@ -153,6 +154,8 @@ const formatTasks = (value) => {
   if (!tasks) return "";
   return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
 };
+const formatStockQuantity = (quantity, unit) =>
+  `${Number(quantity || 0).toLocaleString("pt-BR")} ${String(unit || "").trim()}`.trim();
 
 const formatDate = (isoDate) => {
   if (!isoDate) return "-";
@@ -214,6 +217,7 @@ const el = {
   breedingList: $("#breedingList"),
   medicationList: $("#medicationList"),
   cropEventList: $("#cropEventList"),
+  stockList: $("#stockList"),
   alertList: $("#alertList"),
   milkForm: $("#milkForm"),
   milkDate: $("#milkDate"),
@@ -222,6 +226,7 @@ const el = {
   breedingForm: $("#breedingForm"),
   medicationForm: $("#medicationForm"),
   cropForm: $("#cropForm"),
+  stockForm: $("#stockForm"),
   reminderForm: $("#reminderForm"),
   reminderDate: $("#reminderDate"),
   weatherForm: $("#weatherForm"),
@@ -464,6 +469,7 @@ const loadLocal = () => {
   state.breeding = asArray(data.breeding);
   state.medication = asArray(data.medication);
   state.cropEvents = asArray(data.cropEvents);
+  state.stockItems = asArray(data.stockItems);
   state.reminders = asArray(data.reminders);
   state.priceQuote = Number(data.priceQuote || 0);
   state.clientProfile = normalizeClientProfile(data.clientProfile);
@@ -542,13 +548,14 @@ const loadSupabase = async () => {
   setStatus("Sincronizando", "syncing");
   await requireSession();
 
-  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult, reminderResult] = await Promise.all([
+  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult, stockResult, reminderResult] = await Promise.all([
     db.from("milk_records").select("*").order("date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("animals").select("*").order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("lactation_records").select("*").order("start_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("breeding_records").select("*").order("insemination_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("medication_records").select("*").order("administration_date", { ascending: false }).range(0, PAGE_SIZE - 1),
     db.from("crop_events").select("*").order("event_date", { ascending: false }).range(0, PAGE_SIZE - 1),
+    db.from("stock_items").select("*").order("item_name", { ascending: true }).range(0, PAGE_SIZE - 1),
     db.from("reminders").select("*").order("due_date", { ascending: true }).range(0, PAGE_SIZE - 1),
   ]);
 
@@ -559,6 +566,7 @@ const loadSupabase = async () => {
     breedingResult.error ||
     medicationResult.error ||
     (isMissingOptionalTable(cropResult.error, "crop_events") ? null : cropResult.error) ||
+    (isMissingOptionalTable(stockResult.error, "stock_items") ? null : stockResult.error) ||
     (isMissingOptionalTable(reminderResult.error, "reminders") ? null : reminderResult.error);
 
   if (error) throw error;
@@ -569,6 +577,9 @@ const loadSupabase = async () => {
   if (isMissingOptionalTable(reminderResult.error, "reminders")) {
     console.warn("Tabela reminders ainda nao existe no Supabase. Usando lembretes locais.");
   }
+  if (isMissingOptionalTable(stockResult.error, "stock_items")) {
+    console.warn("Tabela stock_items ainda nao existe no Supabase. Usando estoque local.");
+  }
 
   state.milk = milkResult.data || [];
   state.animals = animalResult.data || [];
@@ -576,6 +587,7 @@ const loadSupabase = async () => {
   state.breeding = breedingResult.data || [];
   state.medication = medicationResult.data || [];
   state.cropEvents = isMissingOptionalTable(cropResult.error, "crop_events") ? asArray(readLocal().cropEvents) : (cropResult.data || []);
+  state.stockItems = isMissingOptionalTable(stockResult.error, "stock_items") ? asArray(readLocal().stockItems) : (stockResult.data || []);
   state.reminders = isMissingOptionalTable(reminderResult.error, "reminders") ? asArray(readLocal().reminders) : (reminderResult.data || []);
   await loadAppSettings();
 
@@ -616,6 +628,16 @@ const populateCowSelects = () => {
     const select = $(selector);
     if (select) select.innerHTML = options;
   });
+
+  const medSelect = $("#medCowId");
+  if (medSelect) {
+    medSelect.innerHTML = getUniqueMedicationAnimals()
+      .map(
+        (animal) =>
+          `<option value="${escapeHtml(animal.id)}">${escapeHtml(animal.identification || animal.id)}</option>`
+      )
+      .join("");
+  }
 };
 
 const animalLabel = (cowId) => {
@@ -626,6 +648,19 @@ const animalLabel = (cowId) => {
 };
 
 const cowIdKey = (cowId) => String(cowId || "");
+const cowProfileKey = (label) => String(label || "").trim().toLocaleLowerCase("pt-BR");
+
+const getUniqueMedicationAnimals = () => {
+  const animals = new Map();
+
+  state.animals.forEach((animal) => {
+    const key = cowProfileKey(animal.identification || animal.id);
+    if (!key || animals.has(key)) return;
+    animals.set(key, animal);
+  });
+
+  return [...animals.values()];
+};
 
 const sortMedicationRecords = (records) =>
   [...records].sort((a, b) => String(b.administration_date || "").localeCompare(String(a.administration_date || "")));
@@ -636,34 +671,58 @@ const getMedicationCowProfiles = () => {
   state.animals.forEach((animal) => {
     const id = cowIdKey(animal.id);
     if (!id) return;
-    profiles.set(id, {
-      id: animal.id,
-      label: animal.identification || animal.id,
-      type: animal.type || "",
-      status: animal.status || "",
-      records: [],
-    });
+    const label = animal.identification || animal.id;
+    const key = cowProfileKey(label) || id;
+
+    if (!profiles.has(key)) {
+      profiles.set(key, {
+        id: animal.id,
+        ids: [animal.id],
+        label,
+        type: animal.type || "",
+        status: animal.status || "",
+        records: [],
+      });
+      return;
+    }
+
+    const profile = profiles.get(key);
+    if (!profile.ids.some((item) => cowIdKey(item) === id)) profile.ids.push(animal.id);
+    if (animal.type && !profile.type.includes(animal.type)) {
+      profile.type = [profile.type, animal.type].filter(Boolean).join(" | ");
+    }
+    if (animal.status && !profile.status.includes(animal.status)) {
+      profile.status = [profile.status, animal.status].filter(Boolean).join(" | ");
+    }
   });
 
   state.medication.forEach((record) => {
     const id = cowIdKey(record.cow_id);
     if (!id) return;
+    const label = animalLabel(record.cow_id);
+    const key = cowProfileKey(label) || id;
 
-    if (!profiles.has(id)) {
-      profiles.set(id, {
+    if (!profiles.has(key)) {
+      profiles.set(key, {
         id: record.cow_id,
-        label: animalLabel(record.cow_id),
+        ids: [record.cow_id],
+        label,
         type: "",
         status: "",
         records: [],
       });
     }
 
-    profiles.get(id).records.push(record);
+    const profile = profiles.get(key);
+    if (!profile.ids.some((item) => cowIdKey(item) === id)) profile.ids.push(record.cow_id);
+    profile.records.push(record);
   });
 
   return [...profiles.values()]
-    .map((profile) => ({ ...profile, records: sortMedicationRecords(profile.records) }))
+    .map((profile) => ({
+      ...profile,
+      records: sortMedicationRecords(profile.records),
+    }))
     .sort((a, b) => String(a.label).localeCompare(String(b.label), "pt-BR", { numeric: true, sensitivity: "base" }));
 };
 
@@ -673,7 +732,9 @@ const getSelectedMedicationProfile = (profiles) => {
     return null;
   }
 
-  const selected = profiles.find((profile) => cowIdKey(profile.id) === cowIdKey(selectedMedicationCowId));
+  const selected = profiles.find((profile) =>
+    (profile.ids || [profile.id]).some((id) => cowIdKey(id) === cowIdKey(selectedMedicationCowId))
+  );
   if (selected) return selected;
 
   const fallback = profiles.find((profile) => profile.records.length > 0) || profiles[0];
@@ -855,6 +916,28 @@ const insertCropEvent = async (record) => {
   writeLocal();
 };
 
+const insertStockItem = async (record) => {
+  const newId = localId();
+  const payload = normalizeStockItemInput(record);
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from("stock_items").insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, "salvar item de estoque");
+      enqueueMutation("stock", "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
+  }
+
+  state.stockItems.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
+};
+
 const insertReminder = async (record) => {
   const newId = localId();
   const payload = normalizeReminderInput(record);
@@ -884,6 +967,7 @@ const collections = {
   breeding: { stateKey: "breeding", table: "breeding_records" },
   medication: { stateKey: "medication", table: "medication_records" },
   crop: { stateKey: "cropEvents", table: "crop_events" },
+  stock: { stateKey: "stockItems", table: "stock_items" },
   reminder: { stateKey: "reminders", table: "reminders" },
 };
 
@@ -987,6 +1071,7 @@ const validateSyncPayload = (type, action, payload) => {
     breeding: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
     medication: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
     crop: ["plot_name", "crop_name", "event_type", "event_date", "product", "dosage", "area_tasks", "notes", "user_id"],
+    stock: ["item_name", "category", "quantity", "unit", "min_quantity", "notes", "user_id"],
     reminder: ["title", "category", "due_date", "notes", "done", "completed_at", "user_id"],
   };
   const allowed = allowedKeys[type];
@@ -1116,6 +1201,33 @@ const normalizeCropEventInput = (data) => {
   };
 };
 
+const normalizeStockItemInput = (data) => {
+  const itemName = cleanText(data.item_name ?? data.itemName, 120);
+  const category = cleanText(data.category || "Insumo", 60) || "Insumo";
+  const quantity = validateNumber(data.quantity, 0, 1000000);
+  const unit = cleanText(data.unit, 30);
+  const minRaw = data.min_quantity ?? data.minQuantity ?? "";
+  const minQuantity = minRaw === "" || minRaw === null || minRaw === undefined
+    ? null
+    : validateNumber(minRaw, 0, 1000000);
+
+  if (!itemName) throw new Error("Item deve ter 1-120 caracteres");
+  if (quantity === null) throw new Error("Quantidade invalida");
+  if (!unit) throw new Error("Unidade deve ter 1-30 caracteres");
+  if (minQuantity === null && minRaw !== "" && minRaw !== null && minRaw !== undefined) {
+    throw new Error("Estoque minimo invalido");
+  }
+
+  return {
+    item_name: itemName,
+    category,
+    quantity,
+    unit,
+    min_quantity: minQuantity,
+    notes: optionalText(data.notes, 300),
+  };
+};
+
 const normalizeReminderInput = (data) => {
   const title = cleanText(data.title, 120);
   const dueDate = String(data.due_date ?? data.dueDate ?? "");
@@ -1172,6 +1284,15 @@ const showEditModal = (type, record) => {
           <label>Dosagem: <input type="text" name="dosage" value="${escapeHtml(record.dosage || '')}"></label>
           <label>Área (tarefas): <input type="number" name="area_tasks" min="0" max="100000" step="0.01" value="${escapeHtml(String(record.area_tasks ?? ''))}"></label>
           <label>Observações: <textarea name="notes" rows="3">${escapeHtml(record.notes || '')}</textarea></label>
+        `;
+      } else if (type === "stock") {
+        return `
+          <label>Item: <input type="text" name="item_name" value="${escapeHtml(record.item_name || '')}" required></label>
+          <label>Categoria: <input type="text" name="category" value="${escapeHtml(record.category || 'Insumo')}" required></label>
+          <label>Quantidade: <input type="number" name="quantity" min="0" max="1000000" step="0.01" value="${escapeHtml(String(record.quantity ?? ''))}" required></label>
+          <label>Unidade: <input type="text" name="unit" value="${escapeHtml(record.unit || '')}" required></label>
+          <label>Estoque minimo: <input type="number" name="min_quantity" min="0" max="1000000" step="0.01" value="${escapeHtml(String(record.min_quantity ?? ''))}"></label>
+          <label>Observacoes: <textarea name="notes" rows="3">${escapeHtml(record.notes || '')}</textarea></label>
         `;
       } else if (type === "reminder") {
         return `
@@ -1288,6 +1409,8 @@ const editRecord = async (type, id) => {
         area_tasks: areaTasks,
         notes: (data.notes || "").trim().substring(0, 500) || null,
       });
+    } else if (type === "stock") {
+      await updateRecord(type, id, normalizeStockItemInput(data));
     } else if (type === "reminder") {
       await updateRecord(type, id, {
         ...normalizeReminderInput(data),
@@ -1503,7 +1626,7 @@ const applySubscriptionAccess = (profile) => {
   const blocked = ["blocked", "canceled"].includes(profile.subscriptionStatus);
   document.body.classList.toggle("subscription-blocked", blocked);
   document
-    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button, #reminderForm input, #reminderForm select, #reminderForm textarea, #reminderForm button")
+    .querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button, #stockForm input, #stockForm select, #stockForm textarea, #stockForm button, #reminderForm input, #reminderForm select, #reminderForm textarea, #reminderForm button")
     .forEach((control) => {
       control.disabled = blocked;
     });
@@ -1751,7 +1874,9 @@ const renderMedication = () => {
       <div class="medical-cow-tabs" role="tablist" aria-label="Fichas médicas das vacas">
         ${profiles
           .map((profile) => {
-            const active = cowIdKey(profile.id) === cowIdKey(selectedProfile?.id);
+            const active = (profile.ids || [profile.id]).some((id) =>
+              (selectedProfile?.ids || [selectedProfile?.id]).some((selectedId) => cowIdKey(id) === cowIdKey(selectedId))
+            );
             const lastRecord = profile.records[0];
             const countLabel = `${profile.records.length} ${profile.records.length === 1 ? "registro" : "registros"}`;
             return `
@@ -1807,6 +1932,44 @@ const renderCropEvents = () => {
         })
         .join("")
     : empty("Nenhum manejo de lavoura registrado.");
+};
+
+const renderStockItems = () => {
+  if (!el.stockList) return;
+
+  const records = [...state.stockItems].sort((a, b) => {
+    const byCategory = String(a.category || "").localeCompare(String(b.category || ""), "pt-BR", { sensitivity: "base" });
+    if (byCategory) return byCategory;
+    return String(a.item_name || "").localeCompare(String(b.item_name || ""), "pt-BR", { sensitivity: "base" });
+  });
+
+  el.stockList.innerHTML = records.length
+    ? records
+        .map((record) => {
+          const quantity = Number(record.quantity || 0);
+          const minQuantity = record.min_quantity === null || record.min_quantity === undefined
+            ? null
+            : Number(record.min_quantity || 0);
+          const isLow = minQuantity !== null && quantity <= minQuantity;
+          const details = [
+            record.category || "Estoque",
+            minQuantity !== null ? `Minimo: ${formatStockQuantity(minQuantity, record.unit)}` : "",
+            record.notes || "",
+          ].filter(Boolean);
+
+          return `
+            <article class="item ${isLow ? "stock-low" : ""}">
+              <div>
+                <span>${escapeHtml(record.item_name)}</span>
+                <small>${escapeHtml(details.join(" | "))}</small>
+              </div>
+              <strong>${escapeHtml(`${formatStockQuantity(quantity, record.unit)}${isLow ? " | baixo" : ""}`)}</strong>
+              ${recordActions("stock", record)}
+            </article>
+          `;
+        })
+        .join("")
+    : empty("Nenhum item em estoque cadastrado.");
 };
 
 const renderAlertItem = (alert) => {
@@ -2039,6 +2202,7 @@ const render = () => {
   renderBreeding();
   renderMedication();
   renderCropEvents();
+  renderStockItems();
   renderAlerts();
   renderReports();
 };
@@ -2399,6 +2563,30 @@ const initApp = () => {
       } catch (err) {
         if (err.authRequired) throw err;
         showToast(err.message || "Erro ao salvar manejo", "error");
+      }
+    });
+  }
+
+  if (el.stockForm) {
+    el.stockForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        await insertStockItem({
+          item_name: $("#stockItemName").value,
+          category: $("#stockCategory").value,
+          quantity: $("#stockQuantity").value,
+          unit: $("#stockUnit").value,
+          min_quantity: $("#stockMinQuantity").value,
+          notes: $("#stockNotes").value,
+        });
+
+        el.stockForm.reset();
+        render();
+        showToast("Item de estoque salvo!");
+      } catch (err) {
+        if (err.authRequired) throw err;
+        showToast(err.message || "Erro ao salvar item", "error");
       }
     });
   }
