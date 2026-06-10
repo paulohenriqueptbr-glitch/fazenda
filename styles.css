@@ -58,7 +58,7 @@
     border-color: #334155;
   }
 
-  /* ── Inputs globais no dark mode ── */
+  /* Inputs globais no dark mode */
   input,
   select,
   textarea {
@@ -78,7 +78,7 @@
     -webkit-text-fill-color: var(--ink) !important;
   }
 
-  /* ── Autofill do browser no Dark Mode ── */
+  /* Autofill do browser no Dark Mode */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -95,7 +95,7 @@
     border-color: #334155 !important;
   }
 
-  /* ── Login form inputs ── */
+  /* Login form inputs */
   .login-form input {
     background-color: var(--input-bg) !important;
     color: var(--ink) !important;
@@ -131,7 +131,7 @@
     background: #334155;
   }
 
-  /* ── Modal de edição no dark mode ── */
+  /* Modal de edição no dark mode */
   .edit-modal-card {
     background: #1e293b;
     color: var(--ink);
@@ -142,7 +142,7 @@
     color: var(--ink);
   }
 
-  /* ── App header no dark mode ── */
+  /* App header no dark mode */
   .app-header {
     border-bottom-color: rgba(148, 163, 184, 0.18);
     background: rgba(15, 23, 42, 0.88);
@@ -155,12 +155,14 @@
 
   .quick-action {
     border-color: rgba(148, 163, 184, 0.22);
-    background: rgba(30, 41, 59, 0.86);
+    background: rgba(30, 41, 59, 0.86) !important;
+    color: var(--ink) !important;
   }
 
   .quick-action:hover,
   .quick-action.active {
-    background: rgba(15, 23, 42, 0.95);
+    background: rgba(15, 23, 42, 0.95) !important;
+    color: var(--green-light) !important;
   }
 
   .summary,
@@ -169,20 +171,20 @@
   }
 }
 
-/* ===== RESET GLOBAL COMPACTO PARA MOBILE (iOS/Safari/Android) ===== */
+/* ===== RESET GLOBAL CIRÚRGICO PARA MOBILE (iOS/Safari/Android) ===== */
 input,
 select,
 textarea {
-  -webkit-appearance: none;      /* Remove renderização e gradientes nativos do iOS */
+  -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  opacity: 1 !important;         /* Corrige desvanecimento nativo do Safari */
-  background-color: var(--input-bg);
+  opacity: 1 !important;
+  background-color: var(--input-bg) !important;
   color: var(--ink) !important;
-  -webkit-text-fill-color: var(--ink) !important; /* Força cor em WebViews do iOS */
+  -webkit-text-fill-color: var(--ink) !important;
 }
 
-/* Garante a cor correta dentro dos formulários em qualquer modo visual */
+/* Garante a cor estável dentro de qualquer estrutura de formulário */
 .form-grid input,
 .form-grid select,
 .form-grid textarea,
@@ -1565,7 +1567,7 @@ button[type="submit"]:active,
 .weather-header small,
 .weather-day span,
 .weather-day small {
-  color: var(--muted);
+  color: var(--muted) !important;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -1637,6 +1639,12 @@ button[type="submit"]:active,
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
 }
 
+/* Forçando cor cinza padrão na descrição de topo do app no modo claro */
+.app-overview p {
+  color: #52615d !important;
+  -webkit-text-fill-color: #52615d !important;
+}
+
 .overview-kicker,
 .panel-head span {
   display: block;
@@ -1655,21 +1663,13 @@ button[type="submit"]:active,
   line-height: 1.2;
 }
 
-.app-overview p,
-.panel-head p {
-  max-width: 640px;
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
+/* CORREÇÃO DO CONTEXTO DA IMAGEM: Forçando cor escura estável para ações rápidas */
 .quick-action {
   display: inline-flex;
   min-height: 46px;
@@ -1679,8 +1679,9 @@ button[type="submit"]:active,
   padding: 0 10px;
   border: 1px solid rgba(20, 32, 29, 0.1);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.74);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
   font-size: 0.86rem;
   font-weight: 900;
   box-shadow: var(--shadow-sm);
@@ -1690,8 +1691,9 @@ button[type="submit"]:active,
 .quick-action:hover,
 .quick-action.active {
   border-color: rgba(16, 169, 129, 0.32);
-  background: #ffffff;
-  color: var(--green-dark);
+  background: #ffffff !important;
+  color: var(--green-dark) !important;
+  -webkit-text-fill-color: var(--green-dark) !important;
 }
 
 .quick-action:active {
@@ -1741,6 +1743,8 @@ button[type="submit"]:active,
   max-width: 430px;
   margin: 0;
   text-align: right;
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
 }
 
 .form-grid,
@@ -1867,7 +1871,8 @@ button[type="submit"]:active,
 
 .onboarding-card p {
   margin: 10px 0 18px;
-  color: var(--muted);
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
   line-height: 1.55;
 }
 
