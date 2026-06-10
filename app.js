@@ -56,6 +56,7 @@ const supabaseUnavailableMessage = () => {
   return "Supabase indisponível no momento. Tente novamente.";
 };
 let currentUserId = null;
+let selectedMedicationCowId = null;
 // Atenção: este contador zera ao recarregar a página — ele apenas adiciona delay
 // entre tentativas na mesma sessão. A proteção real contra bruteforce é feita
 // no servidor (/api/local-login) e no Supabase Auth (rate limit por IP/e-mail).
@@ -622,6 +623,62 @@ const animalLabel = (cowId) => {
     (item) => String(item.id) === String(cowId) || String(item.identification) === String(cowId)
   );
   return animal?.identification || cowId || "-";
+};
+
+const cowIdKey = (cowId) => String(cowId || "");
+
+const sortMedicationRecords = (records) =>
+  [...records].sort((a, b) => String(b.administration_date || "").localeCompare(String(a.administration_date || "")));
+
+const getMedicationCowProfiles = () => {
+  const profiles = new Map();
+
+  state.animals.forEach((animal) => {
+    const id = cowIdKey(animal.id);
+    if (!id) return;
+    profiles.set(id, {
+      id: animal.id,
+      label: animal.identification || animal.id,
+      type: animal.type || "",
+      status: animal.status || "",
+      records: [],
+    });
+  });
+
+  state.medication.forEach((record) => {
+    const id = cowIdKey(record.cow_id);
+    if (!id) return;
+
+    if (!profiles.has(id)) {
+      profiles.set(id, {
+        id: record.cow_id,
+        label: animalLabel(record.cow_id),
+        type: "",
+        status: "",
+        records: [],
+      });
+    }
+
+    profiles.get(id).records.push(record);
+  });
+
+  return [...profiles.values()]
+    .map((profile) => ({ ...profile, records: sortMedicationRecords(profile.records) }))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label), "pt-BR", { numeric: true, sensitivity: "base" }));
+};
+
+const getSelectedMedicationProfile = (profiles) => {
+  if (!profiles.length) {
+    selectedMedicationCowId = null;
+    return null;
+  }
+
+  const selected = profiles.find((profile) => cowIdKey(profile.id) === cowIdKey(selectedMedicationCowId));
+  if (selected) return selected;
+
+  const fallback = profiles.find((profile) => profile.records.length > 0) || profiles[0];
+  selectedMedicationCowId = fallback.id;
+  return fallback;
 };
 
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
@@ -1617,23 +1674,107 @@ const renderBreeding = () => {
     : empty("Nenhuma reprodução registrada.");
 };
 
+const renderMedicalCowRecord = (profile) => {
+  const records = profile.records;
+  const lastRecord = records[0];
+  const animalInfo = [profile.type, profile.status].filter(Boolean).join(" | ");
+  const countLabel = `${records.length} ${records.length === 1 ? "registro" : "registros"}`;
+
+  return `
+    <article class="medical-record-card">
+      <header class="medical-record-head">
+        <div>
+          <span>Ficha médica</span>
+          <h3>${escapeHtml(profile.label)}</h3>
+          <small>${escapeHtml(animalInfo || "Dados do rebanho")}</small>
+        </div>
+        <strong>${escapeHtml(countLabel)}</strong>
+      </header>
+      <div class="medical-record-summary">
+        <span>
+          <small>Total</small>
+          <strong>${escapeHtml(String(records.length))}</strong>
+        </span>
+        <span>
+          <small>Última aplicação</small>
+          <strong>${escapeHtml(lastRecord ? formatDate(lastRecord.administration_date) : "-")}</strong>
+        </span>
+        <span>
+          <small>Último medicamento</small>
+          <strong>${escapeHtml(lastRecord?.medication_name || "-")}</strong>
+        </span>
+      </div>
+      <div class="medical-history">
+        ${
+          records.length
+            ? records
+                .map(
+                  (record) => `
+                    <article class="item medical-history-item">
+                      <div>
+                        <span>${escapeHtml(record.medication_name)}</span>
+                        <small>${escapeHtml(formatDate(record.administration_date))}</small>
+                      </div>
+                      <strong>${escapeHtml(record.dosage || "Sem dosagem")}</strong>
+                      ${recordActions("medication", record)}
+                    </article>
+                  `
+                )
+                .join("")
+            : empty("Nenhuma medicação registrada para esta vaca.")
+        }
+      </div>
+    </article>
+  `;
+};
+
 const renderMedication = () => {
-  el.medicationList.innerHTML = state.medication.length
-    ? state.medication
-        .map(
-          (record) => `
-            <article class="item">
-              <div>
-                <span>${escapeHtml(animalLabel(record.cow_id))}</span>
-                <small>${escapeHtml(formatDate(record.administration_date))}</small>
-              </div>
-              <strong>${escapeHtml(record.medication_name)} - ${escapeHtml(record.dosage)}</strong>
-              ${recordActions("medication", record)}
-            </article>
-          `
-        )
-        .join("")
-    : empty("Nenhuma medicação registrada.");
+  const profiles = getMedicationCowProfiles();
+  const selectedProfile = getSelectedMedicationProfile(profiles);
+  const medCowSelect = $("#medCowId");
+
+  if (!profiles.length) {
+    el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica.");
+    return;
+  }
+
+  if (
+    selectedProfile &&
+    medCowSelect &&
+    Array.from(medCowSelect.options).some((option) => cowIdKey(option.value) === cowIdKey(selectedProfile.id))
+  ) {
+    medCowSelect.value = selectedProfile.id;
+  }
+
+  el.medicationList.innerHTML = `
+    <div class="medical-workspace">
+      <div class="medical-cow-tabs" role="tablist" aria-label="Fichas médicas das vacas">
+        ${profiles
+          .map((profile) => {
+            const active = cowIdKey(profile.id) === cowIdKey(selectedProfile?.id);
+            const lastRecord = profile.records[0];
+            const countLabel = `${profile.records.length} ${profile.records.length === 1 ? "registro" : "registros"}`;
+            return `
+              <button
+                class="medical-cow-tab ${active ? "active" : ""}"
+                type="button"
+                data-medical-cow-id="${escapeHtml(profile.id)}"
+                role="tab"
+                aria-selected="${active ? "true" : "false"}"
+              >
+                <span>${escapeHtml(profile.label)}</span>
+                <small>${escapeHtml(countLabel)}</small>
+                <em>${escapeHtml(lastRecord ? formatDate(lastRecord.administration_date) : "Sem medicação")}</em>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+      <div class="medical-record-panel" role="tabpanel">
+        ${selectedProfile ? renderMedicalCowRecord(selectedProfile) : empty("Selecione uma vaca para abrir a ficha médica.")}
+      </div>
+    </div>
+  `;
 };
 
 const renderCropEvents = () => {
@@ -2037,6 +2178,19 @@ const initApp = () => {
     document.addEventListener("click", handleRecordAction);
   }
 
+  if (!document.body._medicalCowTabsAttached) {
+    document.body._medicalCowTabsAttached = true;
+    document.addEventListener("click", (event) => {
+      const cowTab = event.target.closest("[data-medical-cow-id]");
+      if (!cowTab) return;
+
+      selectedMedicationCowId = cowTab.dataset.medicalCowId;
+      const medCowSelect = $("#medCowId");
+      if (medCowSelect) medCowSelect.value = selectedMedicationCowId;
+      renderMedication();
+    });
+  }
+
   const inseminationInput = $("#inseminationDate");
   const calvingInput = $("#expectedCalving");
   if (inseminationInput && calvingInput && !inseminationInput._listenerAttached) {
@@ -2044,6 +2198,15 @@ const initApp = () => {
     inseminationInput.addEventListener("change", () => {
       if (!inseminationInput.value) return;
       calvingInput.value = addDaysIso(inseminationInput.value, 285);
+    });
+  }
+
+  const medCowInput = $("#medCowId");
+  if (medCowInput && !medCowInput._listenerAttached) {
+    medCowInput._listenerAttached = true;
+    medCowInput.addEventListener("change", () => {
+      selectedMedicationCowId = medCowInput.value;
+      renderMedication();
     });
   }
 
@@ -2174,19 +2337,23 @@ const initApp = () => {
     try {
       const medName = $("#medName").value.trim();
       const medDate = $("#medDate").value;
+      const medCowId = $("#medCowId").value;
 
+      if (!medCowId) throw new Error("Selecione uma vaca");
       if (!medName || medName.length > 100) throw new Error("Medicamento deve ter 1-100 caracteres");
       if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
       if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
 
+      selectedMedicationCowId = medCowId;
       await insertMedication({
-        cow_id: $("#medCowId").value,
+        cow_id: medCowId,
         medication_name: medName,
         dosage: $("#medDosage").value.trim().substring(0, 100),
         administration_date: medDate,
       });
 
       el.medicationForm.reset();
+      $("#medCowId").value = selectedMedicationCowId;
       render();
       showToast("Medicação registrada!");
     } catch (err) {

@@ -954,6 +954,136 @@ button[type="submit"]:active,
   background: rgba(247, 250, 248, 0.72);
 }
 
+.medical-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+.medical-cow-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.medical-cow-tab {
+  display: grid;
+  gap: 3px;
+  min-height: 88px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  text-align: left;
+  transition: all var(--transition);
+}
+
+.medical-cow-tab:hover {
+  border-color: rgba(16, 169, 129, 0.55);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.medical-cow-tab.active {
+  border-color: var(--green);
+  background: var(--green-soft);
+  box-shadow: 0 0 0 2px rgba(16, 169, 129, 0.12);
+}
+
+.medical-cow-tab span {
+  font-weight: 900;
+}
+
+.medical-cow-tab small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.medical-cow-tab em {
+  color: var(--green-dark);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.medical-record-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.medical-record-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.medical-record-head span {
+  color: var(--green-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.medical-record-head h3 {
+  margin: 2px 0 3px;
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.medical-record-head small {
+  color: var(--muted);
+}
+
+.medical-record-head > strong {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.medical-record-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.medical-record-summary span {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+}
+
+.medical-record-summary small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.medical-record-summary strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.medical-history {
+  display: grid;
+  gap: 6px;
+}
+
+.medical-history-item {
+  background: var(--field);
+}
+
 .price-quote-value {
   padding: 14px 16px;
   border: 1px solid var(--line);
@@ -2096,6 +2226,15 @@ button[type="submit"]:active,
   .client-summary,
   .payment-panel,
   .modal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .medical-record-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .medical-record-summary {
     grid-template-columns: 1fr;
   }
 

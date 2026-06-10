@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=23">
+<link rel="stylesheet" href="styles.css?v=24">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -260,9 +260,9 @@
     <div class="panel-head">
       <div>
         <span>Sanidade</span>
-        <h2>Saude</h2>
+        <h2>Fichas médicas</h2>
       </div>
-      <p>Registre medicamentos, dosagens e datas de aplicacao.</p>
+      <p>Escolha uma vaca para abrir todo o histórico de medicamentos em um só lugar.</p>
     </div>
     <form id="medicationForm" class="form-grid">
       <label for="medCowId">Vaca</label>
@@ -275,7 +275,7 @@
       <input id="medDate" type="date" required>
       <button type="submit">Registrar medicação</button>
     </form>
-    <div class="section-title"><h2>Medicações</h2></div>
+    <div class="section-title"><h2>Ficha médica das vacas</h2></div>
     <div id="medicationList" class="list"></div>
   </section>
 
@@ -484,6 +484,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>
