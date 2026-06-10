@@ -11,6 +11,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - Cadastro de animais.
 - Ambiente de lavoura para plantio, pulverização, adubação, colheita e observações por tarefa.
 - Calendario de alertas com lembretes manuais, parto previsto, producao pendente e retornos de lavoura.
+- Consulta de previsao do tempo por cidade usando `/api/weather`.
 - Controle de lactação, reprodução e medicação.
 - Edição e exclusão de registros.
 - Relatórios com total mensal, valor estimado, média e gráfico recente.
@@ -39,6 +40,7 @@ PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e re
 - `api/config.js`: carrega a configuração do Supabase pelas variáveis da Vercel.
 - `api/admin-customers.js`: endpoint server-side do admin interno.
 - `api/backup.js`: endpoint server-side para backup no Supabase Storage.
+- `api/weather.js`: endpoint server-side para previsao do tempo.
 - `config.example.js`: exemplo local, sem credenciais reais.
 
 ## Rodar localmente
@@ -126,6 +128,22 @@ Mantenha `CRON_SECRET` ou `BACKUP_CRON_SECRET` configurado; o endpoint recusa ba
 
 3. O `vercel.json` agenda `/api/backup` diariamente às 03:00 UTC.
 4. O backup será gravado em `backups/controle-fazenda/AAAA-MM-DD.json`.
+
+## API de previsão do tempo
+
+O app consulta a previsão pelo endpoint server-side:
+
+```text
+/api/weather?city=Arapiraca
+```
+
+Também é possível consultar por coordenadas:
+
+```text
+/api/weather?latitude=-9.75&longitude=-36.66
+```
+
+A API usa Open-Meteo e retorna 5 dias de previsão com temperatura, chuva e vento.
 
 ## Publicar na Vercel
 

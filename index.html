@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -26,9 +26,8 @@
 -->
 
 <!-- chart.js -->
-<script
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js"
-  integrity="sha384-rRoXxn2yHlrZYB587Ki9RO1tONhLdM6XfORg7Rw4uwH4/Fh/5nP7IUX91bkaKUgs"
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+  integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
   crossorigin="anonymous"></script>
 
 </head>
@@ -275,6 +274,14 @@
       <article><span>7 dias</span><strong id="alertWeekTotal">0</strong></article>
       <article><span>Abertos</span><strong id="alertOpenTotal">0</strong></article>
     </div>
+    <form id="weatherForm" class="form-grid compact-form weather-form">
+      <div class="field">
+        <label for="weatherCity">Cidade</label>
+        <input id="weatherCity" type="text" maxlength="120" placeholder="Ex.: Arapiraca" required>
+      </div>
+      <button type="submit">Ver previsão</button>
+    </form>
+    <div id="weatherForecast" class="weather-forecast"></div>
     <div class="section-title"><h2>Alertas</h2></div>
     <div id="alertList" class="list"></div>
   </section>
@@ -376,6 +383,7 @@
 <!-- supabase-js -->
 <script
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js"
+  integrity="sha384-HlsOyqKcggCMG1je+4eTJKCduyUJxXpuVzI5SmMPXdo9VfJf/fKS57J3/z9EeaE+"
   crossorigin="anonymous"></script>
 
 <script src="/api/config.js"></script>
@@ -387,6 +395,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

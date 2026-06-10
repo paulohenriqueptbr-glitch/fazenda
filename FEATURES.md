@@ -9,6 +9,7 @@ Sistema PWA de gerenciamento de fazenda leiteira com Supabase, offline-first e g
 - Alertas automaticos de producao diaria pendente
 - Alertas de parto previsto, lactacao longa e retorno de lavoura
 - Status visual para atrasado, hoje, proximos 7 dias e concluido
+- Previsao do tempo por cidade com chuva, temperatura e vento
 
 ### 🌙 **Dark Mode**
 - Tema automático baseado na preferência do sistema

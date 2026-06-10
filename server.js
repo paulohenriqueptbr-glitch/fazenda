@@ -5,6 +5,7 @@ const path = require("path");
 const crypto = require("crypto");
 const adminCustomersHandler = require("./api/admin-customers");
 const backupHandler = require("./api/backup");
+const weatherHandler = require("./api/weather");
 
 const root = __dirname;
 const port = 5173;
@@ -91,6 +92,7 @@ const sendJson = (response, status, payload) => {
 const apiHandlers = {
   "/api/admin-customers": adminCustomersHandler,
   "/api/backup": backupHandler,
+  "/api/weather": weatherHandler,
 };
 
 const resolvePublicPath = (pathname) => {

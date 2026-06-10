@@ -1,16 +1,16 @@
-const CACHE_NAME = "controle-fazenda-v22";
+const CACHE_NAME = "controle-fazenda-v23";
 const APP_FILES = [
   "./",
   "./index.html",
   "./landing.html",
   "./admin.html",
   "./privacy.html",
-  "./styles.css?v=21",
+  "./styles.css?v=22",
   "./icons.js?v=19",
   "./privacy.js?v=19",
   "./landing.js?v=19",
   "./admin.js?v=19",
-  "./app.js?v=21",
+  "./app.js?v=22",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
