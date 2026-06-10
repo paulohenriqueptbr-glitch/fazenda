@@ -2098,7 +2098,7 @@ button[type="submit"]:active,
   margin-top: 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #ffffff;
+  background: #af7070;
 }
 
 .pricing-card {
@@ -2176,7 +2176,7 @@ button[type="submit"]:active,
   border: 0;
   border-radius: 10px;
   background: var(--green-dark);
-  color: #ffffff;
+  color: #ca6e6e;
   font-weight: 900;
   padding: 0 16px;
 }
@@ -2470,7 +2470,7 @@ button[type="submit"]:active,
 
 @media print {
   body {
-    background: #ffffff;
+    background: #8f4d4d;
   }
 
   .login-screen,
@@ -2535,7 +2535,7 @@ button[type="submit"]:active,
     [data-tab="settings"] p,
     #settingsPanel p,
     #settings p {
-        color: #cbd5e1 !important;
-        -webkit-text-fill-color: #cbd5e1 !important;
+        color: #82a04a !important;
+        -webkit-text-fill-color: #0e4c97 !important;
     }
 }
