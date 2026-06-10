@@ -1105,17 +1105,13 @@ button[type="submit"]:active,
   gap: 8px;
 }
 
-.medical-cow-tab {
-  display: grid;
-  gap: 3px;
-  min-height: 88px;
-  padding: 13px 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
-  color: var(--ink);
-  text-align: left;
-  transition: all var(--transition);
+.medical-cow-tab,
+.quick-action,
+.filter-btn,
+.category-btn,
+.animal-tab {
+    color: #4b5563 !important;
+    -webkit-text-fill-color: #4b5563 !important; /* Corrige bug do iOS */
 }
 
 .medical-cow-tab:hover {
@@ -1124,10 +1120,14 @@ button[type="submit"]:active,
   transform: translateY(-1px);
 }
 
-.medical-cow-tab.active {
-  border-color: var(--green);
-  background: var(--green-soft);
-  box-shadow: 0 0 0 2px rgba(16, 169, 129, 0.12);
+medical-cow-tab.active,
+    .quick-action.active,
+    .filter-btn.active,
+    .category-btn.active,
+    .animal-tab.active {
+        color: #10a981 !important; /* Verde vibrante no modo escuro */
+        -webkit-text-fill-color: #10a981 !important;
+
 }
 
 .medical-cow-tab span {
@@ -2522,12 +2522,13 @@ button[type="submit"]:active,
 }
 
 @media (prefers-color-scheme: dark) {
-    .panel-head h2,
-    .app-overview h2,
-    [data-tab="settings"] h2,
-    #settingsPanel h2,
-    #settings h2 {
-        color: #ffffff !important;
+    .medical-cow-tab,
+    .quick-action,
+    .filter-btn,
+    .category-btn,
+    .animal-tab {
+        color: #cbd5e1 !important; /* Cinza clarinho para dar contraste no fundo preto */
+        -webkit-text-fill-color: #cbd5e1 !important;
     }
 
     .panel-head p,
