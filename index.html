@@ -10,7 +10,7 @@
 <title>Controle Fazenda</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=23">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -105,6 +105,32 @@
     </div>
   </div>
 
+  <section class="app-overview" aria-label="Visao geral">
+    <div>
+      <span class="overview-kicker">Rotina da fazenda</span>
+      <h2>O essencial do dia em um so lugar</h2>
+      <p>Registre a producao, acompanhe pendencias e consulte indicadores sem sair do fluxo principal.</p>
+    </div>
+    <div class="quick-actions" aria-label="Atalhos">
+      <button class="quick-action active" type="button" data-tab="milk">
+        <i data-lucide="milk"></i>
+        <span>Leite</span>
+      </button>
+      <button class="quick-action" type="button" data-tab="alerts">
+        <i data-lucide="bell"></i>
+        <span>Alertas</span>
+      </button>
+      <button class="quick-action" type="button" data-tab="reports">
+        <i data-lucide="chart-column"></i>
+        <span>Relatorios</span>
+      </button>
+      <button class="quick-action" type="button" data-tab="crops">
+        <i data-lucide="sprout"></i>
+        <span>Lavoura</span>
+      </button>
+    </div>
+  </section>
+
   <section class="summary-grid" aria-label="Resumo">
     <article class="summary primary">
       <span>Produção de hoje</span>
@@ -129,6 +155,13 @@
   </section>
 
   <section id="milk" class="panel active">
+    <div class="panel-head">
+      <div>
+        <span>Producao diaria</span>
+        <h2>Leite</h2>
+      </div>
+      <p>Registre litros do dia e acompanhe o historico recente.</p>
+    </div>
     <form id="milkForm" class="form-grid compact-form">
       <div class="field">
         <label for="milkDate">Data</label>
@@ -148,6 +181,13 @@
   </section>
 
   <section id="animals" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Cadastro do rebanho</span>
+        <h2>Animais</h2>
+      </div>
+      <p>Organize identificacao, tipo e situacao produtiva dos animais.</p>
+    </div>
     <form id="animalForm" class="form-grid">
       <label for="animalName">Identificação</label>
       <input id="animalName" type="text" placeholder="Ex.: BOV-0001" required>
@@ -173,6 +213,13 @@
   </section>
 
   <section id="lactation" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Ciclo produtivo</span>
+        <h2>Lactacoes</h2>
+      </div>
+      <p>Acompanhe inicio, fim e media diaria de cada vaca.</p>
+    </div>
     <form id="lactationForm" class="form-grid">
       <label for="lactCowId">Vaca</label>
       <select id="lactCowId"></select>
@@ -189,6 +236,13 @@
   </section>
 
   <section id="breeding" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Planejamento</span>
+        <h2>Gestacao</h2>
+      </div>
+      <p>Controle prenhez e previsao de parto com datas claras.</p>
+    </div>
     <form id="breedingForm" class="form-grid">
       <label for="breedCowId">Vaca</label>
       <select id="breedCowId"></select>
@@ -203,6 +257,13 @@
   </section>
 
   <section id="medication" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Sanidade</span>
+        <h2>Saude</h2>
+      </div>
+      <p>Registre medicamentos, dosagens e datas de aplicacao.</p>
+    </div>
     <form id="medicationForm" class="form-grid">
       <label for="medCowId">Vaca</label>
       <select id="medCowId"></select>
@@ -219,6 +280,13 @@
   </section>
 
   <section id="crops" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Manejo agricola</span>
+        <h2>Lavoura</h2>
+      </div>
+      <p>Controle plantio, insumos, tarefas e observacoes de campo.</p>
+    </div>
     <form id="cropForm" class="form-grid">
       <label for="cropPlot">Talhão/área</label>
       <input id="cropPlot" type="text" placeholder="Ex.: Talhão 1" required>
@@ -250,6 +318,13 @@
   </section>
 
   <section id="alerts" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Agenda e clima</span>
+        <h2>Alertas</h2>
+      </div>
+      <p>Veja pendencias, lembretes e previsao do tempo para a fazenda.</p>
+    </div>
     <form id="reminderForm" class="form-grid">
       <label for="reminderTitle">Lembrete</label>
       <input id="reminderTitle" type="text" maxlength="120" placeholder="Ex.: Vacinar lote A" required>
@@ -287,6 +362,13 @@
   </section>
 
   <section id="reports" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Indicadores</span>
+        <h2>Relatorios</h2>
+      </div>
+      <p>Analise producao, valor estimado, media e melhor dia do mes.</p>
+    </div>
     <div class="report-grid">
       <article class="report-card">
         <span>Produção no mês</span>
@@ -312,6 +394,13 @@
   </section>
 
   <section id="settings" class="panel">
+    <div class="panel-head">
+      <div>
+        <span>Preferencias</span>
+        <h2>Configuracoes</h2>
+      </div>
+      <p>Ajuste cotacao, exporte backup e acesse suporte.</p>
+    </div>
     <form id="priceQuoteForm" class="form-grid">
       <label for="priceQuoteInput">Cotação do leite (R$/L)</label>
       <input id="priceQuoteInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,40" required>
@@ -395,6 +484,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

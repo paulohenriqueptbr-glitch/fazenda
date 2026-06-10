@@ -198,6 +198,7 @@ const showLoginButton = $("#showLoginButton");
 const showSignupButton = $("#showSignupButton");
 
 const el = {
+  appShell,
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
   todayValue: $("#todayValue"),
@@ -2014,15 +2015,19 @@ const initApp = () => {
 
   if (!document.body._tabListenersAttached) {
     document.body._tabListenersAttached = true;
-    document.querySelectorAll(".nav-item").forEach((button) => {
+    const activateTab = (tabId) => {
+      if (!tabId) return;
+      document.querySelectorAll(".nav-item, .quick-action, .panel").forEach((element) => element.classList.remove("active"));
+      document.querySelectorAll(`[data-tab="${tabId}"]`).forEach((element) => element.classList.add("active"));
+      const panel = $(`#${tabId}`);
+      if (panel) panel.classList.add("active");
+      if (el.appShell) el.appShell.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    document.querySelectorAll("[data-tab]").forEach((button) => {
       if (!button._clickListenerAttached) {
         button._clickListenerAttached = true;
-        button.addEventListener("click", () => {
-          document.querySelectorAll(".nav-item, .panel").forEach((element) => element.classList.remove("active"));
-          button.classList.add("active");
-          const panel = $(`#${button.dataset.tab}`);
-          if (panel) panel.classList.add("active");
-        });
+        button.addEventListener("click", () => activateTab(button.dataset.tab));
       }
     });
   }
