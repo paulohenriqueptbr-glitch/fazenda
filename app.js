@@ -48,7 +48,7 @@ const supabaseUnavailableMessage = () => {
     return "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso.";
   }
   if (!window.supabase) {
-    return "Biblioteca do Supabase não carregou. Recarregue a página e confira se o CDN não foi bloqueado.";
+    return "Biblioteca do Supabase não carregou. Recarregue a página para atualizar os arquivos do app.";
   }
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
     return "Configuração do Supabase não encontrada. Confira SUPABASE_URL e SUPABASE_ANON_KEY no ambiente.";
@@ -316,19 +316,19 @@ const showLoginError = (message, type = "error") => {
   loginError.classList.add("visible");
 };
 
-const contactUrl = (message, subject = "Suporte Controle Fazenda") => {
+const contactUrl = (message, subject = "Suporte Agro+") => {
   const encodedMessage = encodeURIComponent(message);
   if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${encodedMessage}`;
   if (supportEmail) return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodedMessage}`;
   return "privacy.html#contato";
 };
 
-const supportUrl = () => contactUrl("Olá, preciso de suporte no Controle Fazenda.");
+const supportUrl = () => contactUrl("Olá, preciso de suporte no Agro+.");
 
 const subscribeUrl = () =>
   contactUrl(
-    `Olá, quero assinar o Controle Fazenda. Plano: ${formatMoney(planPrice)}/mês.`,
-    "Assinatura Controle Fazenda"
+    `Olá, quero assinar o Agro+. Plano: ${formatMoney(planPrice)}/mês.`,
+    "Assinatura Agro+"
   );
 
 const setupSupportLinks = () => {
@@ -2054,7 +2054,7 @@ const exportDataBackup = () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `controle-fazenda-backup-${todayIso()}.json`;
+  link.download = `agro-plus-backup-${todayIso()}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();

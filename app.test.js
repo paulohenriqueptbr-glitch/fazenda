@@ -1,5 +1,5 @@
 /**
- * Testes Automatizados - Controle Fazenda
+ * Testes Automatizados - Agro+
  * Validações e regras de negócio críticas
  * 
  * Rodar: npm test

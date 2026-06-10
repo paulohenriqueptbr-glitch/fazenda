@@ -280,5 +280,5 @@ http
     });
   })
   .listen(port, "127.0.0.1", () => {
-    console.log(`Controle Leite aberto em http://localhost:${port}`);
+    console.log(`Agro+ aberto em http://localhost:${port}`);
   });

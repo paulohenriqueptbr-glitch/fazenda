@@ -1,4 +1,4 @@
-# 🐄 Controle Fazenda v2.0
+# Agro+ v2.0
 
 Sistema PWA de gerenciamento de fazenda leiteira com Supabase, offline-first e gráficos avançados.
 

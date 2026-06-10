@@ -25,9 +25,6 @@ echo ""
 sri "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" \
     "chart.js@4.4.0"
 
-sri "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js" \
-    "@supabase/supabase-js@2.108.0 (UMD)"
-
 sri "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js" \
     "lucide@0.383.0"
 
@@ -41,5 +38,6 @@ echo '    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js
 echo '    integrity="sha384-COLE_O_HASH_AQUI"'
 echo '    crossorigin="anonymous"></script>'
 echo ""
-echo 'Faça o mesmo para supabase-js e lucide.'
+echo 'Faca o mesmo para lucide.'
+echo 'Supabase fica local em vendor/supabase.js para evitar bloqueio de CDN no login.'
 echo ""

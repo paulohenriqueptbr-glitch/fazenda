@@ -1,7 +1,7 @@
 {
-  "name": "Controle Fazenda",
-  "short_name": "Fazenda",
-  "description": "Sistema de gerenciamento de fazenda leiteira.",
+  "name": "Agro+",
+  "short_name": "Agro+",
+  "description": "Agro+: sistema de gerenciamento de fazenda leiteira.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

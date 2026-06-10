@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-fazenda-v25";
+const CACHE_NAME = "agro-plus-v27";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -7,15 +7,15 @@ const APP_FILES = [
   "./privacy.html",
   "./styles.css?v=24",
   "./icons.js?v=19",
-  "./privacy.js?v=19",
-  "./landing.js?v=19",
+  "./privacy.js?v=20",
+  "./landing.js?v=20",
   "./admin.js?v=19",
-  "./app.js?v=24",
+  "./app.js?v=26",
+  "./vendor/supabase.js?v=2.108.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js",
   "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
 ];
 

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
-<title>Controle Fazenda</title>
+<title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="styles.css?v=24">
@@ -37,7 +37,7 @@
   <div class="access-layout">
     <section class="product-card" aria-labelledby="productTitle">
       <span class="eyebrow">Gestão leiteira no celular</span>
-      <h2 id="productTitle">Controle Fazenda</h2>
+      <h2 id="productTitle">Agro+</h2>
       <p>Registre a produção de leite, acompanhe o rebanho e consulte relatórios em uma PWA simples para pequenos produtores.</p>
       <div class="feature-list" aria-label="Principais recursos">
         <span>Produção diária</span>
@@ -52,8 +52,8 @@
     </section>
 
     <div class="login-card">
-      <span class="login-icon" aria-hidden="true">CF</span>
-      <h1>Controle Fazenda</h1>
+      <span class="login-icon" aria-hidden="true">A+</span>
+      <h1>Agro+</h1>
       <p id="authSubtitle" class="login-subtitle">Faça login para acessar o sistema</p>
 
       <div class="auth-tabs" aria-label="Acesso">
@@ -97,7 +97,7 @@
 
 <main id="appShell" class="app-shell">
   <div class="app-header">
-    <h1>Controle Fazenda</h1>
+    <h1>Agro+</h1>
     <div class="user-info">
       <span id="syncStatus" class="status">Local</span>
       <span id="userEmail" class="user-email"></span>
@@ -469,11 +469,8 @@
   é obrigatório para SRI funcionar.
 -->
 
-<!-- supabase-js -->
-<script
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/dist/umd/supabase.js"
-  integrity="sha384-HlsOyqKcggCMG1je+4eTJKCduyUJxXpuVzI5SmMPXdo9VfJf/fKS57J3/z9EeaE+"
-  crossorigin="anonymous"></script>
+<!-- supabase-js local para evitar bloqueio de CDN no login -->
+<script src="vendor/supabase.js?v=2.108.0"></script>
 
 <script src="/api/config.js"></script>
 
@@ -484,6 +481,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>

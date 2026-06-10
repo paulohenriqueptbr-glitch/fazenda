@@ -1,4 +1,4 @@
-# Controle Fazenda
+# Agro+
 
 PWA para gerenciamento de fazenda leiteira. O app possui login via Supabase e registra produção de leite, animais, lactações, reprodução, medicações e cotação do leite.
 
@@ -127,7 +127,7 @@ CRON_SECRET=crie-um-token-longo-para-o-cron
 Mantenha `CRON_SECRET` ou `BACKUP_CRON_SECRET` configurado; o endpoint recusa backup sem segredo.
 
 3. O `vercel.json` agenda `/api/backup` diariamente às 03:00 UTC.
-4. O backup será gravado em `backups/controle-fazenda/AAAA-MM-DD.json`.
+4. O backup será gravado em `backups/agro-plus/AAAA-MM-DD.json`.
 
 ## API de previsão do tempo
 
