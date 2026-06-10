@@ -2021,7 +2021,7 @@ const initApp = () => {
       document.querySelectorAll(`[data-tab="${tabId}"]`).forEach((element) => element.classList.add("active"));
       const panel = $(`#${tabId}`);
       if (panel) panel.classList.add("active");
-      if (el.appShell) el.appShell.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: el.appShell?.offsetTop || 0, behavior: "smooth" });
     };
 
     document.querySelectorAll("[data-tab]").forEach((button) => {
