@@ -171,6 +171,39 @@
   }
 }
 
+/* ===== CORREÇÃO GLOBAL iOS/Safari — text-fill e autofill no modo claro ===== */
+input,
+select,
+textarea {
+  -webkit-text-fill-color: var(--ink);
+  color: var(--ink);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  border-color: var(--line) !important;
+}
+
+/* Input type=date no iOS: força cor do texto */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+  -webkit-text-fill-color: var(--ink);
+  color: var(--ink);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -881,9 +914,12 @@ textarea {
   background: var(--input-bg);
   color: var(--ink);
   -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
   outline: 0;
   transition: all var(--transition);
   font-size: 1rem;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 textarea {
