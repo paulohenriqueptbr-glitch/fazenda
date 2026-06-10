@@ -62,23 +62,23 @@
   input,
   select,
   textarea {
-    background: var(--input-bg);
-    color: var(--ink);
-    border-color: #334155;
-    -webkit-text-fill-color: var(--ink);
+    background-color: var(--input-bg) !important;
+    color: var(--ink) !important;
+    border-color: #334155 !important;
+    -webkit-text-fill-color: var(--ink) !important;
     color-scheme: dark;
   }
 
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: #22c55e;
-    background: var(--input-bg-focus);
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-    -webkit-text-fill-color: var(--ink);
+    border-color: #22c55e !important;
+    background-color: var(--input-bg-focus) !important;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1) !important;
+    -webkit-text-fill-color: var(--ink) !important;
   }
 
-  /* ── Autofill do browser (iOS Safari pinta de branco por padrão) ── */
+  /* ── Autofill do browser no Dark Mode ── */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -91,24 +91,22 @@
   select:-webkit-autofill:focus {
     -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
     -webkit-text-fill-color: #f0f9ff !important;
-    caret-color: #f0f9ff;
+    caret-color: #f0f9ff !important;
     border-color: #334155 !important;
-    background-color: #1e293b !important;
   }
 
   /* ── Login form inputs ── */
   .login-form input {
-    background: var(--input-bg);
-    color: var(--ink);
-    border-color: #334155;
-    -webkit-text-fill-color: var(--ink);
+    background-color: var(--input-bg) !important;
+    color: var(--ink) !important;
+    border-color: #334155 !important;
+    -webkit-text-fill-color: var(--ink) !important;
   }
 
   .login-form input:focus {
-    border-color: var(--green);
-    background: var(--input-bg-focus);
-    box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.15);
-    -webkit-text-fill-color: var(--ink);
+    border-color: var(--green) !important;
+    background-color: var(--input-bg-focus) !important;
+    box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.15) !important;
   }
 
   button:disabled { opacity: 0.5; }
@@ -171,12 +169,29 @@
   }
 }
 
-/* ===== CORREÇÃO GLOBAL iOS/Safari — text-fill e autofill no modo claro ===== */
+/* ===== RESET GLOBAL COMPACTO PARA MOBILE (iOS/Safari/Android) ===== */
 input,
 select,
 textarea {
-  -webkit-text-fill-color: var(--ink);
-  color: var(--ink);
+  -webkit-appearance: none;      /* Remove renderização e gradientes nativos do iOS */
+  -moz-appearance: none;
+  appearance: none;
+  opacity: 1 !important;         /* Corrige desvanecimento nativo do Safari */
+  background-color: var(--input-bg);
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important; /* Força cor em WebViews do iOS */
+}
+
+/* Garante a cor correta dentro dos formulários em qualquer modo visual */
+.form-grid input,
+.form-grid select,
+.form-grid textarea,
+.edit-modal-form input,
+.edit-modal-form select,
+.edit-modal-form textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
 }
 
 input:-webkit-autofill,
@@ -191,17 +206,18 @@ select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
   -webkit-text-fill-color: var(--ink) !important;
-  caret-color: var(--ink);
+  caret-color: var(--ink) !important;
   border-color: var(--line) !important;
 }
 
-/* Input type=date no iOS: força cor do texto */
+/* Inputs de tipo Data no Mobile */
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"],
 input[type="month"] {
-  -webkit-text-fill-color: var(--ink);
-  color: var(--ink);
+  -webkit-text-fill-color: var(--ink) !important;
+  color: var(--ink) !important;
+  background-color: var(--input-bg) !important;
 }
 
 * {
@@ -401,6 +417,11 @@ textarea:disabled {
   background: #f3f7f5;
 }
 
+.auth-tabs button {
+  -webkit-appearance: button;
+  appearance: button;
+}
+
 .auth-tab {
   min-height: 42px;
   border: 0;
@@ -429,9 +450,9 @@ textarea:disabled {
   padding: 0 15px;
   border: 1px solid var(--auth-border);
   border-radius: 11px;
-  background: var(--input-bg);
-  color: var(--ink);
-  -webkit-text-fill-color: var(--ink);
+  background-color: var(--input-bg) !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
   font-size: 0.95rem;
   outline: 0;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -450,6 +471,8 @@ textarea:disabled {
   width: 18px;
   min-height: 18px;
   margin-top: 1px;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
 }
 
 .checkbox-row a,
@@ -459,10 +482,9 @@ textarea:disabled {
 }
 
 .login-form input:focus {
-  border-color: var(--green);
-  background: var(--input-bg-focus);
-  box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.11);
-  -webkit-text-fill-color: var(--ink);
+  border-color: var(--green) !important;
+  background-color: var(--input-bg-focus) !important;
+  box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.11) !important;
 }
 
 .login-form button[type="submit"] {
@@ -476,6 +498,8 @@ textarea:disabled {
   font-size: 0.95rem;
   transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
   box-shadow: 0 14px 28px rgba(15, 143, 104, 0.18);
+  -webkit-appearance: button;
+  appearance: button;
 }
 
 .login-form button[type="submit"]:hover {
@@ -529,7 +553,7 @@ textarea:disabled {
   line-height: 1.5;
 }
 
-/* Hide app when not logged in */
+/* Ocultar a app se não estiver logado */
 .app-shell { display: none; }
 .app-shell.visible { display: block; }
 .login-screen.hidden { display: none; }
@@ -911,15 +935,13 @@ textarea {
   border: 2px solid var(--line);
   border-radius: 10px;
   padding: 0 13px;
-  background: var(--input-bg);
-  color: var(--ink);
-  -webkit-text-fill-color: var(--ink);
-  caret-color: var(--ink);
+  background-color: var(--input-bg) !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink) !important;
   outline: 0;
   transition: all var(--transition);
   font-size: 1rem;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
 textarea {
@@ -931,10 +953,9 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--green);
-  box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.1);
-  background: var(--input-bg-focus);
-  -webkit-text-fill-color: var(--ink);
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 4px rgba(16, 169, 129, 0.1) !important;
+  background-color: var(--input-bg-focus) !important;
 }
 
 button[type="submit"],
@@ -1968,7 +1989,7 @@ button[type="submit"]:active,
   background:
     linear-gradient(90deg, rgba(247, 250, 248, 0.97) 0%, rgba(247, 250, 248, 0.86) 48%, rgba(247, 250, 248, 0.72) 100%),
     url("icons/icon-512.png") right 10% center / min(42vw, 420px) no-repeat,
-    linear-gradient(135deg, #ecfdf5 0%, #eef4ff 54%, #fff7ed 100%);
+    linear-gradient(135deg, #ecfdf5 0%, #eef4ff 54%, #fff7ed(255, 247, 237, 0.9) 100%);
   border-top: 1px solid rgba(20, 32, 29, 0.06);
   border-bottom: 1px solid rgba(20, 32, 29, 0.08);
 }
@@ -2408,7 +2429,7 @@ button[type="submit"]:active,
     background:
       linear-gradient(180deg, rgba(247, 250, 248, 0.98) 0%, rgba(247, 250, 248, 0.9) 100%),
       url("icons/icon-512.png") right -60px bottom -60px / 260px no-repeat,
-      linear-gradient(135deg, #ecfdf5 0%, #eef4ff 54%, #fff7ed 100%);
+      linear-gradient(135deg, #ecfdf5 0%, #eef4ff 54%, #fff7ed(255, 247, 237, 0.9) 100%);
   }
 
   .benefit-grid,
