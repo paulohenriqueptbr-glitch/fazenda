@@ -2488,3 +2488,45 @@ button[type="submit"]:active,
     -webkit-text-fill-color: #cbd5e1 !important;
   }
 }
+
+/* =========================================================
+   AJUSTE FINAL MOBILE: MOSTRAR CARDS DE RESUMO NO CELULAR
+   ========================================================= */
+@media (max-width: 768px) {
+  .app-shell[data-active-tab="milk"] .summary-grid,
+  .app-shell:not([data-active-tab]) .summary-grid,
+  .summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 12px 0 16px !important;
+  }
+
+  .summary {
+    min-height: 96px !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .summary strong {
+    font-size: clamp(1.45rem, 7vw, 1.9rem) !important;
+  }
+
+  .summary span {
+    font-size: 0.64rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .summary small {
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell[data-active-tab="milk"] .summary-grid,
+  .app-shell:not([data-active-tab]) .summary-grid,
+  .summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
