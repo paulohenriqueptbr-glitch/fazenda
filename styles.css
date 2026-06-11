@@ -1683,7 +1683,7 @@ medical-cow-tab.active,
 }
 
 .summary-grid {
-  align-items:flex-start;
+  align-items:flex-end;
 }
 
 .summary {
