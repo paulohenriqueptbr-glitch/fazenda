@@ -2451,6 +2451,7 @@ medical-cow-tab.active,
     /* =========================================================
    REMOÇÃO TOTAL DA PARTE MARCADA (DESKTOP E MOBILE)
    ========================================================= */
+   {
 .app-overview, 
 .summary-grid {
   display: none !important;
