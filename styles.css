@@ -2360,12 +2360,13 @@ medical-cow-tab.active,
   }
 }
 
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
-  display: none;
-}
-
 @media (max-width: 720px) {
+  /* Esconde o painel geral e os cards de resumo quando NÃO estiver na aba Leite (Mobile) */
+  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
+  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
+    display: none !important;
+  }
+
   .app-header {
     align-items: flex-start;
     flex-direction: column;
@@ -2532,7 +2533,7 @@ medical-cow-tab.active,
     .filter-btn,
     .category-btn,
     .animal-tab {
-        color: #cbd5e1 !important; /* Cinza clarinho para dar contraste no fundo preto */
+        color: #cbd5e1 !important;
         -webkit-text-fill-color: #cbd5e1 !important;
     }
 
