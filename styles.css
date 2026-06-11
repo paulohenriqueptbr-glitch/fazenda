@@ -2254,119 +2254,22 @@ medical-cow-tab.active,
 }
 
 /* ===== RESPONSIVE ===== */
-@media (min-width: 680px) {
-  .app-shell {
-    padding-top: 18px;
-  }
-
-  .app-overview {
-    grid-template-columns: minmax(0, 1.2fr) minmax(310px, 0.8fr);
-    align-items: center;
-  }
-
-  .summary-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .report-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .alert-summary {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .weather-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .form-grid {
-    grid-template-columns: repeat(2, 1fr);
-    align-items: end;
-  }
-
-  .form-grid label {
-    margin-bottom: -4px;
-  }
-
-  .form-grid button[type="submit"] {
-    grid-column: 1 / -1;
-  }
-
-  .compact-form {
-    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 220px);
-  }
-
-  .compact-form button[type="submit"] {
-    grid-column: auto;
-    margin-top: 0;
-  }
+@media (max-width: 620px) { 
+  .client-summary, .payment-panel, .modal-actions { grid-template-columns: 1fr; } 
+  .medical-record-head { align-items: flex-start; flex-direction: column; } 
+  .medical-record-summary { grid-template-columns: 1fr; } 
+  .onboarding-card { padding: 22px 18px; } 
 }
 
-@media (max-width: 390px) {
-  .login-card {
-    padding: 28px 20px;
-  }
-
-  .feature-list {
-    grid-template-columns: 1fr;
-  }
-
-  .status {
-    align-self: flex-start;
-  }
-
-  .item {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .item strong {
-    max-width: 100%;
-    text-align: left;
-  }
-
-  .item-actions {
-    justify-content: flex-start;
-  }
-
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
-
-  .chart-row strong {
-    text-align: left;
-  }
-}
-
-@media (max-width: 620px) {
-  .client-summary,
-  .payment-panel,
-  .modal-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .medical-record-head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .medical-record-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .onboarding-card {
-    padding: 22px 18px;
-  }
+/* =========================================================
+   CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
+   ========================================================= */
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
+  display: none !important;
 }
 
 @media (max-width: 720px) {
-  /* Esconde o painel geral e os cards de resumo quando NÃO estiver na aba Leite (Mobile) */
-  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
-  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
-    display: none !important;
-  }
-
   .app-header {
     align-items: flex-start;
     flex-direction: column;
