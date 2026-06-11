@@ -2448,4 +2448,11 @@ medical-cow-tab.active,
         color: #82a04a !important;
         -webkit-text-fill-color: #0e4c97 !important;
     }
+    /* =========================================================
+   REMOÇÃO TOTAL DA PARTE MARCADA (DESKTOP E MOBILE)
+   ========================================================= */
+.app-overview, 
+.summary-grid {
+  display: none !important;
+}
 }
