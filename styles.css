@@ -2103,7 +2103,7 @@ medical-cow-tab.active,
 }
 
 .pricing-card {
-  display: grid;
+  display: anchor-size;
   gap: 12px;
   min-height: 240px;
   border-left: 4px solid var(--amber);
