@@ -1119,7 +1119,7 @@ button[type="submit"]:active,
   transform: translateY(-1px);
 }
 
-medical-cow-tab.active,
+.medical-cow-tab.active,
     .quick-action.active,
     .filter-btn.active,
     .category-btn.active,
@@ -1682,8 +1682,10 @@ medical-cow-tab.active,
 }
 
 .summary-grid {
-  align-items:anchor;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
 }
 
 .summary {
@@ -2102,7 +2104,7 @@ medical-cow-tab.active,
 }
 
 .pricing-card {
-  display: anchor-size;
+  display: grid;
   gap: 12px;
   min-height: 240px;
   border-left: 4px solid var(--amber);
@@ -2445,15 +2447,7 @@ medical-cow-tab.active,
     [data-tab="settings"] p,
     #settingsPanel p,
     #settings p {
-        color: #82a04a !important;
-        -webkit-text-fill-color: #0e4c97 !important;
+        color: #cbd5e1 !important;
+        -webkit-text-fill-color: #cbd5e1 !important;
     }
-    /* =========================================================
-   REMOÇÃO TOTAL DA PARTE MARCADA (DESKTOP E MOBILE)
-   ========================================================= */
-   
-.app-overview, 
-.summary-grid {
-  display: none !important;
-
 }
