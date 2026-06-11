@@ -692,7 +692,7 @@ h2 {
   background: linear-gradient(135deg, #047857 0%, #10a981 100%);
   border: 0;
   color: white;
-  box-shadow: 0 20px 30px rgba(16, 169, 129, 0.2);
+  box-shadow: 0 20px 10px rgba(16, 169, 129, 0.2);
 }
 
 .summary.primary::before {
@@ -2451,9 +2451,9 @@ medical-cow-tab.active,
     /* =========================================================
    REMOÇÃO TOTAL DA PARTE MARCADA (DESKTOP E MOBILE)
    ========================================================= */
-   {
+   
 .app-overview, 
 .summary-grid {
   display: none !important;
-}
+
 }
