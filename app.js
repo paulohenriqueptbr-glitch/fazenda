@@ -2326,6 +2326,7 @@ const initApp = () => {
       document.querySelectorAll(`[data-tab="${tabId}"]`).forEach((element) => element.classList.add("active"));
       const panel = $(`#${tabId}`);
       if (panel) panel.classList.add("active");
+      if (el.appShell) el.appShell.dataset.activeTab = tabId;
       window.scrollTo({ top: el.appShell?.offsetTop || 0, behavior: "smooth" });
     };
 
@@ -2335,6 +2336,11 @@ const initApp = () => {
         button.addEventListener("click", () => activateTab(button.dataset.tab));
       }
     });
+
+    if (el.appShell && !el.appShell.dataset.activeTab) {
+      const initialPanel = document.querySelector(".panel.active");
+      el.appShell.dataset.activeTab = initialPanel ? initialPanel.id : "milk";
+    }
   }
 
   if (!document.body._recordActionsAttached) {

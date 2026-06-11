@@ -2361,6 +2361,11 @@ medical-cow-tab.active,
 }
 
 @media (max-width: 720px) {
+  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
+  .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
+    display: none;
+  }
+
   .app-header {
     align-items: flex-start;
     flex-direction: column;
