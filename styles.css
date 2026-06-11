@@ -643,11 +643,10 @@ h2 {
 }
 
 /* ===== SUMMARY CARDS ===== */
-..summary-grid {
+.summary-grid {
   display: grid;
   align-items: stretch;
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
-}
 }
 
 .summary {
