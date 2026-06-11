@@ -1682,10 +1682,8 @@ button[type="submit"]:active,
 }
 
 .summary-grid {
-  display: grid;
   align-items: stretch;
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .summary {
@@ -2447,7 +2445,46 @@ button[type="submit"]:active,
     [data-tab="settings"] p,
     #settingsPanel p,
     #settings p {
-        color: #cbd5e1 !important;
-        -webkit-text-fill-color: #cbd5e1 !important;
+        color: #82a04a !important;
+        -webkit-text-fill-color: #0e4c97 !important;
     }
+
+}
+
+
+/* ===== CORREÇÕES MOBILE / RESUMO ===== */
+.summary-grid {
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .app-shell[data-active-tab="milk"] .summary-grid,
+  .app-shell:not([data-active-tab]) .summary-grid {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 14px 0 18px;
+  }
+
+  .summary {
+    min-height: 96px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .summary-grid {
+    display: grid;
+  }
+
+  .panel-head p,
+  .app-overview p,
+  [data-tab="settings"] p,
+  #settingsPanel p,
+  #settings p {
+    color: #cbd5e1 !important;
+    -webkit-text-fill-color: #cbd5e1 !important;
+  }
 }
