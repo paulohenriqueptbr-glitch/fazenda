@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
 
 const tables = [
@@ -28,6 +30,16 @@ const headerSecret = (request) => {
   const authorization = request.headers.authorization || "";
   if (authorization.toLowerCase().startsWith("bearer ")) return authorization.slice(7).trim();
   return request.headers["x-cron-secret"] || "";
+};
+
+const timingSafeEqual = (a, b) => {
+  const bufA = Buffer.from(String(a || ""));
+  const bufB = Buffer.from(String(b || ""));
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
 };
 
 const supabaseHeaders = (serviceRoleKey) => ({
@@ -74,7 +86,7 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  if (headerSecret(request) !== expectedSecret) {
+  if (!timingSafeEqual(headerSecret(request), expectedSecret)) {
     sendJson(response, 401, { error: "Token de backup invalido." });
     return;
   }

@@ -1,7 +1,12 @@
+const crypto = require("crypto");
+
 const allowedStatuses = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 const CLIENT_PROFILE_KEY = "client_profile";
 const PRICE_QUOTE_KEY = "milk_price_quote";
 const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
+const MAX_ADMIN_AUTH_ATTEMPTS = 10;
+const ADMIN_AUTH_WINDOW_MS = 15 * 60 * 1000;
+const adminAuthAttempts = new Map();
 
 const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
 
@@ -60,6 +65,54 @@ const authToken = (request) => {
   return request.headers["x-admin-token"] || "";
 };
 
+const timingSafeEqual = (a, b) => {
+  const bufA = Buffer.from(String(a || ""));
+  const bufB = Buffer.from(String(b || ""));
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+};
+
+const clientIp = (request) =>
+  String(request.headers["x-forwarded-for"] || request.socket?.remoteAddress || "unknown")
+    .split(",")[0]
+    .trim();
+
+const adminRateLimitKey = (request) => clientIp(request) || "unknown";
+
+const isAdminRateLimited = (request) => {
+  const key = adminRateLimitKey(request);
+  const now = Date.now();
+  const current = adminAuthAttempts.get(key);
+
+  if (!current || now > current.resetAt) {
+    adminAuthAttempts.set(key, { count: 0, resetAt: now + ADMIN_AUTH_WINDOW_MS });
+    return false;
+  }
+
+  return current.count >= MAX_ADMIN_AUTH_ATTEMPTS;
+};
+
+const recordAdminAuthFailure = (request) => {
+  const key = adminRateLimitKey(request);
+  const now = Date.now();
+  const current = adminAuthAttempts.get(key);
+
+  if (!current || now > current.resetAt) {
+    adminAuthAttempts.set(key, { count: 1, resetAt: now + ADMIN_AUTH_WINDOW_MS });
+    return;
+  }
+
+  current.count += 1;
+  adminAuthAttempts.set(key, current);
+};
+
+const clearAdminAuthFailures = (request) => {
+  adminAuthAttempts.delete(adminRateLimitKey(request));
+};
+
 const supabaseHeaders = (serviceRoleKey) => ({
   apikey: serviceRoleKey,
   Authorization: `Bearer ${serviceRoleKey}`,
@@ -91,10 +144,18 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  if (authToken(request) !== adminToken) {
+  if (isAdminRateLimited(request)) {
+    sendJson(response, 429, { error: "Muitas tentativas. Tente novamente mais tarde." });
+    return;
+  }
+
+  if (!timingSafeEqual(authToken(request), adminToken)) {
+    recordAdminAuthFailure(request);
     sendJson(response, 401, { error: "Token de administrador inválido." });
     return;
   }
+
+  clearAdminAuthFailures(request);
 
   if (request.method === "GET") {
     try {
