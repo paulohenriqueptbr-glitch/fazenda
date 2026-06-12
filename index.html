@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agro+">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
 <title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="styles.css?v=26">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -408,6 +409,17 @@
     <p id="priceQuoteValue" class="price-quote-value"></p>
     <div class="section-title"><h2>Backup manual</h2></div>
     <button id="exportDataButton" class="ghost full-width" type="button">Exportar dados (JSON)</button>
+    <div class="section-title"><h2>Instalação e atualização</h2></div>
+    <div class="pwa-panel">
+      <div>
+        <strong id="pwaStatus">App pronto para usar no navegador.</strong>
+        <p id="pwaHelp" class="helper-text">Quando instalado, o Agro+ abre em tela cheia e continua funcionando offline.</p>
+      </div>
+      <div class="pwa-actions">
+        <button id="installAppButton" class="ghost" type="button" hidden>Instalar app</button>
+        <button id="updateAppButton" type="button" hidden>Atualizar app</button>
+      </div>
+    </div>
     <div class="section-title"><h2>Segurança e suporte</h2></div>
     <p class="helper-text">Cada conta acessa apenas seus próprios dados quando o RLS está ativo no Supabase.</p>
     <div class="settings-actions">
@@ -483,6 +495,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=28"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@
   "name": "Agro+",
   "short_name": "Agro+",
   "description": "Agro+: sistema de gerenciamento de fazenda leiteira.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
