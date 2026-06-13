@@ -69,7 +69,7 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' cdn.jsdelivr.net unpkg.com; style-src 'self'; connect-src 'self' *.supabase.co geocoding-api.open-meteo.com api.open-meteo.com; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' *.supabase.co geocoding-api.open-meteo.com api.open-meteo.com; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 
 const writeResponse = (response, status, headers = {}, body = "") => {

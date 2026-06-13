@@ -499,8 +499,6 @@ const isMissingOptionalTable = (error, table) =>
   (["42P01", "PGRST205"].includes(error.code) ||
     String(error.message || "").toLowerCase().includes(table));
 
-const isMissingCropEventsTable = (error) => isMissingOptionalTable(error, "crop_events");
-
 const authErrorMessage = (error) => {
   const raw = String(error?.message || error?.code || error || "").toLowerCase();
 
@@ -689,7 +687,7 @@ const loadSupabase = async () => {
 
   if (error) throw error;
 
-  if (isMissingCropEventsTable(cropResult.error)) {
+  if (isMissingOptionalTable(cropResult.error, "crop_events")) {
     console.warn("Tabela crop_events ainda nao existe no Supabase. Usando lavoura local.");
   }
   if (isMissingOptionalTable(reminderResult.error, "reminders")) {
@@ -890,6 +888,67 @@ const enqueueMutation = (type, action, payload, recordId = null) => {
   saveSyncQueue([...queue, { id: localId(), type, action, payload, recordId, timestamp: Date.now() }]);
 };
 
+const collections = {
+  milk: { stateKey: "milk", table: "milk_records", allowedKeys: ["date", "liters", "user_id"] },
+  animal: { stateKey: "animals", table: "animals", allowedKeys: ["identification", "type", "status", "user_id"] },
+  lactation: {
+    stateKey: "lactations",
+    table: "lactation_records",
+    allowedKeys: ["cow_id", "start_date", "end_date", "daily_liters", "user_id"],
+  },
+  breeding: {
+    stateKey: "breeding",
+    table: "breeding_records",
+    allowedKeys: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
+  },
+  medication: {
+    stateKey: "medication",
+    table: "medication_records",
+    allowedKeys: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
+  },
+  crop: {
+    stateKey: "cropEvents",
+    table: "crop_events",
+    allowedKeys: ["plot_name", "crop_name", "event_type", "event_date", "product", "dosage", "area_tasks", "notes", "user_id"],
+  },
+  stock: {
+    stateKey: "stockItems",
+    table: "stock_items",
+    allowedKeys: ["item_name", "category", "quantity", "unit", "min_quantity", "notes", "user_id"],
+  },
+  reminder: {
+    stateKey: "reminders",
+    table: "reminders",
+    allowedKeys: ["title", "category", "due_date", "notes", "done", "completed_at", "user_id"],
+  },
+};
+
+const insertCollectionRecord = async ({ type, record, normalize = (value) => value, context }) => {
+  const config = collections[type];
+  if (!config) return;
+
+  const newId = localId();
+  const payload = normalize(record);
+
+  if (hasSupabase) {
+    try {
+      await requireSession();
+      const { error } = await db.from(config.table).insert(withCurrentUser(payload));
+      if (error) throw error;
+      await loadSupabase();
+      return;
+    } catch (error) {
+      if (error.authRequired) throw error;
+      handleSupabaseError(error, context);
+      enqueueMutation(type, "insert", payload, newId);
+      setStatus("Offline (pendente)", "error");
+    }
+  }
+
+  state[config.stateKey].unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
+  writeLocal();
+};
+
 const upsertMilk = async (record) => {
   if (hasSupabase) {
     try {
@@ -912,181 +971,75 @@ const upsertMilk = async (record) => {
 };
 
 const insertAnimal = async (animal) => {
-  const newId = localId();
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("animals").insert(withCurrentUser(animal));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar animal");
-      enqueueMutation("animal", "insert", animal, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.animals.unshift({ ...animal, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({ type: "animal", record: animal, context: "salvar animal" });
 };
 
 const insertLactation = async (record) => {
-  const newId = localId();
-  const payload = {
-    cow_id: record.cow_id,
-    start_date: record.start_date,
-    end_date: record.end_date || null,
-    daily_liters: record.daily_liters,
-  };
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("lactation_records").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar lactação");
-      enqueueMutation("lactation", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.lactations.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({
+    type: "lactation",
+    record,
+    context: "salvar lactação",
+    normalize: (value) => ({
+      cow_id: value.cow_id,
+      start_date: value.start_date,
+      end_date: value.end_date || null,
+      daily_liters: value.daily_liters,
+    }),
+  });
 };
 
 const insertBreeding = async (record) => {
-  const newId = localId();
-  const payload = {
-    cow_id: record.cow_id,
-    insemination_date: record.insemination_date,
-    expected_calving_date: record.expected_calving_date,
-  };
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("breeding_records").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar reprodução");
-      enqueueMutation("breeding", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.breeding.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({
+    type: "breeding",
+    record,
+    context: "salvar reprodução",
+    normalize: (value) => ({
+      cow_id: value.cow_id,
+      insemination_date: value.insemination_date,
+      expected_calving_date: value.expected_calving_date,
+    }),
+  });
 };
 
 const insertMedication = async (record) => {
-  const newId = localId();
-  const payload = {
-    cow_id: record.cow_id,
-    medication_name: record.medication_name,
-    dosage: record.dosage,
-    administration_date: record.administration_date,
-  };
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("medication_records").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar medicação");
-      enqueueMutation("medication", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.medication.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({
+    type: "medication",
+    record,
+    context: "salvar medicação",
+    normalize: (value) => ({
+      cow_id: value.cow_id,
+      medication_name: value.medication_name,
+      dosage: value.dosage,
+      administration_date: value.administration_date,
+    }),
+  });
 };
 
 const insertCropEvent = async (record) => {
-  const newId = localId();
-  const payload = normalizeCropEventInput(record);
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("crop_events").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar manejo da lavoura");
-      enqueueMutation("crop", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.cropEvents.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({
+    type: "crop",
+    record,
+    context: "salvar manejo da lavoura",
+    normalize: normalizeCropEventInput,
+  });
 };
 
 const insertStockItem = async (record) => {
-  const newId = localId();
-  const payload = normalizeStockItemInput(record);
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("stock_items").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar item de estoque");
-      enqueueMutation("stock", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.stockItems.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
+  await insertCollectionRecord({
+    type: "stock",
+    record,
+    context: "salvar item de estoque",
+    normalize: normalizeStockItemInput,
+  });
 };
 
 const insertReminder = async (record) => {
-  const newId = localId();
-  const payload = normalizeReminderInput(record);
-  if (hasSupabase) {
-    try {
-      await requireSession();
-      const { error } = await db.from("reminders").insert(withCurrentUser(payload));
-      if (error) throw error;
-      await loadSupabase();
-      return;
-    } catch (error) {
-      if (error.authRequired) throw error;
-      handleSupabaseError(error, "salvar lembrete");
-      enqueueMutation("reminder", "insert", payload, newId);
-      setStatus("Offline (pendente)", "error");
-    }
-  }
-
-  state.reminders.unshift({ ...payload, id: newId, created_at: new Date().toISOString() });
-  writeLocal();
-};
-
-const collections = {
-  milk: { stateKey: "milk", table: "milk_records" },
-  animal: { stateKey: "animals", table: "animals" },
-  lactation: { stateKey: "lactations", table: "lactation_records" },
-  breeding: { stateKey: "breeding", table: "breeding_records" },
-  medication: { stateKey: "medication", table: "medication_records" },
-  crop: { stateKey: "cropEvents", table: "crop_events" },
-  stock: { stateKey: "stockItems", table: "stock_items" },
-  reminder: { stateKey: "reminders", table: "reminders" },
+  await insertCollectionRecord({
+    type: "reminder",
+    record,
+    context: "salvar lembrete",
+    normalize: normalizeReminderInput,
+  });
 };
 
 const findRecord = (type, id) => {
@@ -1182,17 +1135,7 @@ const deleteRecord = async (type, id) => {
 const validateSyncPayload = (type, action, payload) => {
   if (action === "delete") return true;
   if (!payload || typeof payload !== "object") return false;
-  const allowedKeys = {
-    milk: ["date", "liters", "user_id"],
-    animal: ["identification", "type", "status", "user_id"],
-    lactation: ["cow_id", "start_date", "end_date", "daily_liters", "user_id"],
-    breeding: ["cow_id", "insemination_date", "expected_calving_date", "user_id"],
-    medication: ["cow_id", "medication_name", "dosage", "administration_date", "user_id"],
-    crop: ["plot_name", "crop_name", "event_type", "event_date", "product", "dosage", "area_tasks", "notes", "user_id"],
-    stock: ["item_name", "category", "quantity", "unit", "min_quantity", "notes", "user_id"],
-    reminder: ["title", "category", "due_date", "notes", "done", "completed_at", "user_id"],
-  };
-  const allowed = allowedKeys[type];
+  const allowed = collections[type]?.allowedKeys;
   if (!allowed) return false;
   const keys = Object.keys(payload);
   return keys.every((k) => allowed.includes(k));

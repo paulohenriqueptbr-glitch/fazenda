@@ -1,4 +1,4 @@
-const CACHE_NAME = "agro-plus-v30";
+const CACHE_NAME = "agro-plus-v31";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -15,8 +15,8 @@ const APP_FILES = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
-  "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
+  "./vendor/chart.js?v=4.4.0",
+  "./vendor/lucide.js?v=0.383.0",
 ];
 
 const isConfigRequest = (url) => url.pathname === "/api/config.js";
