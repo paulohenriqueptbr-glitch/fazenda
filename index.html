@@ -11,7 +11,7 @@
 <title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=26">
+<link rel="stylesheet" href="styles.css?v=27">
 
 <!--
   SEGURANÇA: dependências locais (vendor)
@@ -91,8 +91,16 @@
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
+<section id="overview" class="panel active" data-tab="overview">
+  <div class="panel-head">
+    <div>
+      <span>Visão geral</span>
+      <h2>Hoje</h2>
+    </div>
+    <p>Resumo rápido do dia e atalhos para as tarefas mais usadas.</p>
+  </div>
   <section class="summary-grid" aria-label="Resumo">
-    <article class="summary primary">
+    <article class="summary primary" id="todayCard" role="button" tabindex="0" data-tab="milk">
       <span>Produção de hoje</span>
       <strong id="todayTotal">0 L</strong>
       <small id="todayValue">R$ 0,00</small>
@@ -103,18 +111,34 @@
       <small id="monthValue">R$ 0,00</small>
     </article>
     <article class="summary">
-      <span>Cotação do leite</span>
-      <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
-      <small>Altere em Configurações</small>
-    </article>
-    <article class="summary">
-      <span>Animais</span>
-      <strong id="animalTotal">0</strong>
-      <small id="lactatingTotal">0 em lactação</small>
+      <span>Média diária</span>
+      <strong id="avgDailyTotal">0 L</strong>
+      <small>últimos 30 dias</small>
     </article>
   </section>
 
-  <section id="milk" class="panel active">
+  <div class="section-title"><h2>Ações rápidas</h2></div>
+  <div class="quick-actions">
+    <button class="quick-action" type="button" data-tab="milk">
+      <i class="nav-icon" data-lucide="milk"></i>
+      Registrar leite
+    </button>
+    <button class="quick-action" type="button" data-tab="medication">
+      <i class="nav-icon" data-lucide="syringe"></i>
+      Medicação
+    </button>
+    <button class="quick-action" type="button" data-tab="breeding">
+      <i class="nav-icon" data-lucide="calendar-heart"></i>
+      Gestação
+    </button>
+    <button class="quick-action" type="button" data-tab="reports">
+      <i class="nav-icon" data-lucide="chart-column"></i>
+      Relatórios
+    </button>
+  </div>
+</section>
+
+  <section id="milk" class="panel">
     <div class="panel-head">
       <div>
         <span>Producao diaria</span>
@@ -145,6 +169,7 @@
       <div>
         <span>Cadastro do rebanho</span>
         <h2>Animais</h2>
+        <p class="helper-text"><strong id="animalTotal">0</strong> animais · <span id="lactatingTotal">0 em lactação</span></p>
       </div>
       <p>Organize identificacao, tipo e situacao produtiva dos animais.</p>
     </div>
@@ -426,7 +451,11 @@
 
 <!-- ===== BOTTOM NAVIGATION ===== -->
 <nav class="bottom-nav" aria-label="Navegação">
-  <button class="nav-item active" type="button" data-tab="milk">
+  <button class="nav-item active" type="button" data-tab="overview">
+    <i class="nav-icon" data-lucide="home"></i>
+    <span>Hoje</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="milk">
     <i class="nav-icon" data-lucide="milk"></i>
     <span>Leite</span>
   </button>
@@ -471,6 +500,13 @@
 <!-- ===== TOAST CONTAINER ===== -->
 <div id="toastContainer" class="toast-container"></div>
 
+<!--
+  SEGURANÇA: SRI nos scripts externos.
+  Ao atualizar a versão de uma biblioteca, execute "bash generate-sri.sh"
+  e substitua o hash correspondente. O atributo crossorigin="anonymous"
+  é obrigatório para SRI funcionar.
+-->
+
 <!-- supabase-js local para evitar bloqueio de CDN no login -->
 <script src="vendor/supabase.js?v=2.108.0"></script>
 
@@ -480,6 +516,6 @@
 <script src="vendor/lucide.js?v=0.383.0"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=29"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>

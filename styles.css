@@ -692,6 +692,7 @@ h2 {
   border: 0;
   color: white;
   box-shadow: 0 20px 10px rgba(16, 169, 129, 0.2);
+  cursor: pointer;
 }
 
 .summary.primary::before {
@@ -2300,8 +2301,8 @@ button[type="submit"]:active,
 /* =========================================================
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid {
+.app-shell[data-active-tab]:not([data-active-tab="overview"]) .app-overview,
+.app-shell[data-active-tab]:not([data-active-tab="overview"]) .summary-grid {
   display: none !important;
 }
 
