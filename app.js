@@ -2358,6 +2358,13 @@ const initApp = () => {
       }
     });
 
+    // delegation para quick-actions adicionadas dinamicamente
+    document.addEventListener("click", (event) => {
+      const btn = event.target.closest(".quick-action[data-tab]");
+      if (!btn) return;
+      activateTab(btn.dataset.tab);
+    });
+
     if (el.appShell && !el.appShell.dataset.activeTab) {
       const initialPanel = document.querySelector(".panel.active");
       el.appShell.dataset.activeTab = initialPanel ? initialPanel.id : "milk";
