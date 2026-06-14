@@ -335,8 +335,8 @@ textarea:disabled {
 
 .login-card {
   width: 100%;
-  max-width: 430px;
-  padding: 36px 30px 28px;
+  max-width: 520px;
+  padding: 48px 52px 36px;
   border: 1px solid var(--auth-border);
   border-radius: 14px;
   background: var(--panel);
