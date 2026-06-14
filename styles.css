@@ -692,7 +692,6 @@ h2 {
   border: 0;
   color: white;
   box-shadow: 0 20px 10px rgba(16, 169, 129, 0.2);
-  cursor: pointer;
 }
 
 .summary.primary::before {
@@ -1233,39 +1232,6 @@ button[type="submit"]:active,
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0;
-}
-
-.pwa-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--field);
-}
-
-.pwa-panel strong {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--ink);
-  font-size: 0.98rem;
-}
-
-.pwa-panel .helper-text {
-  margin: 0;
-}
-
-.pwa-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.pwa-actions button {
-  min-width: 132px;
 }
 
 .client-summary,
@@ -2292,17 +2258,13 @@ button[type="submit"]:active,
   .client-summary, .payment-panel, .modal-actions { grid-template-columns: 1fr; } 
   .medical-record-head { align-items: flex-start; flex-direction: column; } 
   .medical-record-summary { grid-template-columns: 1fr; } 
-  .pwa-panel { grid-template-columns: 1fr; } 
-  .pwa-actions { justify-content: stretch; } 
-  .pwa-actions button { flex: 1 1 100%; } 
   .onboarding-card { padding: 22px 18px; } 
 }
 
 /* =========================================================
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
-.app-shell[data-active-tab]:not([data-active-tab="overview"]) .app-overview,
-.app-shell[data-active-tab]:not([data-active-tab="overview"]) .summary-grid {
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview {
   display: none !important;
 }
 
