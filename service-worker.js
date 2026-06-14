@@ -1,11 +1,11 @@
-const CACHE_NAME = "agro-plus-v31";
+const CACHE_NAME = "agro-plus-v30";
 const APP_FILES = [
   "./",
   "./index.html",
   "./landing.html",
   "./admin.html",
   "./privacy.html",
-  "./styles.css?v=26",
+  "./styles.css?v=25",
   "./icons.js?v=19",
   "./privacy.js?v=20",
   "./landing.js?v=20",
@@ -15,8 +15,8 @@ const APP_FILES = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./vendor/chart.js?v=4.4.0",
-  "./vendor/lucide.js?v=0.383.0",
+  "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
+  "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
 ];
 
 const isConfigRequest = (url) => url.pathname === "/api/config.js";
@@ -32,6 +32,7 @@ self.addEventListener("install", (event) => {
       Promise.all(APP_FILES.map((file) => cache.add(file).catch(() => null)))
     )
   );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -41,12 +42,6 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
-});
-
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
 });
 
 self.addEventListener("fetch", (event) => {
