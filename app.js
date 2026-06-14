@@ -201,6 +201,14 @@ const authSubtitle = $("#authSubtitle");
 const authFooter = $("#authFooter");
 const showLoginButton = $("#showLoginButton");
 const showSignupButton = $("#showSignupButton");
+const installPromptModal = $("#installPromptModal");
+const installPromptTitle = $("#installPromptTitle");
+const installPromptMessage = $("#installPromptMessage");
+const installPromptAction = $("#installPromptAction");
+const installPromptLater = $("#installPromptLater");
+const installPromptClose = $("#installPromptClose");
+const iosInstallSteps = $("#iosInstallSteps");
+let deferredInstallPrompt = null;
 
 const el = {
   appShell,
@@ -320,6 +328,48 @@ const showLoginError = (message, type = "error") => {
   loginError.textContent = message;
   loginError.classList.toggle("success", type === "success");
   loginError.classList.add("visible");
+};
+
+const isStandalonePwa = () =>
+  window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+
+const isMobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isIosDevice = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isAndroidDevice = () => /Android/i.test(navigator.userAgent);
+
+const hideInstallPrompt = () => {
+  installPromptModal?.classList.add("hidden");
+};
+
+const showInstallPrompt = () => {
+  if (!installPromptModal || !isMobileDevice() || isStandalonePwa()) return;
+
+  const ios = isIosDevice();
+  const android = isAndroidDevice();
+  const canPromptAndroid = android && deferredInstallPrompt;
+
+  if (ios) {
+    installPromptTitle.textContent = "Salve o Agro+ no iPhone";
+    installPromptMessage.textContent = "No iOS a instalação é feita pelo Safari, salvando o ícone na tela de início.";
+    installPromptAction.textContent = "Entendi";
+  } else if (canPromptAndroid) {
+    installPromptTitle.textContent = "Instale o Agro+";
+    installPromptMessage.textContent = "Coloque o aplicativo na tela inicial do Android para abrir com um toque.";
+    installPromptAction.textContent = "Instalar aplicativo";
+  } else if (android) {
+    installPromptTitle.textContent = "Instale pelo menu do navegador";
+    installPromptMessage.textContent = "Se o botão de instalação ainda não aparecer, abra o menu do Chrome e escolha Instalar app.";
+    installPromptAction.textContent = "Entendi";
+  } else {
+    return;
+  }
+
+  iosInstallSteps?.classList.toggle("hidden", !ios);
+  installPromptModal.classList.remove("hidden");
+};
+
+const scheduleInstallPromptAfterSignup = () => {
+  window.setTimeout(showInstallPrompt, 500);
 };
 
 const contactUrl = (message, subject = "Suporte Agro+") => {
@@ -2936,11 +2986,13 @@ signupForm.addEventListener("submit", async (event) => {
       currentUserId = data.session.user.id;
       showApp(data.session.user.email);
       initApp();
+      scheduleInstallPromptAfterSignup();
       return;
     }
 
     setAuthMode("login");
     showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
+    scheduleInstallPromptAfterSignup();
   } catch (error) {
     showLoginError("Erro ao criar conta. Tente novamente.");
     console.error(error);
@@ -2956,6 +3008,35 @@ logoutBtn.addEventListener("click", async () => {
 
   currentUserId = null;
   showLogin();
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  hideInstallPrompt();
+  showToast("Agro+ instalado com sucesso.");
+});
+
+installPromptAction?.addEventListener("click", async () => {
+  if (isIosDevice() || !deferredInstallPrompt) {
+    hideInstallPrompt();
+    return;
+  }
+
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  hideInstallPrompt();
+  await promptEvent.prompt();
+});
+
+installPromptLater?.addEventListener("click", hideInstallPrompt);
+installPromptClose?.addEventListener("click", hideInstallPrompt);
+installPromptModal?.addEventListener("click", (event) => {
+  if (event.target === installPromptModal) hideInstallPrompt();
 });
 
 if ("serviceWorker" in navigator) {

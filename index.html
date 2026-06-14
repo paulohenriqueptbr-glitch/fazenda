@@ -10,7 +10,7 @@
 <title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="styles.css?v=26">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -493,6 +493,24 @@
 <!-- ===== TOAST CONTAINER ===== -->
 <div id="toastContainer" class="toast-container"></div>
 
+<div id="installPromptModal" class="install-prompt-modal hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
+  <div class="install-prompt-card">
+    <button id="installPromptClose" class="install-prompt-close" type="button" aria-label="Fechar">×</button>
+    <span class="install-prompt-icon" aria-hidden="true">A+</span>
+    <h2 id="installPromptTitle">Instale o Agro+</h2>
+    <p id="installPromptMessage">Tenha o aplicativo na tela inicial do celular para acessar mais rápido.</p>
+    <ol id="iosInstallSteps" class="install-steps hidden">
+      <li>Abra esta página pelo Safari.</li>
+      <li>Toque no botão de compartilhar.</li>
+      <li>Escolha "Adicionar à Tela de Início".</li>
+    </ol>
+    <div class="install-prompt-actions">
+      <button id="installPromptAction" type="button">Instalar aplicativo</button>
+      <button id="installPromptLater" type="button">Agora não</button>
+    </div>
+  </div>
+</div>
+
 <!--
   SEGURANÇA: SRI nos scripts externos.
   Ao atualizar a versão de uma biblioteca, execute "bash generate-sri.sh"
@@ -512,6 +530,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=29"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>
