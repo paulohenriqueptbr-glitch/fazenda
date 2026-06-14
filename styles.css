@@ -2268,6 +2268,10 @@ button[type="submit"]:active,
   display: none !important;
 }
 
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .app-header {
     align-items: flex-start;
