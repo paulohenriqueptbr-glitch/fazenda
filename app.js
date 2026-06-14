@@ -26,6 +26,7 @@ const state = {
   priceQuote: 0,
   clientProfile: null,
   subscription: null,
+  dismissedAutoAlerts: new Set(),
 };
 
 const config = window.CONTROLE_LEITE_CONFIG || {};
@@ -447,7 +448,8 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const writeLocal = () => {
   try {
-    localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(state));
+    const toSave = { ...state, dismissedAutoAlerts: [...(state.dismissedAutoAlerts || [])] };
+    localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(toSave));
     return true;
   } catch (error) {
     console.error("Erro ao salvar dados locais:", error);
@@ -474,6 +476,7 @@ const loadLocal = () => {
   state.priceQuote = Number(data.priceQuote || 0);
   state.clientProfile = normalizeClientProfile(data.clientProfile);
   state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
+  state.dismissedAutoAlerts = new Set(asArray(data.dismissedAutoAlerts));
   setStatus("Local", "local");
 };
 
@@ -1458,6 +1461,7 @@ const handleRecordAction = async (event) => {
     if (action === "edit") await editRecord(type, id);
     if (action === "delete") await removeRecord(type, id);
     if (action === "toggle-reminder") await toggleReminder(id);
+    if (action === "dismiss-auto-alert") dismissAutoAlert(id);
   } catch (error) {
     console.error(error);
     showToast("Não foi possível concluir a ação.", "error");
@@ -1575,6 +1579,7 @@ const buildAutomaticAlerts = () => {
 };
 
 const buildAlerts = () => {
+  const dismissed = state.dismissedAutoAlerts || new Set();
   const manual = state.reminders.map((record) =>
     makeAlert({
       id: record.id,
@@ -1587,7 +1592,9 @@ const buildAlerts = () => {
     })
   );
 
-  return [...buildAutomaticAlerts(), ...manual].sort((a, b) => {
+  const autoAlerts = buildAutomaticAlerts().filter((a) => !dismissed.has(a.id));
+
+  return [...autoAlerts, ...manual].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
     const statusOrder = { overdue: 0, today: 1, week: 2, upcoming: 3, done: 4 };
     return (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3)
@@ -1859,7 +1866,7 @@ const renderMedicalCowRecord = (profile) => {
                         <span>${escapeHtml(record.medication_name)}</span>
                         <small>${escapeHtml(formatDate(record.administration_date))}</small>
                       </div>
-                      <strong>${escapeHtml(record.dosage || "Sem dosagem")}</strong>
+                      <strong>${escapeHtml(record.dosage ? record.dosage + " ml" : "Sem dosagem")}</strong>
                       ${recordActions("medication", record)}
                     </article>
                   `
@@ -1993,8 +2000,19 @@ const renderStockItems = () => {
     : empty("Nenhum item em estoque cadastrado.");
 };
 
+const dismissAutoAlert = (alertId) => {
+  if (!state.dismissedAutoAlerts) state.dismissedAutoAlerts = new Set();
+  state.dismissedAutoAlerts.add(alertId);
+  writeLocal();
+  renderAlerts();
+  showToast("Alerta dispensado.");
+};
+
 const renderAlertItem = (alert) => {
   const isManual = alert.type === "manual";
+  const dismissBtn = !isManual
+    ? `<button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button>`
+    : "";
   return `
     <article class="item alert-item ${escapeHtml(alert.status)}">
       <div>
@@ -2006,7 +2024,7 @@ const renderAlertItem = (alert) => {
         ${alert.notes ? `<small>${escapeHtml(alert.notes)}</small>` : ""}
       </div>
       <strong>${escapeHtml(isManual ? "Lembrete" : "Automatico")}</strong>
-      ${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : ""}
+      ${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : dismissBtn}
     </article>
   `;
 };
