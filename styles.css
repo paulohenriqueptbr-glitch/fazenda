@@ -2264,10 +2264,9 @@ button[type="submit"]:active,
 /* =========================================================
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview {
-  display: none !important;
-}
-
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid,
+.app-shell[data-active-tab]:not([data-active-tab="milk"]) .quick-actions,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
   display: none !important;
 }
