@@ -41,8 +41,6 @@ const canUseLocalAccount = isLocalOrigin && !hasSupabase;
 // O modo local agora valida a senha via /api/local-login (POST no servidor).
 // A senha nunca é exposta no bundle JS do cliente.
 const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(config.localModeEnabled);
-let deferredInstallPrompt = null;
-let waitingServiceWorker = null;
 const supabaseUnavailableMessage = () => {
   if (canUseLocalAccountWithPassword) {
     return "Modo local ativo. Use admin e a senha configurada no servidor.";
@@ -148,118 +146,6 @@ const showToast = (message, type = "success") => {
   }, 3000);
 };
 
-const isStandaloneApp = () =>
-  window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
-
-const setPwaStatus = (status, help) => {
-  if (el.pwaStatus) el.pwaStatus.textContent = status;
-  if (el.pwaHelp) el.pwaHelp.textContent = help;
-};
-
-const updatePwaControls = () => {
-  if (el.installAppButton) {
-    const canInstall = Boolean(deferredInstallPrompt) && !isStandaloneApp();
-    el.installAppButton.hidden = !canInstall;
-  }
-
-  if (el.updateAppButton) {
-    el.updateAppButton.hidden = !waitingServiceWorker;
-  }
-
-  if (waitingServiceWorker) {
-    setPwaStatus("Nova versão disponível.", "Toque em Atualizar app para aplicar sem precisar fechar o Agro+.");
-    return;
-  }
-
-  if (isStandaloneApp()) {
-    setPwaStatus("App instalado neste dispositivo.", "O Agro+ abre como aplicativo e mantém os dados offline.");
-    return;
-  }
-
-  if (deferredInstallPrompt) {
-    setPwaStatus("Instalação disponível.", "Toque em Instalar app para adicionar o Agro+ na tela inicial.");
-    return;
-  }
-
-  setPwaStatus("App pronto para usar no navegador.", "No iPhone, use Compartilhar > Adicionar à Tela de Início.");
-};
-
-const setupPwaInstall = () => {
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    updatePwaControls();
-  });
-
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    showToast("App instalado com sucesso.");
-    updatePwaControls();
-  });
-
-  el.installAppButton?.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    const result = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if (result?.outcome === "accepted") {
-      showToast("Instalação iniciada.");
-    }
-    updatePwaControls();
-  });
-
-  updatePwaControls();
-};
-
-const setupPwaUpdates = () => {
-  if (!("serviceWorker" in navigator)) {
-    setPwaStatus("Instalação offline indisponível neste navegador.", "Use Chrome, Edge, Safari ou outro navegador com suporte a PWA.");
-    return;
-  }
-
-  sessionStorage.removeItem("pwa-reloading");
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (sessionStorage.getItem("pwa-reloading") === "true") return;
-    sessionStorage.setItem("pwa-reloading", "true");
-    window.location.reload();
-  });
-
-  window.addEventListener("load", async () => {
-    try {
-      const registration = await navigator.serviceWorker.register("service-worker.js");
-
-      const watchWorker = (worker) => {
-        if (!worker) return;
-        worker.addEventListener("statechange", () => {
-          if (worker.state === "installed" && navigator.serviceWorker.controller) {
-            waitingServiceWorker = worker;
-            showToast("Nova versão do app disponível.", "sync");
-            updatePwaControls();
-          }
-        });
-      };
-
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        waitingServiceWorker = registration.waiting;
-        updatePwaControls();
-      }
-
-      watchWorker(registration.installing);
-      registration.addEventListener("updatefound", () => watchWorker(registration.installing));
-    } catch (error) {
-      console.error("Erro ao registrar service worker:", error);
-      setPwaStatus("Não foi possível preparar o modo offline.", "Recarregue a página quando estiver online.");
-    }
-  });
-
-  el.updateAppButton?.addEventListener("click", () => {
-    if (!waitingServiceWorker) return;
-    sessionStorage.removeItem("pwa-reloading");
-    waitingServiceWorker.postMessage({ type: "SKIP_WAITING" });
-  });
-};
-
 const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -324,8 +210,7 @@ const el = {
   monthValue: $("#monthValue"),
   animalTotal: $("#animalTotal"),
   lactatingTotal: $("#lactatingTotal"),
-  avgDailyTotal: $("#avgDailyTotal"),
-  todayCard: $("#todayCard"),
+  priceQuoteDisplay: $("#priceQuoteDisplay"),
   historyList: $("#historyList"),
   animalList: $("#animalList"),
   lactationList: $("#lactationList"),
@@ -371,10 +256,6 @@ const el = {
   skipOnboardingButton: $("#skipOnboardingButton"),
   refreshButton: $("#refreshButton"),
   exportDataButton: $("#exportDataButton"),
-  installAppButton: $("#installAppButton"),
-  updateAppButton: $("#updateAppButton"),
-  pwaStatus: $("#pwaStatus"),
-  pwaHelp: $("#pwaHelp"),
   printReportButton: $("#printReportButton"),
   reportMonthTotal: $("#reportMonthTotal"),
   reportMonthValue: $("#reportMonthValue"),
@@ -1807,6 +1688,7 @@ const renderPriceQuote = () => {
     maximumFractionDigits: 2,
   });
 
+  el.priceQuoteDisplay.textContent = `R$ ${formatted}/L`;
   el.priceQuoteValue.textContent = `R$ ${formatted} por litro`;
 };
 
@@ -1818,12 +1700,21 @@ const renderSummary = () => {
   const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
   const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffIso = cutoff.toISOString().slice(0, 10);
-  const recentRecords = state.milk.filter((record) => record.date >= cutoffIso);
-  const recentLiters = recentRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
-  const avgDaily = recentRecords.length ? recentLiters / 30 : 0;
+  const now = new Date();
+  const day = now.getDate();
+  const fortnightStart = day <= 15
+    ? `${monthKey()}-01`
+    : `${monthKey()}-16`;
+  const fortnightEnd = day <= 15
+    ? `${monthKey()}-15`
+    : null; // até hoje
+  const fortnightRecords = state.milk.filter((record) => {
+    if (!record.date) return false;
+    if (record.date < fortnightStart) return false;
+    if (fortnightEnd && record.date > fortnightEnd) return false;
+    return true;
+  });
+  const fortnightLiters = fortnightRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
 
   el.todayTotal.textContent = formatLiters(todayLiters);
   el.todayValue.textContent = formatMoney(todayLiters * price);
@@ -1831,7 +1722,11 @@ const renderSummary = () => {
   el.monthValue.textContent = formatMoney(monthLiters * price);
   el.animalTotal.textContent = state.animals.length;
   el.lactatingTotal.textContent = `${lactating} em lactação`;
-  if (el.avgDailyTotal) el.avgDailyTotal.textContent = formatLiters(avgDaily);
+
+  const fortnightTotalEl = document.getElementById("fortnightTotal");
+  const fortnightValueEl = document.getElementById("fortnightValue");
+  if (fortnightTotalEl) fortnightTotalEl.textContent = formatLiters(fortnightLiters);
+  if (fortnightValueEl) fortnightValueEl.textContent = formatMoney(fortnightLiters * price);
 };
 
 const renderMilk = () => {
@@ -2460,20 +2355,12 @@ const initApp = () => {
       if (!button._clickListenerAttached) {
         button._clickListenerAttached = true;
         button.addEventListener("click", () => activateTab(button.dataset.tab));
-        if (button.getAttribute("role") === "button") {
-          button.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              activateTab(button.dataset.tab);
-            }
-          });
-        }
       }
     });
 
     if (el.appShell && !el.appShell.dataset.activeTab) {
       const initialPanel = document.querySelector(".panel.active");
-      el.appShell.dataset.activeTab = initialPanel ? initialPanel.id : "overview";
+      el.appShell.dataset.activeTab = initialPanel ? initialPanel.id : "milk";
     }
   }
 
@@ -3053,8 +2940,11 @@ logoutBtn.addEventListener("click", async () => {
   showLogin();
 });
 
-setupPwaInstall();
-setupPwaUpdates();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js");
+  });
+}
 
 if (hasSupabase && db) {
   db.auth.onAuthStateChange((event, session) => {
