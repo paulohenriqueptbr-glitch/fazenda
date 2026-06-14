@@ -2341,6 +2341,7 @@ const initApp = () => {
 
   if (!document.body._tabListenersAttached) {
     document.body._tabListenersAttached = true;
+
     const activateTab = (tabId) => {
       if (!tabId) return;
       document.querySelectorAll(".nav-item, .quick-action, .panel").forEach((element) => element.classList.remove("active"));
@@ -2351,16 +2352,8 @@ const initApp = () => {
       window.scrollTo({ top: el.appShell?.offsetTop || 0, behavior: "smooth" });
     };
 
-    document.querySelectorAll("[data-tab]").forEach((button) => {
-      if (!button._clickListenerAttached) {
-        button._clickListenerAttached = true;
-        button.addEventListener("click", () => activateTab(button.dataset.tab));
-      }
-    });
-
-    // delegation para quick-actions adicionadas dinamicamente
     document.addEventListener("click", (event) => {
-      const btn = event.target.closest(".quick-action[data-tab]");
+      const btn = event.target.closest("[data-tab]");
       if (!btn) return;
       activateTab(btn.dataset.tab);
     });
