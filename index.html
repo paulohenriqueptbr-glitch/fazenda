@@ -5,26 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Agro+">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
 <title>Agro+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=25">
 
 <!--
-  SEGURANÇA: dependências locais (vendor)
-  chart.js, lucide e supabase-js ficam em vendor/ para evitar dependência
-  de CDN externo (jsdelivr/unpkg), eliminando risco de supply chain via
-  CDN comprometido e permitindo CSP script-src 'self'.
+  SEGURANÇA: SRI (Subresource Integrity)
+  Os atributos integrity abaixo garantem que o browser só executa o script
+  se o hash do arquivo baixado bater exatamente com este valor.
+  Isso protege contra CDN comprometido ou ataque de supply chain.
 
-  ATENÇÃO: ao atualizar a versão de qualquer lib, baixe o novo arquivo e
-  substitua o conteúdo em vendor/, ajustando o ?v= no <script src>.
+  COMO ATUALIZAR OS HASHES:
+    bash generate-sri.sh
+  (o script baixa cada arquivo e calcula o sha384 correto)
+
+  ATENÇÃO: ao atualizar a versão de qualquer lib, recalcule os hashes.
 -->
 
-<!-- chart.js local para evitar dependencia de CDN -->
-<script src="vendor/chart.js?v=4.4.0"></script>
+<!-- chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+  integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+  crossorigin="anonymous"></script>
 
 </head>
 <body>
@@ -91,16 +95,8 @@
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
-<section id="overview" class="panel active" data-tab="overview">
-  <div class="panel-head">
-    <div>
-      <span>Visão geral</span>
-      <h2>Hoje</h2>
-    </div>
-    <p>Resumo rápido do dia e atalhos para as tarefas mais usadas.</p>
-  </div>
   <section class="summary-grid" aria-label="Resumo">
-    <article class="summary primary" id="todayCard" role="button" tabindex="0" data-tab="milk">
+    <article class="summary primary">
       <span>Produção de hoje</span>
       <strong id="todayTotal">0 L</strong>
       <small id="todayValue">R$ 0,00</small>
@@ -111,34 +107,45 @@
       <small id="monthValue">R$ 0,00</small>
     </article>
     <article class="summary">
-      <span>Média diária</span>
-      <strong id="avgDailyTotal">0 L</strong>
-      <small>últimos 30 dias</small>
+      <span>Cotação do leite</span>
+      <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
+      <small>Altere em Configurações</small>
+    </article>
+    <article class="summary">
+      <span>Animais</span>
+      <strong id="animalTotal">0</strong>
+      <small id="lactatingTotal">0 em lactação</small>
     </article>
   </section>
 
-  <div class="section-title"><h2>Ações rápidas</h2></div>
-  <div class="quick-actions">
+  <section class="quick-actions" aria-label="Ações rápidas">
     <button class="quick-action" type="button" data-tab="milk">
-      <i class="nav-icon" data-lucide="milk"></i>
-      Registrar leite
+      <i data-lucide="milk"></i> Registrar Leite
     </button>
-    <button class="quick-action" type="button" data-tab="medication">
-      <i class="nav-icon" data-lucide="syringe"></i>
-      Medicação
+    <button class="quick-action" type="button" data-tab="animals">
+      <i data-lucide="tag"></i> Animais
+    </button>
+    <button class="quick-action" type="button" data-tab="lactation">
+      <i data-lucide="droplets"></i> Lactação
     </button>
     <button class="quick-action" type="button" data-tab="breeding">
-      <i class="nav-icon" data-lucide="calendar-heart"></i>
-      Gestação
+      <i data-lucide="calendar-heart"></i> Reprodução
     </button>
-    <button class="quick-action" type="button" data-tab="reports">
-      <i class="nav-icon" data-lucide="bar-chart"></i>
-      Relatórios
+    <button class="quick-action" type="button" data-tab="medication">
+      <i data-lucide="syringe"></i> Medicação
     </button>
-  </div>
-</section>
+    <button class="quick-action" type="button" data-tab="crops">
+      <i data-lucide="sprout"></i> Lavoura
+    </button>
+    <button class="quick-action" type="button" data-tab="stock">
+      <i data-lucide="package"></i> Estoque
+    </button>
+    <button class="quick-action" type="button" data-tab="alerts">
+      <i data-lucide="bell"></i> Alertas
+    </button>
+  </section>
 
-  <section id="milk" class="panel">
+  <section id="milk" class="panel active">
     <div class="panel-head">
       <div>
         <span>Producao diaria</span>
@@ -169,7 +176,6 @@
       <div>
         <span>Cadastro do rebanho</span>
         <h2>Animais</h2>
-        <p class="helper-text"><strong id="animalTotal">0</strong> animais · <span id="lactatingTotal">0 em lactação</span></p>
       </div>
       <p>Organize identificacao, tipo e situacao produtiva dos animais.</p>
     </div>
@@ -429,17 +435,6 @@
     <p id="priceQuoteValue" class="price-quote-value"></p>
     <div class="section-title"><h2>Backup manual</h2></div>
     <button id="exportDataButton" class="ghost full-width" type="button">Exportar dados (JSON)</button>
-    <div class="section-title"><h2>Instalação e atualização</h2></div>
-    <div class="pwa-panel">
-      <div>
-        <strong id="pwaStatus">App pronto para usar no navegador.</strong>
-        <p id="pwaHelp" class="helper-text">Quando instalado, o Agro+ abre em tela cheia e continua funcionando offline.</p>
-      </div>
-      <div class="pwa-actions">
-        <button id="installAppButton" class="ghost" type="button" hidden>Instalar app</button>
-        <button id="updateAppButton" type="button" hidden>Atualizar app</button>
-      </div>
-    </div>
     <div class="section-title"><h2>Segurança e suporte</h2></div>
     <p class="helper-text">Cada conta acessa apenas seus próprios dados quando o RLS está ativo no Supabase.</p>
     <div class="settings-actions">
@@ -451,11 +446,7 @@
 
 <!-- ===== BOTTOM NAVIGATION ===== -->
 <nav class="bottom-nav" aria-label="Navegação">
-  <button class="nav-item active" type="button" data-tab="overview">
-    <i class="nav-icon" data-lucide="home"></i>
-    <span>Hoje</span>
-  </button>
-  <button class="nav-item" type="button" data-tab="milk">
+  <button class="nav-item active" type="button" data-tab="milk">
     <i class="nav-icon" data-lucide="milk"></i>
     <span>Leite</span>
   </button>
@@ -488,7 +479,7 @@
     <span>Alertas</span>
   </button>
   <button class="nav-item" type="button" data-tab="reports">
-    <i class="nav-icon" data-lucide="bar-chart"></i>
+    <i class="nav-icon" data-lucide="chart-column"></i>
     <span>Relatórios</span>
   </button>
   <button class="nav-item" type="button" data-tab="settings">
@@ -512,10 +503,13 @@
 
 <script src="/api/config.js"></script>
 
-<!-- lucide local para evitar dependencia de CDN -->
-<script src="vendor/lucide.js?v=0.383.0"></script>
+<!-- lucide -->
+<script
+  src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"
+  integrity="sha384-wHFvAtjmgnkA2PJcMsDaCgdipf7X7YV44X/igbLHpvGiq6T5/PvFKl93grpvtbQT"
+  crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=31"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
