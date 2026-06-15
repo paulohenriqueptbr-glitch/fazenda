@@ -1,16 +1,16 @@
-const CACHE_NAME = "agro-plus-v31";
+const CACHE_NAME = "terrasyn-v32";
 const APP_FILES = [
   "./",
   "./index.html",
   "./landing.html",
   "./admin.html",
   "./privacy.html",
-  "./styles.css?v=26",
+  "./styles.css?v=27",
   "./icons.js?v=19",
   "./privacy.js?v=20",
-  "./landing.js?v=20",
+  "./landing.js?v=21",
   "./admin.js?v=19",
-  "./app.js?v=30",
+  "./app.js?v=31",
   "./vendor/supabase.js?v=2.108.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
@@ -43,6 +43,40 @@ self.addEventListener("activate", (event) => {
   );
   self.clients.claim();
 });
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Terrasyn", body: "Você tem um novo alerta.", icon: "./icons/icon-192.png", tag: "terrasyn-alert", url: "/" };
+  try {
+    if (event.data) Object.assign(data, event.data.json());
+  } catch { /* payload inválido — usa defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || "./icons/icon-192.png",
+      badge: "./icons/icon-192.png",
+      tag: data.tag || "terrasyn-alert",
+      data: { url: data.url || "/" },
+      requireInteraction: Boolean(data.requireInteraction),
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((c) => c.url.includes(self.location.origin));
+      if (existing) return existing.focus().then((c) => c.navigate(target));
+      return self.clients.openWindow(target);
+    })
+  );
+});
+
+// ─── Fetch ────────────────────────────────────────────────────────────────────
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;

@@ -2,6 +2,7 @@ const LOCAL_KEY = "controle-fazenda-data";
 const PRICE_QUOTE_KEY = "milk_price_quote";
 const CLIENT_PROFILE_KEY = "client_profile";
 const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
+const SAVED_LOGIN_EMAIL_KEY = "terrasyn_saved_login_email";
 const OPTIONAL_TABLES = new Set(["crop_events", "reminders", "stock_items"]);
 const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
@@ -27,6 +28,7 @@ const state = {
   clientProfile: null,
   subscription: null,
   dismissedAutoAlerts: new Set(),
+  confirmedAutoAlerts: new Set(),
 };
 
 const config = window.CONTROLE_LEITE_CONFIG || {};
@@ -301,6 +303,26 @@ const showApp = (email) => {
   if (userEmailEl) userEmailEl.textContent = email || "";
 };
 
+const saveLoginEmail = (email) => {
+  const value = String(email || "").trim();
+  if (!value) return;
+  try {
+    localStorage.setItem(SAVED_LOGIN_EMAIL_KEY, value);
+  } catch (error) {
+    console.warn("Nao foi possivel salvar o e-mail de login:", error);
+  }
+};
+
+const restoreLoginEmail = () => {
+  const input = $("#loginEmail");
+  if (!input || input.value) return;
+  try {
+    input.value = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || "";
+  } catch (error) {
+    console.warn("Nao foi possivel carregar o e-mail de login:", error);
+  }
+};
+
 const setAuthMode = (mode) => {
   const isSignup = mode === "signup";
   loginForm.classList.toggle("hidden", isSignup);
@@ -322,6 +344,7 @@ const showLogin = (mode = "login") => {
   loginScreen.classList.remove("hidden");
   appShell.classList.remove("visible");
   setAuthMode(mode);
+  restoreLoginEmail();
 };
 
 const showLoginError = (message, type = "error") => {
@@ -349,11 +372,11 @@ const showInstallPrompt = () => {
   const canPromptAndroid = android && deferredInstallPrompt;
 
   if (ios) {
-    installPromptTitle.textContent = "Salve o Agro+ no iPhone";
+    installPromptTitle.textContent = "Salve o Terrasyn no iPhone";
     installPromptMessage.textContent = "No iOS a instalação é feita pelo Safari, salvando o ícone na tela de início.";
     installPromptAction.textContent = "Entendi";
   } else if (canPromptAndroid) {
-    installPromptTitle.textContent = "Instale o Agro+";
+    installPromptTitle.textContent = "Instale o Terrasyn";
     installPromptMessage.textContent = "Coloque o aplicativo na tela inicial do Android para abrir com um toque.";
     installPromptAction.textContent = "Instalar aplicativo";
   } else if (android) {
@@ -372,19 +395,19 @@ const scheduleInstallPromptAfterSignup = () => {
   window.setTimeout(showInstallPrompt, 500);
 };
 
-const contactUrl = (message, subject = "Suporte Agro+") => {
+const contactUrl = (message, subject = "Suporte Terrasyn") => {
   const encodedMessage = encodeURIComponent(message);
   if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${encodedMessage}`;
   if (supportEmail) return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodedMessage}`;
   return "privacy.html#contato";
 };
 
-const supportUrl = () => contactUrl("Olá, preciso de suporte no Agro+.");
+const supportUrl = () => contactUrl("Olá, preciso de suporte no Terrasyn.");
 
 const subscribeUrl = () =>
   contactUrl(
-    `Olá, quero assinar o Agro+. Plano: ${formatMoney(planPrice)}/mês.`,
-    "Assinatura Agro+"
+    `Olá, quero assinar o Terrasyn. Plano: ${formatMoney(planPrice)}/mês.`,
+    "Assinatura Terrasyn"
   );
 
 const setupSupportLinks = () => {
@@ -498,7 +521,11 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const writeLocal = () => {
   try {
-    const toSave = { ...state, dismissedAutoAlerts: [...(state.dismissedAutoAlerts || [])] };
+    const toSave = {
+      ...state,
+      dismissedAutoAlerts: [...(state.dismissedAutoAlerts || [])],
+      confirmedAutoAlerts: [...(state.confirmedAutoAlerts || [])],
+    };
     localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(toSave));
     return true;
   } catch (error) {
@@ -527,6 +554,7 @@ const loadLocal = () => {
   state.clientProfile = normalizeClientProfile(data.clientProfile);
   state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
   state.dismissedAutoAlerts = new Set(asArray(data.dismissedAutoAlerts));
+  state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
   setStatus("Local", "local");
 };
 
@@ -667,6 +695,9 @@ const loadData = async () => {
   populateCowSelects();
   render();
   maybeShowOnboarding();
+
+  // Verifica e dispara alertas push locais após os dados carregarem
+  checkPushAlerts();
 };
 
 const populateCowSelects = () => {
@@ -1511,6 +1542,7 @@ const handleRecordAction = async (event) => {
     if (action === "edit") await editRecord(type, id);
     if (action === "delete") await removeRecord(type, id);
     if (action === "toggle-reminder") await toggleReminder(id);
+    if (action === "confirm-auto-alert") confirmAutoAlert(id);
     if (action === "dismiss-auto-alert") dismissAutoAlert(id);
   } catch (error) {
     console.error(error);
@@ -1576,7 +1608,7 @@ const buildAutomaticAlerts = () => {
 
   if (!state.milk.some((record) => record.date === today)) {
     alerts.push(makeAlert({
-      id: "auto-milk-today",
+      id: `auto-milk-${today}`,
       title: "Registrar producao de leite de hoje",
       due_date: today,
       category: "Leite",
@@ -1630,6 +1662,7 @@ const buildAutomaticAlerts = () => {
 
 const buildAlerts = () => {
   const dismissed = state.dismissedAutoAlerts || new Set();
+  const confirmed = state.confirmedAutoAlerts || new Set();
   const manual = state.reminders.map((record) =>
     makeAlert({
       id: record.id,
@@ -1642,7 +1675,12 @@ const buildAlerts = () => {
     })
   );
 
-  const autoAlerts = buildAutomaticAlerts().filter((a) => !dismissed.has(a.id));
+  const autoAlerts = buildAutomaticAlerts()
+    .filter((alert) => !dismissed.has(alert.id))
+    .map((alert) => {
+      const done = confirmed.has(alert.id);
+      return done ? { ...alert, done, status: alertStatus(alert.due_date, done) } : alert;
+    });
 
   return [...autoAlerts, ...manual].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
@@ -1836,6 +1874,8 @@ const renderAnimals = () => {
 };
 
 const renderLactations = () => {
+  if (!el.lactationList) return;
+
   el.lactationList.innerHTML = state.lactations.length
     ? state.lactations
         .map(
@@ -2058,10 +2098,24 @@ const dismissAutoAlert = (alertId) => {
   showToast("Alerta dispensado.");
 };
 
+const confirmAutoAlert = (alertId) => {
+  if (!state.confirmedAutoAlerts) state.confirmedAutoAlerts = new Set();
+  state.confirmedAutoAlerts.add(alertId);
+  if (state.dismissedAutoAlerts) state.dismissedAutoAlerts.delete(alertId);
+  writeLocal();
+  renderAlerts();
+  showToast("Alerta confirmado.");
+};
+
 const renderAlertItem = (alert) => {
   const isManual = alert.type === "manual";
-  const dismissBtn = !isManual
-    ? `<button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button>`
+  const autoActions = !isManual && !alert.done
+    ? `
+      <div class="item-actions">
+        <button type="button" data-action="confirm-auto-alert" data-id="${escapeHtml(alert.id)}">Confirmar</button>
+        <button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button>
+      </div>
+    `
     : "";
   return `
     <article class="item alert-item ${escapeHtml(alert.status)}">
@@ -2074,7 +2128,7 @@ const renderAlertItem = (alert) => {
         ${alert.notes ? `<small>${escapeHtml(alert.notes)}</small>` : ""}
       </div>
       <strong>${escapeHtml(isManual ? "Lembrete" : "Automatico")}</strong>
-      ${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : dismissBtn}
+      ${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : autoActions}
     </article>
   `;
 };
@@ -2307,7 +2361,7 @@ const exportDataBackup = () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `agro-plus-backup-${todayIso()}.json`;
+  link.download = `terrasyn-backup-${todayIso()}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -2535,6 +2589,7 @@ const initApp = () => {
     }
   });
 
+  if (el.lactationForm) {
   el.lactationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -2565,6 +2620,8 @@ const initApp = () => {
       showToast(err.message || "Erro ao registrar lactação", "error");
     }
   });
+
+  }
 
   el.breedingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2817,6 +2874,10 @@ const initApp = () => {
   if (el.weatherCity) {
     el.weatherCity.value = localStorage.getItem(userStorageKey("weather_city")) || "";
   }
+
+  // Registra subscription push (pede permissão se necessário)
+  initPushNotifications();
+
   loadData();
 };
 
@@ -2870,6 +2931,7 @@ loginForm.addEventListener("submit", async (event) => {
       if (json.ok) {
         failedLoginAttempts = 0;
         currentUserId = "local-admin";
+        saveLoginEmail(email);
         showApp("admin local");
         initApp();
         showToast("Modo local ativo.");
@@ -2915,6 +2977,7 @@ loginForm.addEventListener("submit", async (event) => {
 
     failedLoginAttempts = 0;
     currentUserId = data.user.id;
+    saveLoginEmail(data.user.email || email);
     showApp(data.user.email);
     initApp();
   } catch (error) {
@@ -2984,6 +3047,7 @@ signupForm.addEventListener("submit", async (event) => {
     if (data.session?.user) {
       failedLoginAttempts = 0;
       currentUserId = data.session.user.id;
+      saveLoginEmail(data.session.user.email || email);
       showApp(data.session.user.email);
       initApp();
       scheduleInstallPromptAfterSignup();
@@ -2991,6 +3055,8 @@ signupForm.addEventListener("submit", async (event) => {
     }
 
     setAuthMode("login");
+    saveLoginEmail(email);
+    restoreLoginEmail();
     showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
     scheduleInstallPromptAfterSignup();
   } catch (error) {
@@ -3018,7 +3084,7 @@ window.addEventListener("beforeinstallprompt", (event) => {
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
   hideInstallPrompt();
-  showToast("Agro+ instalado com sucesso.");
+  showToast("Terrasyn instalado com sucesso.");
 });
 
 installPromptAction?.addEventListener("click", async () => {
@@ -3038,6 +3104,150 @@ installPromptClose?.addEventListener("click", hideInstallPrompt);
 installPromptModal?.addEventListener("click", (event) => {
   if (event.target === installPromptModal) hideInstallPrompt();
 });
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
+const VAPID_PUBLIC_KEY = config.vapidPublicKey || "";
+
+/** Converte a chave VAPID (base64url) para Uint8Array */
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+};
+
+/** Salva ou remove a subscription no servidor */
+const savePushSubscription = async (subscription, remove = false) => {
+  if (!hasSupabase || !db) return;
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return;
+    await fetch("/api/push-subscription", {
+      method: remove ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(remove ? { endpoint: subscription.endpoint } : { subscription }),
+    });
+  } catch (err) {
+    console.warn("push-subscription:", err);
+  }
+};
+
+/**
+ * Solicita permissão e registra a subscription push.
+ * Chamado uma vez após o login quando VAPID_PUBLIC_KEY estiver disponível.
+ */
+const initPushNotifications = async () => {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !VAPID_PUBLIC_KEY) return;
+
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+
+  // Já inscrito — salva no servidor (caso troca de dispositivo) e sai
+  if (existing) {
+    await savePushSubscription(existing);
+    return;
+  }
+
+  // Pede permissão apenas se ainda não foi decidido
+  const permission = Notification.permission === "default"
+    ? await Notification.requestPermission()
+    : Notification.permission;
+
+  if (permission !== "granted") return;
+
+  try {
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await savePushSubscription(subscription);
+  } catch (err) {
+    console.warn("Erro ao inscrever notificações push:", err);
+  }
+};
+
+/**
+ * Verifica alertas locais e exibe notificações nativas quando o app está em background.
+ * Categorias: parto previsto, vacina/medicação vencendo, produção do dia pendente.
+ */
+const checkPushAlerts = async () => {
+  if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return;
+
+  const reg = await navigator.serviceWorker.ready;
+  const today = todayIso();
+  const in7days = addDaysIso(today, 7);
+  const alerts = [];
+
+  // 1. Parto previsto nos próximos 7 dias
+  for (const b of state.breeding) {
+    if (!b.expected_calving) continue;
+    if (b.expected_calving >= today && b.expected_calving <= in7days) {
+      const animal = state.animals.find((a) => a.id === b.animal_id);
+      const name = animal?.name || b.animal_id || "Animal";
+      const diff = Math.round((new Date(b.expected_calving) - new Date(today)) / 86400000);
+      alerts.push({
+        title: "🐄 Parto Previsto",
+        body: diff === 0
+          ? `${name} está com parto previsto para hoje!`
+          : `${name} tem parto previsto em ${diff} dia${diff > 1 ? "s" : ""}.`,
+        tag: `calving-${b.id}`,
+        url: "/?tab=breeding",
+      });
+    }
+  }
+
+  // 2. Medicação/vacina com data de retorno nos próximos 3 dias
+  const in3days = addDaysIso(today, 3);
+  for (const m of state.medication) {
+    if (!m.return_date) continue;
+    if (m.return_date >= today && m.return_date <= in3days) {
+      const animal = state.animals.find((a) => a.id === m.animal_id);
+      const name = animal?.name || m.animal_id || "Animal";
+      const diff = Math.round((new Date(m.return_date) - new Date(today)) / 86400000);
+      alerts.push({
+        title: "💉 Retorno de Medicação",
+        body: diff === 0
+          ? `Retorno de ${m.medication || "medicação"} para ${name} é hoje!`
+          : `Retorno de ${m.medication || "medicação"} para ${name} em ${diff} dia${diff > 1 ? "s" : ""}.`,
+        tag: `med-${m.id}`,
+        url: "/?tab=medication",
+      });
+    }
+  }
+
+  // 3. Produção do dia ainda não registrada (após às 8h)
+  const hour = new Date().getHours();
+  const todayRegistered = state.milk.some((r) => r.date === today);
+  if (!todayRegistered && hour >= 8) {
+    alerts.push({
+      title: "🥛 Produção Pendente",
+      body: "Você ainda não registrou a produção de leite de hoje.",
+      tag: "milk-pending",
+      url: "/?tab=milk",
+    });
+  }
+
+  // Dispara apenas alertas que ainda não foram mostrados nesta sessão
+  const shownKey = userStorageKey("push_shown_tags");
+  let shown = [];
+  try { shown = JSON.parse(localStorage.getItem(shownKey) || "[]"); } catch { shown = []; }
+
+  for (const alert of alerts) {
+    if (shown.includes(alert.tag)) continue;
+    reg.showNotification(alert.title, {
+      body: alert.body,
+      icon: "./icons/icon-192.png",
+      badge: "./icons/icon-192.png",
+      tag: alert.tag,
+      data: { url: alert.url },
+    });
+    shown.push(alert.tag);
+  }
+
+  try { localStorage.setItem(shownKey, JSON.stringify(shown.slice(-50))); } catch { /* noop */ }
+};
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

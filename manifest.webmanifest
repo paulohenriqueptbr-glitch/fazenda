@@ -1,14 +1,14 @@
 {
-  "name": "Agro+",
-  "short_name": "Agro+",
-  "description": "Agro+: sistema de gerenciamento de fazenda leiteira.",
+  "name": "Terrasyn",
+  "short_name": "Terrasyn",
+  "description": "Terrasyn: gestão rural e leiteira simples para produtores.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#1f6b5b",
+  "theme_color": "#115e59",
   "icons": [
     {
       "src": "icons/icon-192.png",

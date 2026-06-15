@@ -7,7 +7,7 @@ const landingTrialDays = Number(landingConfig.trialDays || 14);
 const money = (value) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const makeContactUrl = (message, subject = "Agro+") => {
+const makeContactUrl = (message, subject = "Terrasyn") => {
   const encoded = encodeURIComponent(message);
   if (landingWhatsapp) return `https://wa.me/${landingWhatsapp}?text=${encoded}`;
   if (landingEmail) return `mailto:${landingEmail}?subject=${encodeURIComponent(subject)}&body=${encoded}`;
@@ -15,11 +15,11 @@ const makeContactUrl = (message, subject = "Agro+") => {
 };
 
 const setupLandingLinks = () => {
-  const subscribeMessage = `Olá, quero assinar o Agro+. Plano: ${money(landingPlanPrice)}/mês.`;
-  const supportMessage = "Olá, preciso de suporte no Agro+.";
+  const subscribeMessage = `Olá, quero assinar o Terrasyn. Plano: ${money(landingPlanPrice)}/mês.`;
+  const supportMessage = "Olá, preciso de suporte no Terrasyn.";
 
   document.querySelectorAll("[data-subscribe-link]").forEach((link) => {
-    const url = makeContactUrl(subscribeMessage, "Assinatura Agro+");
+    const url = makeContactUrl(subscribeMessage, "Assinatura Terrasyn");
     link.href = url;
     if (url.startsWith("https://")) {
       link.target = "_blank";
@@ -28,7 +28,7 @@ const setupLandingLinks = () => {
   });
 
   document.querySelectorAll("[data-support-link]").forEach((link) => {
-    const url = makeContactUrl(supportMessage, "Suporte Agro+");
+    const url = makeContactUrl(supportMessage, "Suporte Terrasyn");
     link.href = url;
     if (url.startsWith("https://")) {
       link.target = "_blank";

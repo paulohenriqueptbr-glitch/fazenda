@@ -3,12 +3,14 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: #f0f4f1;
   color: #14201d;
-  --green: #10a981;
-  --green-light: #d1fae5;
-  --green-dark: #047857;
-  --green-soft: #ecfdf5;
-  --blue: #3b82f6;
-  --amber: #f59e0b;
+  --green: #0f766e;
+  --green-light: #ccfbf1;
+  --green-dark: #115e59;
+  --green-soft: #f0fdfa;
+  --blue: #2563eb;
+  --amber: #d97706;
+  --brand-earth: #92400e;
+  --brand-ink: #0f2f2b;
   --ink: #111827;
   --muted: #6b7280;
   --line: #e5e7eb;
@@ -277,8 +279,9 @@ textarea:disabled {
   min-height: 100vh;
   padding: 28px 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(242, 248, 245, 0.98) 100%),
-    radial-gradient(circle at 50% 0%, rgba(16, 169, 129, 0.08), transparent 42%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 248, 246, 0.98) 100%),
+    radial-gradient(circle at 50% 0%, rgba(15, 118, 110, 0.12), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(217, 119, 6, 0.10), transparent 34%);
 }
 
 .feature-list {
@@ -364,12 +367,13 @@ textarea:disabled {
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  border: 1px solid #c9f2dd;
+  border: 1px solid #99f6e4;
   border-radius: 12px;
-  background: #effdf6;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
   color: var(--green-dark);
   font-size: 1rem;
   font-weight: 900;
+  letter-spacing: 0.04em;
 }
 
 .product-summary {
@@ -570,9 +574,10 @@ textarea:disabled {
   justify-content: center;
   margin-bottom: 12px;
   border-radius: 12px;
-  background: #effdf6;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
   color: var(--green-dark);
   font-weight: 900;
+  letter-spacing: 0.04em;
 }
 
 .install-prompt-card h2 {
@@ -793,14 +798,14 @@ h2 {
 }
 
 .summary.primary {
-  background: linear-gradient(135deg, #047857 0%, #10a981 100%);
+  background: linear-gradient(135deg, #115e59 0%, #0f766e 64%, #0f2f2b 100%);
   border: 0;
   color: white;
-  box-shadow: 0 20px 10px rgba(16, 169, 129, 0.2);
+  box-shadow: 0 20px 10px rgba(15, 118, 110, 0.2);
 }
 
 .summary.primary::before {
-  background: linear-gradient(90deg, #f59e0b 0%, transparent);
+  background: linear-gradient(90deg, #d97706 0%, transparent);
 }
 
 .summary:nth-child(2)::before {
@@ -1623,12 +1628,31 @@ button[type="submit"]:active,
   color: var(--muted);
 }
 
+.weather-panel {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.95), var(--panel));
+  box-shadow: var(--shadow);
+}
+
+.weather-panel .weather-form {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .weather-form {
   margin-bottom: 12px;
 }
 
 .weather-forecast {
-  margin: 0 0 18px;
+  margin: 0;
 }
 
 .weather-header {
@@ -1667,7 +1691,7 @@ button[type="submit"]:active,
 
 .weather-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
   gap: 10px;
 }
 

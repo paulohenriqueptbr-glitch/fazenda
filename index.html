@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#115e59">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="description" content="Sistema de gerenciamento de fazenda leiteira.">
-<title>Agro+</title>
+<meta name="description" content="Terrasyn: gestão rural e leiteira simples para produtores.">
+<title>Terrasyn</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=26">
+<link rel="stylesheet" href="styles.css?v=27">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -36,13 +36,13 @@
 <div id="loginScreen" class="login-screen">
   <div class="access-layout">
     <section class="product-card" aria-labelledby="productTitle">
-      <span class="eyebrow">Gestão leiteira no celular</span>
-      <h2 id="productTitle">Agro+</h2>
+      <span class="eyebrow">Gestão rural no celular</span>
+      <h2 id="productTitle">Terrasyn</h2>
     </section>
 
     <div class="login-card">
-      <span class="login-icon" aria-hidden="true">A+</span>
-      <h1>Agro+</h1>
+      <span class="login-icon" aria-hidden="true">TS</span>
+      <h1>Terrasyn</h1>
       <p id="authSubtitle" class="login-subtitle">Faça login para acessar o sistema</p>
 
       <div class="auth-tabs" aria-label="Acesso">
@@ -85,7 +85,7 @@
 
 <main id="appShell" class="app-shell">
   <div class="app-header">
-    <h1>Agro+</h1>
+    <h1>Terrasyn</h1>
     <div class="user-info">
       <span id="syncStatus" class="status">Local</span>
       <span id="userEmail" class="user-email"></span>
@@ -126,9 +126,6 @@
     </button>
     <button class="quick-action" type="button" data-tab="animals">
       <i data-lucide="tag"></i> Animais
-    </button>
-    <button class="quick-action" type="button" data-tab="lactation">
-      <i data-lucide="droplets"></i> Lactação
     </button>
     <button class="quick-action" type="button" data-tab="breeding">
       <i data-lucide="calendar-heart"></i> Reprodução
@@ -203,29 +200,6 @@
     </form>
     <div class="section-title"><h2>Rebanho</h2></div>
     <div id="animalList" class="list"></div>
-  </section>
-
-  <section id="lactation" class="panel">
-    <div class="panel-head">
-      <div>
-        <span>Ciclo produtivo</span>
-        <h2>Lactacoes</h2>
-      </div>
-      <p>Acompanhe inicio, fim e media diaria de cada vaca.</p>
-    </div>
-    <form id="lactationForm" class="form-grid">
-      <label for="lactCowId">Vaca</label>
-      <select id="lactCowId"></select>
-      <label for="lactStart">Início</label>
-      <input id="lactStart" type="date" required>
-      <label for="lactEnd">Fim</label>
-      <input id="lactEnd" type="date">
-      <label for="lactLiters">Litros por dia</label>
-      <input id="lactLiters" type="number" min="0" step="0.1" inputmode="decimal" required>
-      <button type="submit">Registrar lactação</button>
-    </form>
-    <div class="section-title"><h2>Lactações</h2></div>
-    <div id="lactationList" class="list"></div>
   </section>
 
   <section id="breeding" class="panel">
@@ -352,6 +326,16 @@
       </div>
       <p>Veja pendencias, lembretes e previsao do tempo para a fazenda.</p>
     </div>
+    <section class="weather-panel" aria-label="Previsao do tempo">
+      <form id="weatherForm" class="form-grid compact-form weather-form">
+        <div class="field">
+          <label for="weatherCity">Cidade</label>
+          <input id="weatherCity" type="text" maxlength="120" placeholder="Ex.: Arapiraca" required>
+        </div>
+        <button type="submit">Ver previsao</button>
+      </form>
+      <div id="weatherForecast" class="weather-forecast"></div>
+    </section>
     <form id="reminderForm" class="form-grid">
       <label for="reminderTitle">Lembrete</label>
       <input id="reminderTitle" type="text" maxlength="120" placeholder="Ex.: Vacinar lote A" required>
@@ -376,14 +360,6 @@
       <article><span>7 dias</span><strong id="alertWeekTotal">0</strong></article>
       <article><span>Abertos</span><strong id="alertOpenTotal">0</strong></article>
     </div>
-    <form id="weatherForm" class="form-grid compact-form weather-form">
-      <div class="field">
-        <label for="weatherCity">Cidade</label>
-        <input id="weatherCity" type="text" maxlength="120" placeholder="Ex.: Arapiraca" required>
-      </div>
-      <button type="submit">Ver previsão</button>
-    </form>
-    <div id="weatherForecast" class="weather-forecast"></div>
     <div class="section-title"><h2>Alertas</h2></div>
     <div id="alertList" class="list"></div>
   </section>
@@ -456,10 +432,6 @@
     <i class="nav-icon" data-lucide="tag"></i>
     <span>Animais</span>
   </button>
-  <button class="nav-item" type="button" data-tab="lactation">
-    <i class="nav-icon" data-lucide="droplets"></i>
-    <span>Lactação</span>
-  </button>
   <button class="nav-item" type="button" data-tab="breeding">
     <i class="nav-icon" data-lucide="calendar-heart"></i>
     <span>Gestação</span>
@@ -496,8 +468,8 @@
 <div id="installPromptModal" class="install-prompt-modal hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
   <div class="install-prompt-card">
     <button id="installPromptClose" class="install-prompt-close" type="button" aria-label="Fechar">×</button>
-    <span class="install-prompt-icon" aria-hidden="true">A+</span>
-    <h2 id="installPromptTitle">Instale o Agro+</h2>
+    <span class="install-prompt-icon" aria-hidden="true">TS</span>
+    <h2 id="installPromptTitle">Instale o Terrasyn</h2>
     <p id="installPromptMessage">Tenha o aplicativo na tela inicial do celular para acessar mais rápido.</p>
     <ol id="iosInstallSteps" class="install-steps hidden">
       <li>Abra esta página pelo Safari.</li>
@@ -530,6 +502,6 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>
