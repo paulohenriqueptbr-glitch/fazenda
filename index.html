@@ -10,7 +10,7 @@
 <title>Terrasyn</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=27">
+<link rel="stylesheet" href="styles.css?v=29">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -92,6 +92,14 @@
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
+  <section class="app-overview daily-panel" aria-label="Painel do dia">
+    <div>
+      <span class="overview-kicker">Painel do dia</span>
+      <h2 id="dailyFocusTitle">Carregando rotina da fazenda</h2>
+      <p id="dailyFocusText">Assim que os dados abrirem, o app destaca as pendências mais importantes.</p>
+    </div>
+    <div id="dailyActionList" class="daily-action-list"></div>
+  </section>
   <section class="summary-grid" aria-label="Resumo">
     <article class="summary primary">
       <span>Produção de hoje</span>
@@ -389,8 +397,21 @@
         <span>Melhor dia</span>
         <strong id="reportBestDay">-</strong>
       </article>
+      <article class="report-card">
+        <span>Comparação mensal</span>
+        <strong id="reportMonthTrend">-</strong>
+      </article>
+      <article class="report-card">
+        <span>Previsão do mês</span>
+        <strong id="reportProjectedValue">R$ 0,00</strong>
+      </article>
     </div>
     <div class="section-title"><h2>Produção recente</h2></div>
+    <div id="reportDetails" class="report-details"></div>
+    <div class="section-title">
+      <h2>Produção recente</h2>
+      <button id="printReportButton" class="ghost" type="button">Imprimir</button>
+    </div>
         <div id="productionChart" class="chart production-chart">
       <canvas></canvas>
     </div>
@@ -502,6 +523,21 @@
   crossorigin="anonymous"></script>
 
 <script src="icons.js?v=19"></script>
-<script src="app.js?v=31"></script>
+<script src="js/store.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/client.js"></script>
+<script src="js/render.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/export.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/init.js"></script>
+<script src="js/session.js"></script>
+<script src="js/push.js"></script>
 </body>
 </html>

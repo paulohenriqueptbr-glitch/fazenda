@@ -1,0 +1,342 @@
+const LOCAL_KEY = "controle-fazenda-data";
+const PRICE_QUOTE_KEY = "milk_price_quote";
+const CLIENT_PROFILE_KEY = "client_profile";
+const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
+const SAVED_LOGIN_EMAIL_KEY = "terrasyn_saved_login_email";
+const OPTIONAL_TABLES = new Set(["crop_events", "reminders", "stock_items"]);
+const MAX_LOGIN_ATTEMPTS = 5;
+const PAGE_SIZE = 100;
+const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
+
+// Thresholds para status de produção
+const PRODUCTION_THRESHOLDS = {
+  critical: 0.5,  // Menos de 50% da média = CRÍTICO
+  warning: 0.75,  // Menos de 75% da média = BAIXO
+  good: 1.0       // >= média = BOM
+};
+
+const state = {
+  milk: [],
+  animals: [],
+  lactations: [],
+  breeding: [],
+  medication: [],
+  cropEvents: [],
+  stockItems: [],
+  reminders: [],
+  priceQuote: 0,
+  clientProfile: null,
+  subscription: null,
+  dismissedAutoAlerts: new Set(),
+  confirmedAutoAlerts: new Set(),
+};
+
+const config = window.CONTROLE_LEITE_CONFIG || {};
+const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
+const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
+const supportWhatsapp = String(config.supportWhatsapp || "").replace(/\D/g, "");
+const supportEmail = String(config.supportEmail || "");
+const trialDays = Number(config.trialDays || 14);
+const planPrice = Number(config.planPrice || 39);
+const isLocalOrigin =
+  ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
+const canUseLocalAccount = isLocalOrigin && !hasSupabase;
+// O modo local agora valida a senha via /api/local-login (POST no servidor).
+// A senha nunca é exposta no bundle JS do cliente.
+const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(config.localModeEnabled);
+const supabaseUnavailableMessage = () => {
+  if (canUseLocalAccountWithPassword) {
+    return "Modo local ativo. Use admin e a senha configurada no servidor.";
+  }
+  if (canUseLocalAccount) {
+    return "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso.";
+  }
+  if (!window.supabase) {
+    return "Biblioteca do Supabase não carregou. Recarregue a página para atualizar os arquivos do app.";
+  }
+  if (!config.supabaseUrl || !config.supabaseAnonKey) {
+    return "Configuração do Supabase não encontrada. Confira SUPABASE_URL e SUPABASE_ANON_KEY no ambiente.";
+  }
+  return "Supabase indisponível no momento. Tente novamente.";
+};
+let currentUserId = null;
+let selectedMedicationCowId = null;
+// Atenção: este contador zera ao recarregar a página — ele apenas adiciona delay
+// entre tentativas na mesma sessão. A proteção real contra bruteforce é feita
+// no servidor (/api/local-login) e no Supabase Auth (rate limit por IP/e-mail).
+let failedLoginAttempts = 0;
+
+const $ = (selector) => document.querySelector(selector);
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const parseIsoDate = (isoDate) => {
+  if (!ISO_DATE_PATTERN.test(String(isoDate || ""))) return null;
+
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
+};
+const todayIso = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
+const addDaysIso = (isoDate, days) => {
+  const date = parseIsoDate(isoDate) || parseIsoDate(todayIso());
+  date.setDate(date.getDate() + Number(days || 0));
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+};
+const monthKey = () => todayIso().slice(0, 7);
+const localId = () => {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+const withCurrentUser = (payload) => (currentUserId ? { ...payload, user_id: currentUserId } : payload);
+const userStorageKey = (key) => (currentUserId ? `${key}:${currentUserId}` : key);
+
+const defaultClientProfile = () => ({
+  farmName: "",
+  ownerName: "",
+  whatsapp: "",
+  trialStartedAt: new Date().toISOString(),
+  onboardingDone: false,
+});
+
+const normalizeClientProfile = (profile = {}) => ({
+  farmName: String(profile?.farmName || ""),
+  ownerName: String(profile?.ownerName || ""),
+  whatsapp: String(profile?.whatsapp || ""),
+  trialStartedAt: String(profile?.trialStartedAt || new Date().toISOString()),
+  onboardingDone: Boolean(profile?.onboardingDone),
+});
+
+const defaultSubscription = () => ({
+  subscriptionStatus: "trial",
+  subscriptionDueDate: addDaysIso(todayIso(), trialDays),
+});
+
+const normalizeSubscription = (subscription = {}) => {
+  const defaults = defaultSubscription();
+  const data = subscription && typeof subscription === "object" ? subscription : {};
+  const rawStatus = String(data.subscriptionStatus || defaults.subscriptionStatus);
+  const dueDate = Object.prototype.hasOwnProperty.call(data, "subscriptionDueDate")
+    ? data.subscriptionDueDate
+    : defaults.subscriptionDueDate;
+
+  return {
+    subscriptionStatus: SUBSCRIPTION_STATUSES.has(rawStatus) ? rawStatus : defaults.subscriptionStatus,
+    subscriptionDueDate: String(dueDate || ""),
+  };
+};
+
+state.clientProfile = defaultClientProfile();
+state.subscription = defaultSubscription();
+
+const showToast = (message, type = "success") => {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("is-hiding");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+};
+
+// ─── Loading em botões ────────────────────────────────────────────────────────
+/**
+ * Desabilita o botão de submit de um formulário durante uma operação async,
+ * mostrando um texto de "carregando" no lugar.
+ * Retorna uma função de restauração caso seja necessário chamar manualmente.
+ */
+const withButtonLoading = (form, asyncFn, loadingText = "Salvando...") => {
+  return async (...args) => {
+    const btn = form?.querySelector('button[type="submit"]');
+    const original = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = loadingText; }
+    try {
+      return await asyncFn(...args);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = original; }
+    }
+  };
+};
+
+// ─── Validação inline ─────────────────────────────────────────────────────────
+/**
+ * Registra validação no evento blur de um campo.
+ * Cria (ou reutiliza) um elemento de erro logo abaixo do campo.
+ */
+const addInlineValidation = (inputEl, validateFn) => {
+  if (!inputEl || inputEl._inlineValidation) return;
+  inputEl._inlineValidation = true;
+
+  let errorEl = inputEl.nextElementSibling;
+  if (!errorEl || !errorEl.classList.contains("field-error")) {
+    errorEl = document.createElement("span");
+    errorEl.className = "field-error";
+    inputEl.insertAdjacentElement("afterend", errorEl);
+  }
+
+  const validate = () => {
+    const msg = validateFn(inputEl.value);
+    errorEl.textContent = msg || "";
+    inputEl.classList.toggle("input-error", Boolean(msg));
+  };
+
+  inputEl.addEventListener("blur", validate);
+  inputEl.addEventListener("input", () => {
+    if (inputEl.classList.contains("input-error")) validate();
+  });
+};
+
+/**
+ * Registra validação inline nos campos principais de todos os formulários.
+ * Chamado uma vez após o initApp.
+ */
+const setupInlineValidations = () => {
+  // Produção de leite
+  addInlineValidation($("#liters"), (v) => {
+    const n = Number.parseFloat(v);
+    if (v === "" || v === null) return "Informe os litros";
+    if (isNaN(n) || n < 0 || n > 1000) return "Valor deve ser entre 0 e 1000";
+    return null;
+  });
+  addInlineValidation($("#milkDate"), (v) => {
+    if (!isValidDate(v)) return "Data inválida";
+    if (!isNotFutureDate(v)) return "Não pode ser data futura";
+    return null;
+  });
+
+  // Animal
+  addInlineValidation($("#animalName"), (v) => {
+    if (!v?.trim()) return "Informe o identificador do animal";
+    if (v.trim().length > 100) return "Máximo 100 caracteres";
+    return null;
+  });
+
+  // Lactação
+  addInlineValidation($("#lactStart"), (v) => (!isValidDate(v) ? "Data inválida" : null));
+  addInlineValidation($("#lactLiters"), (v) => {
+    const n = Number.parseFloat(v);
+    if (isNaN(n) || n < 0 || n > 500) return "Valor deve ser entre 0 e 500";
+    return null;
+  });
+
+  // Reprodução
+  addInlineValidation($("#inseminationDate"), (v) => (!isValidDate(v) ? "Data inválida" : null));
+
+  // Medicação
+  addInlineValidation($("#medName"), (v) => {
+    if (!v?.trim()) return "Informe o medicamento";
+    if (v.trim().length > 100) return "Máximo 100 caracteres";
+    return null;
+  });
+  addInlineValidation($("#medDate"), (v) => {
+    if (!isValidDate(v)) return "Data inválida";
+    if (!isNotFutureDate(v)) return "Não pode ser data futura";
+    return null;
+  });
+
+  // Cotação
+  addInlineValidation($("#priceQuoteInput"), (v) => {
+    const n = Number.parseFloat(v);
+    if (isNaN(n) || n < 0 || n > 100) return "Valor deve ser entre 0 e 100";
+    return null;
+  });
+};
+
+// ─── Backup automático semanal ────────────────────────────────────────────────
+const AUTO_BACKUP_KEY = "terrasyn_last_auto_backup";
+
+const maybeAutoBackup = () => {
+  try {
+    const last = localStorage.getItem(userStorageKey(AUTO_BACKUP_KEY));
+    const now = Date.now();
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    if (last && now - Number(last) < oneWeekMs) return;
+
+    // Faz o backup silenciosamente
+    const pendingSyncCount = getSyncQueue().length;
+    const backup = {
+      exported_at: new Date().toISOString(),
+      auto: true,
+      data: {
+        milk: state.milk,
+        animals: state.animals,
+        lactations: state.lactations,
+        breeding: state.breeding,
+        medication: state.medication,
+        cropEvents: state.cropEvents,
+        stockItems: state.stockItems,
+        reminders: state.reminders,
+        priceQuote: state.priceQuote,
+      },
+      pending_sync_count: pendingSyncCount,
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `terrasyn-autobackup-${todayIso()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    localStorage.setItem(userStorageKey(AUTO_BACKUP_KEY), String(now));
+    showToast("Backup automático semanal gerado ✓", "sync");
+  } catch (err) {
+    console.warn("Auto-backup falhou:", err);
+  }
+};
+
+const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
+const formatMoney = (value) =>
+  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const formatTasks = (value) => {
+  const tasks = Number(value || 0);
+  if (!tasks) return "";
+  return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
+};
+const formatStockQuantity = (quantity, unit) =>
+  `${Number(quantity || 0).toLocaleString("pt-BR")} ${String(unit || "").trim()}`.trim();
+
+const formatDate = (isoDate) => {
+  if (!isoDate) return "-";
+  const [year, month, day] = isoDate.split("-");
+  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return entities[character];
+  });
+
+// Calcular status de produção (Bom/Baixo/Crítico)
+const getProductionStatus = (liters, monthAverage) => {
+  const ratio = monthAverage > 0 ? liters / monthAverage : 1;
+  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", kind: "good" };
+  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", kind: "warning" };
+  return { status: "Crítico", kind: "critical" };
+};
+
+// Criar badge de status HTML
+const createStatusBadge = (status) => {
+  const safeKind = ["good", "warning", "critical"].includes(status.kind) ? status.kind : "good";
+  return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
+};

@@ -1,16 +1,16 @@
-const CACHE_NAME = "terrasyn-v32";
+const CACHE_NAME = "terrasyn-v33";
 const APP_FILES = [
   "./",
   "./index.html",
   "./landing.html",
   "./admin.html",
   "./privacy.html",
-  "./styles.css?v=27",
+  "./styles.css?v=28",
   "./icons.js?v=19",
   "./privacy.js?v=20",
   "./landing.js?v=21",
   "./admin.js?v=19",
-  "./app.js?v=31",
+  "./app.js?v=32",
   "./vendor/supabase.js?v=2.108.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
@@ -27,12 +27,19 @@ const emptyConfigResponse = () =>
   });
 
 self.addEventListener("install", (event) => {
+  // NÃO chama skipWaiting() aqui — o usuário decide quando atualizar
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(APP_FILES.map((file) => cache.add(file).catch(() => null)))
     )
   );
-  self.skipWaiting();
+});
+
+// O app envia SKIP_WAITING quando o usuário clica em "Atualizar agora"
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
