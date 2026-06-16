@@ -2,7 +2,6 @@ const render = () => {
   renderClientPanel();
   renderPriceQuote();
   renderSummary();
-  renderDashboard();
   renderMilk();
   renderAnimals();
   renderBreeding();

@@ -152,11 +152,6 @@
     background: rgba(15, 23, 42, 0.88);
   }
 
-  .app-overview {
-    border-color: rgba(148, 163, 184, 0.18);
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.94) 62%, rgba(67, 56, 45, 0.72) 100%);
-  }
-
   .quick-action {
     border-color: rgba(148, 163, 184, 0.22);
     background: rgba(30, 41, 59, 0.86);
@@ -757,6 +752,7 @@ h2 {
   display: grid;
   align-items: stretch;
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  margin: 14px 0 18px;
 }
 
 .summary {
@@ -1866,18 +1862,6 @@ button[type="submit"]:active,
   backdrop-filter: blur(14px);
 }
 
-.app-overview {
-  display: grid;
-  gap: 18px;
-  margin: 14px 0 16px;
-  padding: 18px;
-  border: 1px solid rgba(20, 32, 29, 0.08);
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 246, 255, 0.82) 58%, rgba(255, 247, 237, 0.9) 100%);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
-}
-
-.overview-kicker,
 .panel-head span {
   display: block;
   color: var(--green-dark);
@@ -1887,7 +1871,6 @@ button[type="submit"]:active,
   text-transform: uppercase;
 }
 
-.app-overview h2,
 .panel-head h2 {
   margin: 5px 0 0;
   color: var(--ink);
@@ -1895,53 +1878,12 @@ button[type="submit"]:active,
   line-height: 1.2;
 }
 
-.app-overview p,
 .panel-head p {
   max-width: 640px;
   margin: 8px 0 0;
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.45;
-}
-
-.daily-action-list {
-  display: grid;
-  gap: 10px;
-}
-
-.daily-action-list .alert-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 76px;
-  padding: 14px 16px;
-  border: 1px solid rgba(20, 32, 29, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
-}
-
-.daily-action-list .alert-content {
-  min-width: 0;
-}
-
-.daily-action-list .alert-content h4 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 0.95rem;
-  line-height: 1.3;
-}
-
-.daily-action-list .alert-content p {
-  margin-top: 8px;
-}
-
-.daily-action-list .action-btn {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 112px;
-  margin-top: 0;
 }
 
 .quick-actions {
@@ -2566,7 +2508,6 @@ button[type="submit"]:active,
 /* =========================================================
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .app-overview,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .quick-actions,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
@@ -2577,16 +2518,6 @@ button[type="submit"]:active,
   .app-header {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .daily-action-list .alert-card {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .daily-action-list .action-btn {
-    width: 100%;
   }
 
   .app-header .user-info {
@@ -2728,7 +2659,6 @@ button[type="submit"]:active,
    ========================================================= */
 
 .panel-head h2,
-.app-overview h2,
 [data-tab="settings"] h2,
 #settingsPanel h2,
 #settings h2 {
@@ -2736,7 +2666,6 @@ button[type="submit"]:active,
 }
 
 .panel-head p,
-.app-overview p,
 [data-tab="settings"] p,
 #settingsPanel p,
 #settings p {
@@ -2755,7 +2684,6 @@ button[type="submit"]:active,
     }
 
     .panel-head p,
-    .app-overview p,
     [data-tab="settings"] p,
     #settingsPanel p,
     #settings p {
@@ -2794,7 +2722,6 @@ button[type="submit"]:active,
   }
 
   .panel-head p,
-  .app-overview p,
   [data-tab="settings"] p,
   #settingsPanel p,
   #settings p {
