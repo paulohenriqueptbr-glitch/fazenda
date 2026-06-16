@@ -5,7 +5,6 @@ const render = () => {
   renderDashboard();
   renderMilk();
   renderAnimals();
-  renderLactations();
   renderBreeding();
   renderMedication();
   renderCropEvents();

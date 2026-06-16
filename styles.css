@@ -2794,3 +2794,50 @@ button[type="submit"]:active,
     grid-template-columns: 1fr !important;
   }
 }
+
+/* -- Mobile Polish & New Components -- */
+button {
+  min-height: 48px; /* Touch target size */
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+}
+.action-btn.ghost {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid var(--border);
+}
+
+/* Animal Profile Modal */
+.animal-profile-card {
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.animal-profile-card .profile-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.animal-profile-card .status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.compact-list article {
+  padding: 12px;
+}
+

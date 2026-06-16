@@ -76,18 +76,43 @@ const renderMilk = () => {
     : empty("Nenhuma produção registrada.");
 };
 
+window.showAnimalProfile = (animalId) => {
+  const animal = state.animals.find(a => a.id === animalId);
+  if (!animal) return;
+
+  document.getElementById('animalProfileTitle').textContent = animal.identification;
+  document.getElementById('animalProfileStatus').textContent = animal.status;
+  
+  const breedings = state.breeding.filter(b => b.cow_id === animalId);
+  const health = state.medication.filter(m => m.cow_id === animalId);
+
+  document.getElementById('profileBreedingList').innerHTML = breedings.length 
+    ? breedings.map(b => `<article class="item">
+        <div><span>Previsão: ${formatDate(b.expected_calving_date)}</span><small>Inseminação: ${formatDate(b.insemination_date)}</small></div>
+      </article>`).join('')
+    : empty("Nenhum registro de gestação.");
+
+  document.getElementById('profileHealthList').innerHTML = health.length
+    ? health.map(h => `<article class="item">
+        <div><span>${escapeHtml(h.medication_name)} (${escapeHtml(h.dosage)})</span><small>${formatDate(h.administration_date)}</small></div>
+      </article>`).join('')
+    : empty("Nenhum histórico médico.");
+
+  document.getElementById('animalProfileModal').classList.remove('hidden');
+};
+
 const renderAnimals = () => {
   el.animalList.innerHTML = state.animals.length
     ? state.animals
         .map(
           (animal) => `
-            <article class="item" data-animal-id="${escapeHtml(animal.id)}">
+            <article class="item animal-card" data-animal-id="${escapeHtml(animal.id)}" onclick="showAnimalProfile('${escapeHtml(animal.id)}')">
               <div>
                 <span>${escapeHtml(animal.identification)}</span>
                 <small>${escapeHtml(animal.type)}</small>
               </div>
               <strong>${escapeHtml(animal.status)}</strong>
-              ${recordActions("animal", animal)}
+              <div onclick="event.stopPropagation()">${recordActions("animal", animal)}</div>
             </article>
           `
         )

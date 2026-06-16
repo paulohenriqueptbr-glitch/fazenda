@@ -155,10 +155,10 @@
   <section id="milk" class="panel active">
     <div class="panel-head">
       <div>
-        <span>Producao diaria</span>
+        <span>Produção diária</span>
         <h2>Leite</h2>
       </div>
-      <p>Registre litros do dia e acompanhe o historico recente.</p>
+      <p>Registre litros do dia e acompanhe o histórico recente.</p>
     </div>
     <form id="milkForm" class="form-grid compact-form">
       <div class="field">
@@ -214,9 +214,9 @@
     <div class="panel-head">
       <div>
         <span>Planejamento</span>
-        <h2>Gestacao</h2>
+        <h2>Gestação</h2>
       </div>
-      <p>Controle prenhez e previsao de parto com datas claras.</p>
+      <p>Controle prenhez e previsão de parto com datas claras.</p>
     </div>
     <form id="breedingForm" class="form-grid">
       <label for="breedCowId">Vaca</label>
@@ -260,7 +260,7 @@
         <span>Manejo agricola</span>
         <h2>Lavoura</h2>
       </div>
-      <p>Controle plantio, insumos, tarefas e observacoes de campo.</p>
+      <p>Controle plantio, insumos, tarefas e observações de campo.</p>
     </div>
     <form id="cropForm" class="form-grid">
       <label for="cropPlot">Talhão/área</label>
@@ -318,7 +318,7 @@
       <input id="stockUnit" type="text" maxlength="30" placeholder="Ex.: kg, L, un" required>
       <label for="stockMinQuantity">Estoque minimo</label>
       <input id="stockMinQuantity" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Opcional">
-      <label for="stockNotes">Observacoes</label>
+      <label for="stockNotes">Observações</label>
       <textarea id="stockNotes" rows="3" maxlength="300" placeholder="Fornecedor, validade ou local de armazenamento"></textarea>
       <button type="submit">Salvar item</button>
     </form>
@@ -332,15 +332,15 @@
         <span>Agenda e clima</span>
         <h2>Alertas</h2>
       </div>
-      <p>Veja pendencias, lembretes e previsao do tempo para a fazenda.</p>
+      <p>Veja pendências, lembretes e previsão do tempo para a fazenda.</p>
     </div>
-    <section class="weather-panel" aria-label="Previsao do tempo">
+    <section class="weather-panel" aria-label="Previsão do tempo">
       <form id="weatherForm" class="form-grid compact-form weather-form">
         <div class="field">
           <label for="weatherCity">Cidade</label>
           <input id="weatherCity" type="text" maxlength="120" placeholder="Ex.: Arapiraca" required>
         </div>
-        <button type="submit">Ver previsao</button>
+        <button type="submit">Ver previsão</button>
       </form>
       <div id="weatherForecast" class="weather-forecast"></div>
     </section>
@@ -352,13 +352,13 @@
         <option>Geral</option>
         <option>Leite</option>
         <option>Saude</option>
-        <option>Gestacao</option>
+        <option>Gestação</option>
         <option>Lavoura</option>
         <option>Financeiro</option>
       </select>
       <label for="reminderDate">Data</label>
       <input id="reminderDate" type="date" required>
-      <label for="reminderNotes">Observacoes</label>
+      <label for="reminderNotes">Observações</label>
       <textarea id="reminderNotes" rows="3" maxlength="300" placeholder="Detalhes opcionais"></textarea>
       <button type="submit">Salvar lembrete</button>
     </form>
@@ -420,10 +420,10 @@
   <section id="settings" class="panel">
     <div class="panel-head">
       <div>
-        <span>Preferencias</span>
-        <h2>Configuracoes</h2>
+        <span>Preferências</span>
+        <h2>Configurações</h2>
       </div>
-      <p>Ajuste cotacao, exporte backup e acesse suporte.</p>
+      <p>Ajuste cotação, exporte backup e acesse suporte.</p>
     </div>
     <form id="priceQuoteForm" class="form-grid">
       <label for="priceQuoteInput">Cotação do leite (R$/L)</label>
@@ -482,6 +482,64 @@
     <span>Config</span>
   </button>
 </nav>
+
+<!-- ===== ANIMAL PROFILE MODAL ===== -->
+<div id="animalProfileModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="animalProfileTitle">
+  <div class="modal-card animal-profile-card">
+    <button class="modal-close" type="button" onclick="document.getElementById('animalProfileModal').classList.add('hidden')">×</button>
+    <div class="profile-header">
+      <h2 id="animalProfileTitle">Ficha do Animal</h2>
+      <span id="animalProfileStatus" class="status-badge"></span>
+    </div>
+    <div class="profile-content">
+      <div class="section-title"><h3>Histórico Reprodutivo (Gestação)</h3></div>
+      <div id="profileBreedingList" class="list compact-list"></div>
+      
+      <div class="section-title"><h3>Histórico de Saúde</h3></div>
+      <div id="profileHealthList" class="list compact-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" type="button" onclick="document.getElementById('animalProfileModal').classList.add('hidden')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ONBOARDING MODAL ===== -->
+<div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+  <div class="modal-card">
+    <div class="profile-header" style="text-align: center;">
+      <h2 id="onboardingTitle">Bem-vindo(a) ao Terrasyn!</h2>
+      <p>Vamos configurar o básico para você começar.</p>
+    </div>
+    <form id="onboardingForm" class="form-grid" onsubmit="event.preventDefault(); completeOnboarding();">
+      <label for="onboardingFarmName">Nome da Fazenda *</label>
+      <input id="onboardingFarmName" name="farmName" type="text" placeholder="Ex.: Fazenda Esperança" required>
+      
+      <label for="onboardingOwnerName">Seu Nome *</label>
+      <input id="onboardingOwnerName" name="ownerName" type="text" placeholder="Ex.: João da Silva" required>
+      
+      <label for="onboardingPrice">Cotação inicial do Leite (R$/L) *</label>
+      <input id="onboardingPrice" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 2,50" required>
+      
+      <label for="weather_city">Cidade para Previsão do Tempo</label>
+      <input id="weather_city" type="text" placeholder="Ex.: Arapiraca" onchange="localStorage.setItem('weather_city', this.value)">
+      
+      <div class="section-title" style="margin-top: 1rem;"><h3>Primeiro Animal (Opcional)</h3></div>
+      <label for="onboardingFirstAnimal">Nome/Brinco</label>
+      <input id="onboardingFirstAnimal" name="firstAnimal" type="text" placeholder="Ex.: Mimosa">
+      
+      <label for="onboardingFirstLiters">Produção de Hoje (Litros)</label>
+      <input id="onboardingFirstLiters" name="firstLiters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 15.5">
+      
+      <input id="onboardingFirstDate" name="firstDate" type="hidden">
+      
+      <div class="modal-actions" style="margin-top: 1rem;">
+        <button type="submit">Começar a Usar</button>
+        <button type="button" class="ghost" onclick="completeOnboarding(true)">Pular por enquanto</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- ===== TOAST CONTAINER ===== -->
 <div id="toastContainer" class="toast-container"></div>

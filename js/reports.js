@@ -2,11 +2,35 @@
 const buildMonthlyReport = () => {
   const price = Number(state.priceQuote || 0);
   const currentMonth = monthKey();
+  
+  // Previous month calculation
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  d.setMonth(d.getMonth() - 1);
+  const previousMonth = d.toISOString().slice(0, 7);
+
   const today = todayIso();
   const calvingLimit = addDaysIso(today, 60);
+  
   const monthRecords = state.milk.filter((record) => record.date?.startsWith(currentMonth));
   const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
   const average = monthRecords.length ? monthLiters / monthRecords.length : 0;
+  
+  const prevMonthRecords = state.milk.filter((record) => record.date?.startsWith(previousMonth));
+  const prevMonthLiters = prevMonthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
+  
+  // Trend calculation
+  let trend = 0;
+  if (prevMonthLiters > 0) {
+    trend = ((monthLiters - prevMonthLiters) / prevMonthLiters) * 100;
+  }
+
+  // Projection calculation (average * days in current month)
+  const currentD = new Date();
+  const daysInMonth = new Date(currentD.getFullYear(), currentD.getMonth() + 1, 0).getDate();
+  const projectedLiters = average * daysInMonth;
+  const projectedValue = projectedLiters * price;
+
   const bestRecord = monthRecords.reduce(
     (best, record) => (Number(record.liters || 0) > Number(best?.liters || 0) ? record : best),
     null
@@ -23,6 +47,8 @@ const buildMonthlyReport = () => {
     monthLiters,
     monthValue: monthLiters * price,
     average,
+    trend,
+    projectedValue,
     bestRecord,
     lactating,
     medications,
@@ -50,7 +76,7 @@ const renderReportDetails = (report) => {
       <small>${escapeHtml(report.calvings.slice(0, 2).map((item) => `${animalLabel(item.cow_id)}: ${formatDate(item.expected_calving_date)}`).join(", ") || "Sem partos nos próximos 60 dias")}</small>
     </article>
     <article>
-      <span>Faturamento estimado</span>
+      <span>Faturamento estimado (Realizado)</span>
       <strong>${escapeHtml(formatMoney(report.monthValue))}</strong>
       <small>${escapeHtml(formatMoney(report.price))} por litro</small>
     </article>
@@ -63,12 +89,22 @@ const renderReports = () => {
   const report = buildMonthlyReport();
   const chartRecords = [...state.milk]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-30); // 30 dias em vez de 10
+    .slice(-30);
 
-  el.reportMonthTotal.textContent = formatLiters(report.monthLiters);
-  el.reportMonthValue.textContent = formatMoney(report.monthValue);
-  el.reportAverage.textContent = formatLiters(report.average);
-  el.reportBestDay.textContent = report.bestRecord ? `${formatDate(report.bestRecord.date)} - ${formatLiters(report.bestRecord.liters)}` : "-";
+  if (el.reportMonthTotal) el.reportMonthTotal.textContent = formatLiters(report.monthLiters);
+  if (el.reportMonthValue) el.reportMonthValue.textContent = formatMoney(report.monthValue);
+  if (el.reportAverage) el.reportAverage.textContent = formatLiters(report.average);
+  if (el.reportBestDay) el.reportBestDay.textContent = report.bestRecord ? `${formatDate(report.bestRecord.date)} - ${formatLiters(report.bestRecord.liters)}` : "-";
+  
+  if (el.reportMonthTrend) {
+    el.reportMonthTrend.textContent = report.trend === 0 ? "-" : `${report.trend > 0 ? '+' : ''}${report.trend.toFixed(1)}%`;
+    el.reportMonthTrend.className = report.trend > 0 ? "trend-up" : report.trend < 0 ? "trend-down" : "";
+  }
+  
+  if (el.reportProjectedValue) {
+    el.reportProjectedValue.textContent = formatMoney(report.projectedValue);
+  }
+  
   renderReportDetails(report);
 
   // Chart.js gráfico interativo
