@@ -97,14 +97,14 @@ const loadMiniWeather = async (city) => {
   const descEl = document.getElementById("miniWeatherDesc");
   if (!descEl) return;
   try {
-    const res = await fetch(\`/api/weather?city=\${encodeURIComponent(city)}\`);
+    const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
     if (data.daily && data.daily.time && data.daily.time.length > 0) {
       const maxTemp = data.daily.temperature_2m_max[0];
       const minTemp = data.daily.temperature_2m_min[0];
       const rain = data.daily.precipitation_sum[0];
-      descEl.textContent = \`Máx \${maxTemp}°C / Min \${minTemp}°C. Chuva: \${rain}mm\`;
+      descEl.textContent = `Máx ${maxTemp}°C / Min ${minTemp}°C. Chuva: ${rain}mm`;
     }
   } catch (err) {
     descEl.textContent = "Não foi possível carregar a previsão.";
