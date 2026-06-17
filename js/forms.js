@@ -1,32 +1,5 @@
-// Validação de datas
-const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
-
-const isNotFutureDate = (dateStr) => {
-  const date = parseIsoDate(dateStr);
-  if (!date) return false;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date <= today;
-};
-
-const isValidDateRange = (startStr, endStr) => {
-  if (!endStr) return true;
-  const start = parseIsoDate(startStr);
-  const end = parseIsoDate(endStr);
-  if (!start || !end) return false;
-
-  return start <= end;
-};
-
-const validateNumber = (value, min = 0, max = 10000) => {
-  const num = Number.parseFloat(value);
-  return Number.isFinite(num) && num >= min && num <= max ? num : null;
-};
-
-const cleanText = (value, maxLength) => String(value || "").trim().slice(0, maxLength);
-
-const optionalText = (value, maxLength) => cleanText(value, maxLength) || null;
+// isValidDate, isNotFutureDate, isValidDateRange, validateNumber,
+// cleanText e optionalText agora vêm de js/pure-utils.js
 
 const normalizeCropEventInput = (data) => {
   const plotName = cleanText(data.plot_name ?? data.plotName, 100);

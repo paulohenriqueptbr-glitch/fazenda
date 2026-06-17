@@ -8,12 +8,7 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const PAGE_SIZE = 100;
 const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 
-// Thresholds para status de produção
-const PRODUCTION_THRESHOLDS = {
-  critical: 0.5,  // Menos de 50% da média = CRÍTICO
-  warning: 0.75,  // Menos de 75% da média = BAIXO
-  good: 1.0       // >= média = BOM
-};
+// PRODUCTION_THRESHOLDS agora vem de js/pure-utils.js
 
 const state = {
   milk: [],
@@ -83,29 +78,7 @@ let selectedMedicationCowId = null;
 let failedLoginAttempts = 0;
 
 const $ = (selector) => document.querySelector(selector);
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const parseIsoDate = (isoDate) => {
-  if (!ISO_DATE_PATTERN.test(String(isoDate || ""))) return null;
-
-  const [year, month, day] = isoDate.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-    ? date
-    : null;
-};
-const todayIso = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
-};
-const addDaysIso = (isoDate, days) => {
-  const date = parseIsoDate(isoDate) || parseIsoDate(todayIso());
-  date.setDate(date.getDate() + Number(days || 0));
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-};
-const monthKey = () => todayIso().slice(0, 7);
+// parseIsoDate, todayIso, addDaysIso, monthKey agora vêm de js/pure-utils.js
 const localId = () => {
   const randomUuid = globalThis.crypto?.randomUUID?.();
   if (randomUuid) return randomUuid;
@@ -314,45 +287,6 @@ const maybeAutoBackup = () => {
   }
 };
 
-const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
-const formatMoney = (value) =>
-  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const formatTasks = (value) => {
-  const tasks = Number(value || 0);
-  if (!tasks) return "";
-  return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
-};
-const formatStockQuantity = (quantity, unit) =>
-  `${Number(quantity || 0).toLocaleString("pt-BR")} ${String(unit || "").trim()}`.trim();
-
-const formatDate = (isoDate) => {
-  if (!isoDate) return "-";
-  const [year, month, day] = isoDate.split("-");
-  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
-};
-
-const escapeHtml = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (character) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return entities[character];
-  });
-
-// Calcular status de produção (Bom/Baixo/Crítico)
-const getProductionStatus = (liters, monthAverage) => {
-  const ratio = monthAverage > 0 ? liters / monthAverage : 1;
-  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", kind: "good" };
-  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", kind: "warning" };
-  return { status: "Crítico", kind: "critical" };
-};
-
-// Criar badge de status HTML
-const createStatusBadge = (status) => {
-  const safeKind = ["good", "warning", "critical"].includes(status.kind) ? status.kind : "good";
-  return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
-};
+// formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate,
+// escapeHtml, PRODUCTION_THRESHOLDS, getProductionStatus e createStatusBadge
+// agora vêm de js/pure-utils.js

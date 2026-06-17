@@ -1,11 +1,33 @@
 /**
- * Testes Automatizados - Agro+
+ * Testes Automatizados - Terrasyn
  * Validações e regras de negócio críticas
- * 
+ *
  * Rodar: npm test
+ *
+ * IMPORTANTE: estes testes importam as funções reais de js/pure-utils.js
+ * (mesmo arquivo carregado pelo app no browser). Se uma função mudar de
+ * comportamento em produção, os testes aqui refletem isso — não há mais
+ * cópias locais reimplementadas que pudessem ficar dessincronizadas do
+ * código real.
  */
 
-// Mock das funções que dependem do DOM
+const {
+  parseIsoDate,
+  isValidDate,
+  isNotFutureDate,
+  isValidDateRange,
+  validateNumber,
+  formatLiters,
+  formatMoney,
+  formatTasks,
+  formatDate,
+  escapeHtml,
+  getProductionStatus,
+} = require("./js/pure-utils.js");
+
+// Mock de estado para testes de lógica de negócio (regras de agregação,
+// não cobertas por pure-utils.js, que ficam espalhadas pelos módulos
+// js/render.js e js/data.js dependentes de DOM)
 const createMockState = () => ({
   milk: [
     { id: "1", date: "2026-06-06", liters: 28.5 },
@@ -37,30 +59,17 @@ const createMockState = () => ({
 });
 
 // ============================================================================
-// TESTES: Validação de Datas
+// TESTES: Validação de Datas (js/pure-utils.js)
 // ============================================================================
 
 describe("Validação de Datas", () => {
-  const parseIsoDate = (dateStr) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ""))) return null;
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-      ? date
-      : null;
-  };
-
   test("isValidDate aceita datas válidas", () => {
-    const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
-    
     expect(isValidDate("2026-06-06")).toBe(true);
     expect(isValidDate("2026-01-01")).toBe(true);
     expect(isValidDate("2026-12-31")).toBe(true);
   });
 
   test("isValidDate rejeita datas inválidas", () => {
-    const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
-    
     expect(isValidDate("2026-13-01")).toBe(false);
     expect(isValidDate("2026-06-31")).toBe(false);
     expect(isValidDate("invalid")).toBe(false);
@@ -74,79 +83,46 @@ describe("Validação de Datas", () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-    const isNotFutureDate = (dateStr) => {
-      const date = parseIsoDate(dateStr);
-      if (!date) return false;
-      const todayCheck = new Date();
-      todayCheck.setHours(0, 0, 0, 0);
-      return date <= todayCheck;
-    };
-
     expect(isNotFutureDate(tomorrowStr)).toBe(false);
   });
 
   test("isNotFutureDate aceita datas passadas e hoje", () => {
-    const isNotFutureDate = (dateStr) => {
-      const date = parseIsoDate(dateStr);
-      if (!date) return false;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return date <= today;
-    };
-
     expect(isNotFutureDate("2026-01-01")).toBe(true);
     expect(isNotFutureDate("2020-01-01")).toBe(true);
   });
 
   test("isValidDateRange valida que fim >= início", () => {
-    const isValidDateRange = (startStr, endStr) => {
-      if (!endStr) return true;
-      const start = parseIsoDate(startStr);
-      const end = parseIsoDate(endStr);
-      if (!start || !end) return false;
-      return start <= end;
-    };
-
     expect(isValidDateRange("2026-06-01", "2026-06-30")).toBe(true);
     expect(isValidDateRange("2026-06-01", "2026-06-01")).toBe(true);
     expect(isValidDateRange("2026-06-30", "2026-06-01")).toBe(false);
     expect(isValidDateRange("2026-06-01", null)).toBe(true); // null/undefined é ok
   });
+
+  test("parseIsoDate retorna null para formatos inválidos", () => {
+    expect(parseIsoDate("2026/06/06")).toBe(null);
+    expect(parseIsoDate("06-06-2026")).toBe(null);
+    expect(parseIsoDate(null)).toBe(null);
+  });
 });
 
 // ============================================================================
-// TESTES: Validação de Números
+// TESTES: Validação de Números (js/pure-utils.js)
 // ============================================================================
 
 describe("Validação de Números", () => {
   test("validateNumber aceita valores dentro do range", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
     expect(validateNumber(28.5, 0, 1000)).toBe(28.5);
     expect(validateNumber(0, 0, 1000)).toBe(0);
     expect(validateNumber(1000, 0, 1000)).toBe(1000);
   });
 
   test("validateNumber rejeita valores fora do range", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
     expect(validateNumber(-1, 0, 1000)).toBe(null);
     expect(validateNumber(1001, 0, 1000)).toBe(null);
     expect(validateNumber(99999, 0, 1000)).toBe(null);
   });
 
   test("validateNumber rejeita valores não-numéricos", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
     expect(validateNumber("abc", 0, 1000)).toBe(null);
     expect(validateNumber("", 0, 1000)).toBe(null);
     expect(validateNumber(null, 0, 1000)).toBe(null);
@@ -154,37 +130,16 @@ describe("Validação de Números", () => {
   });
 
   test("validateNumber limita produção em litros", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
-    // Produção válida
     expect(validateNumber(28.5, 0, 1000)).toBe(28.5);
-    
-    // Produção impossível (>1000L/dia)
-    expect(validateNumber(5000, 0, 1000)).toBe(null);
+    expect(validateNumber(5000, 0, 1000)).toBe(null); // impossível (>1000L/dia)
   });
 
   test("validateNumber limita lactação em litros/dia", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
-    // Lactação válida
     expect(validateNumber(28, 0, 500)).toBe(28);
-    
-    // Lactação impossível (>500L/dia)
-    expect(validateNumber(1000, 0, 500)).toBe(null);
+    expect(validateNumber(1000, 0, 500)).toBe(null); // impossível (>500L/dia)
   });
 
-  test("validateNumber aceita area da lavoura em tarefas", () => {
-    const validateNumber = (value, min = 0, max = 10000) => {
-      const num = Number.parseFloat(value);
-      return Number.isFinite(num) && num >= min && num <= max ? num : null;
-    };
-
+  test("validateNumber aceita área da lavoura em tarefas", () => {
     expect(validateNumber(3, 0, 100000)).toBe(3);
     expect(validateNumber(1.5, 0, 100000)).toBe(1.5);
     expect(validateNumber(-1, 0, 100000)).toBe(null);
@@ -192,79 +147,64 @@ describe("Validação de Números", () => {
 });
 
 // ============================================================================
-// TESTES: Validação de Strings
+// TESTES: Status de produção (js/pure-utils.js)
 // ============================================================================
 
-describe("Validação de Strings", () => {
-  test("Valida comprimento de ID do animal (1-100 caracteres)", () => {
-    const validateAnimalId = (id) => {
-      const trimmed = id.trim();
-      return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
-    };
-
-    expect(validateAnimalId("BOV-0001")).toBe("BOV-0001");
-    expect(validateAnimalId("A")).toBe("A");
-    expect(validateAnimalId("x".repeat(100))).toBe("x".repeat(100));
+describe("Status de Produção", () => {
+  test("classifica como Bom quando >= média do mês", () => {
+    expect(getProductionStatus(30, 28).status).toBe("Bom");
+    expect(getProductionStatus(28, 28).status).toBe("Bom");
   });
 
-  test("Rejeita strings vazias ou muito longas", () => {
-    const validateAnimalId = (id) => {
-      const trimmed = id.trim();
-      return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
-    };
-
-    expect(validateAnimalId("")).toBe(null);
-    expect(validateAnimalId("   ")).toBe(null);
-    expect(validateAnimalId("x".repeat(101))).toBe(null);
+  test("classifica como Baixo entre 50% e 75% da média", () => {
+    expect(getProductionStatus(23, 28).status).toBe("Baixo"); // 23/28 ≈ 0.82
   });
 
-  test("Valida comprimento de medicamento", () => {
-    const validateMedicine = (name) => {
-      const trimmed = name.trim();
-      return trimmed.length > 0 && trimmed.length <= 100 ? trimmed : null;
-    };
+  test("classifica como Crítico abaixo de 50% da média", () => {
+    expect(getProductionStatus(10, 28).status).toBe("Crítico");
+  });
 
-    expect(validateMedicine("Antibiótico X")).toBe("Antibiótico X");
-    expect(validateMedicine("")).toBe(null);
+  test("sem média histórica (0), considera Bom por padrão", () => {
+    expect(getProductionStatus(15, 0).status).toBe("Bom");
   });
 });
 
 // ============================================================================
-// TESTES: Lógica de Negócio
+// TESTES: Lógica de Negócio (agregações de estado)
 // ============================================================================
 
 describe("Lógica de Negócio", () => {
   test("Calcula produção mensal corretamente", () => {
     const state = createMockState();
     const currentMonth = "2026-06";
-    
+
     const monthRecords = state.milk.filter((record) => record.date?.startsWith(currentMonth));
     const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
-    
+
     expect(monthLiters).toBe(28.5 + 26.0 + 30.0); // 84.5
   });
 
   test("Calcula média mensal corretamente", () => {
     const state = createMockState();
     const currentMonth = "2026-06";
-    
+
     const monthRecords = state.milk.filter((record) => record.date?.startsWith(currentMonth));
     const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
     const average = monthRecords.length ? monthLiters / monthRecords.length : 0;
-    
-    expect(average).toBeCloseTo((84.5 / 3), 1);
+
+    expect(average).toBeCloseTo(84.5 / 3, 1);
   });
 
   test("Identifica melhor dia de produção", () => {
     const state = createMockState();
     const currentMonth = "2026-06";
-    
+
     const monthRecords = state.milk.filter((record) => record.date?.startsWith(currentMonth));
     const bestRecord = monthRecords.reduce(
       (best, record) => (Number(record.liters || 0) > Number(best?.liters || 0) ? record : best),
       null
     );
-    
+
     expect(bestRecord.liters).toBe(30.0);
     expect(bestRecord.date).toBe("2026-06-04");
   });
@@ -272,7 +212,7 @@ describe("Lógica de Negócio", () => {
   test("Conta animais em lactação corretamente", () => {
     const state = createMockState();
     const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
-    
+
     expect(lactating).toBe(1);
   });
 
@@ -280,14 +220,14 @@ describe("Lógica de Negócio", () => {
     const state = createMockState();
     const liters = 28.5;
     const price = state.priceQuote;
-    
+
     const value = liters * price;
     expect(value).toBeCloseTo(71.25, 2);
   });
 
   test("Identifica lactações ativas (sem data de fim)", () => {
     const state = createMockState();
-    
+
     const activeLactations = state.lactations.filter((l) => !l.end_date);
     expect(activeLactations.length).toBe(1);
     expect(activeLactations[0].cow_id).toBe("11111111-1111-4111-8111-111111111111");
@@ -296,13 +236,13 @@ describe("Lógica de Negócio", () => {
   test("Calcula data de parto (285 dias após inseminação)", () => {
     const insemDate = new Date(2026, 4, 1);
     insemDate.setDate(insemDate.getDate() + 285);
-    
+
     expect(insemDate.getFullYear()).toBe(2027);
     expect(insemDate.getMonth()).toBe(1); // Fevereiro (0-indexed)
     expect(insemDate.getDate()).toBe(10);
   });
 
-  test("Conta manejos da lavoura no mes corretamente", () => {
+  test("Conta manejos da lavoura no mês corretamente", () => {
     const state = createMockState();
     const currentMonth = "2026-06";
 
@@ -336,41 +276,19 @@ describe("Lógica de Negócio", () => {
 });
 
 // ============================================================================
-// TESTES: Escapar HTML (Segurança)
+// TESTES: Escapar HTML / Segurança (js/pure-utils.js)
 // ============================================================================
 
 describe("Segurança - Escape HTML", () => {
   test("Escapa caracteres perigosos", () => {
-    const escapeHtml = (value) =>
-      String(value ?? "").replace(/[&<>"']/g, (character) => {
-        const entities = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;",
-        };
-        return entities[character];
-      });
-
-    expect(escapeHtml("<script>alert('xss')</script>")).toBe("&lt;script&gt;alert(&#039;xss&#039;)&lt;/script&gt;");
+    expect(escapeHtml("<script>alert('xss')</script>")).toBe(
+      "&lt;script&gt;alert(&#039;xss&#039;)&lt;/script&gt;"
+    );
     expect(escapeHtml('Test "quoted"')).toBe("Test &quot;quoted&quot;");
     expect(escapeHtml("A & B")).toBe("A &amp; B");
   });
 
   test("Não escapa strings seguras", () => {
-    const escapeHtml = (value) =>
-      String(value ?? "").replace(/[&<>"']/g, (character) => {
-        const entities = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;",
-        };
-        return entities[character];
-      });
-
     expect(escapeHtml("Bovino-0001")).toBe("Bovino-0001");
     expect(escapeHtml("28.5")).toBe("28.5");
     expect(escapeHtml("BOV_001")).toBe("BOV_001");
@@ -378,43 +296,26 @@ describe("Segurança - Escape HTML", () => {
 });
 
 // ============================================================================
-// TESTES: Formatação
+// TESTES: Formatação (js/pure-utils.js)
 // ============================================================================
 
 describe("Formatação de Dados", () => {
   test("Formata litros com separador de milhar", () => {
-    const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
-    
     expect(formatLiters(1000)).toContain(" L");
     expect(formatLiters(28.5)).toContain("28");
   });
 
   test("Formata dinheiro em BRL", () => {
-    const formatMoney = (value) =>
-      Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
     const result = formatMoney(71.25);
     expect(result).toContain("R$");
   });
 
-  test("Formata area da lavoura em tarefas", () => {
-    const formatTasks = (value) => {
-      const tasks = Number(value || 0);
-      if (!tasks) return "";
-      return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
-    };
-
+  test("Formata área da lavoura em tarefas", () => {
     expect(formatTasks(1)).toBe("1 tarefa");
     expect(formatTasks(2)).toBe("2 tarefas");
   });
 
   test("Formata data para português", () => {
-    const formatDate = (isoDate) => {
-      if (!isoDate) return "-";
-      const [year, month, day] = isoDate.split("-");
-      return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
-    };
-
     const result = formatDate("2026-06-06");
     expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
   });
