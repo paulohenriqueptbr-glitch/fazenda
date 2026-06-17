@@ -6,9 +6,16 @@ const showApp = (email) => {
 };
 
 const saveLoginEmail = (email) => {
-  const value = String(email || "").trim();
-  if (!value) return;
+  const checkbox = $("#rememberLoginEmail");
+  const shouldRemember = checkbox ? checkbox.checked : false;
+
   try {
+    if (!shouldRemember) {
+      localStorage.removeItem(SAVED_LOGIN_EMAIL_KEY);
+      return;
+    }
+    const value = String(email || "").trim();
+    if (!value) return;
     localStorage.setItem(SAVED_LOGIN_EMAIL_KEY, value);
   } catch (error) {
     console.warn("Nao foi possivel salvar o e-mail de login:", error);
@@ -17,9 +24,12 @@ const saveLoginEmail = (email) => {
 
 const restoreLoginEmail = () => {
   const input = $("#loginEmail");
+  const checkbox = $("#rememberLoginEmail");
   if (!input || input.value) return;
   try {
-    input.value = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || "";
+    const saved = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || "";
+    input.value = saved;
+    if (checkbox) checkbox.checked = Boolean(saved);
   } catch (error) {
     console.warn("Nao foi possivel carregar o e-mail de login:", error);
   }

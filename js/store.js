@@ -241,52 +241,6 @@ const setupInlineValidations = () => {
   });
 };
 
-// ─── Backup automático semanal ────────────────────────────────────────────────
-const AUTO_BACKUP_KEY = "terrasyn_last_auto_backup";
-
-const maybeAutoBackup = () => {
-  try {
-    const last = localStorage.getItem(userStorageKey(AUTO_BACKUP_KEY));
-    const now = Date.now();
-    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
-    if (last && now - Number(last) < oneWeekMs) return;
-
-    // Faz o backup silenciosamente
-    const pendingSyncCount = getSyncQueue().length;
-    const backup = {
-      exported_at: new Date().toISOString(),
-      auto: true,
-      data: {
-        milk: state.milk,
-        animals: state.animals,
-        lactations: state.lactations,
-        breeding: state.breeding,
-        medication: state.medication,
-        cropEvents: state.cropEvents,
-        stockItems: state.stockItems,
-        reminders: state.reminders,
-        priceQuote: state.priceQuote,
-      },
-      pending_sync_count: pendingSyncCount,
-    };
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `terrasyn-autobackup-${todayIso()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-
-    localStorage.setItem(userStorageKey(AUTO_BACKUP_KEY), String(now));
-    showToast("Backup automático semanal gerado ✓", "sync");
-  } catch (err) {
-    console.warn("Auto-backup falhou:", err);
-  }
-};
-
 // formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate,
 // escapeHtml, PRODUCTION_THRESHOLDS, getProductionStatus e createStatusBadge
 // agora vêm de js/pure-utils.js

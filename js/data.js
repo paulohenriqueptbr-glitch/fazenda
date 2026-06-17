@@ -223,9 +223,6 @@ const loadData = async () => {
   // Verifica e dispara alertas push locais após os dados carregarem
   checkPushAlerts();
 
-  // Backup automático semanal silencioso
-  maybeAutoBackup();
-
   // Atualiza badge de pendentes
   updateSyncBadge();
 };

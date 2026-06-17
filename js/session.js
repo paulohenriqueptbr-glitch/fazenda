@@ -173,8 +173,7 @@ signupForm.addEventListener("submit", async (event) => {
     }
 
     setAuthMode("login");
-    saveLoginEmail(email);
-    restoreLoginEmail();
+    $("#loginEmail").value = email;
     showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
     scheduleInstallPromptAfterSignup();
   } catch (error) {
