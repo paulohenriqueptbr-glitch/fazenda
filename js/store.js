@@ -31,8 +31,21 @@ const state = {
   confirmedAutoAlerts: new Set(),
 };
 
-const config = window.CONTROLE_LEITE_CONFIG || {};
-const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
+const rawConfig = window.CONTROLE_LEITE_CONFIG || {};
+const cleanConfigString = (value) => String(value || "").trim();
+const isHeaderSafeValue = (value) => /^[\u0009\u0020-\u00ff]*$/.test(value) && !/[\r\n]/.test(value);
+const config = {
+  ...rawConfig,
+  supabaseUrl: cleanConfigString(rawConfig.supabaseUrl),
+  supabaseAnonKey: cleanConfigString(rawConfig.supabaseAnonKey),
+};
+const hasInvalidSupabaseHeader = Boolean(config.supabaseAnonKey && !isHeaderSafeValue(config.supabaseAnonKey));
+const hasSupabase = Boolean(
+  config.supabaseUrl &&
+  config.supabaseAnonKey &&
+  !hasInvalidSupabaseHeader &&
+  window.supabase
+);
 const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
 const supportWhatsapp = String(config.supportWhatsapp || "").replace(/\D/g, "");
 const supportEmail = String(config.supportEmail || "");
@@ -56,6 +69,9 @@ const supabaseUnavailableMessage = () => {
   }
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
     return "Configuração do Supabase não encontrada. Confira SUPABASE_URL e SUPABASE_ANON_KEY no ambiente.";
+  }
+  if (hasInvalidSupabaseHeader) {
+    return "A chave do Supabase contem caractere invalido. Copie novamente SUPABASE_ANON_KEY sem aspas especiais ou quebras de linha.";
   }
   return "Supabase indisponível no momento. Tente novamente.";
 };

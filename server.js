@@ -61,7 +61,11 @@ const types = {
   ".png": "image/png",
 };
 
-const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
+const normalizeEnvValue = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^[`'"\u201c\u201d]+|[`'"\u201c\u201d]+$/g, "");
+const pickEnv = (...names) => names.map((name) => normalizeEnvValue(process.env[name])).find(Boolean) || "";
 
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",

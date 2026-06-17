@@ -1,5 +1,9 @@
 module.exports = function handler(request, response) {
-  const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
+  const normalizeEnvValue = (value) =>
+    String(value || "")
+      .trim()
+      .replace(/^[`'"\u201c\u201d]+|[`'"\u201c\u201d]+$/g, "");
+  const pickEnv = (...names) => names.map((name) => normalizeEnvValue(process.env[name])).find(Boolean) || "";
   const supabaseUrl = pickEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
   const supabaseAnonKey = pickEnv(
     "SUPABASE_ANON_KEY",
