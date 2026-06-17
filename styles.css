@@ -747,6 +747,11 @@ h2 {
   color: var(--danger);
 }
 
+/* ===== UTILITÁRIO GENÉRICO ===== */
+.hidden {
+  display: none !important;
+}
+
 /* ===== DASHBOARD PANEL (compacto, com filtro de período) ===== */
 .dashboard-panel {
   margin: 14px 0 18px;
@@ -763,6 +768,32 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .dashboard-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .period-filter {
+    width: 100%;
+  }
+
+  .period-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .custom-period-inputs {
+    flex-wrap: wrap;
+  }
+
+  .custom-period-inputs input[type="date"] {
+    max-width: none;
+    min-width: 130px;
+  }
 }
 
 .dashboard-panel-header h2 {
@@ -807,15 +838,19 @@ h2 {
 .custom-period-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(20, 32, 29, 0.08);
   font-size: 0.78rem;
   color: var(--muted);
 }
 
 .custom-period-inputs input[type="date"] {
-  padding: 5px 8px;
+  flex: 1;
+  max-width: 160px;
+  padding: 6px 10px;
   font-size: 0.78rem;
   border: 1px solid rgba(20, 32, 29, 0.12);
   border-radius: 6px;
