@@ -25,10 +25,8 @@
   ATENÇÃO: ao atualizar a versão de qualquer lib, recalcule os hashes.
 -->
 
-<!-- chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
-  integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
-  crossorigin="anonymous"></script>
+<!-- chart.js (vendorizado localmente — CSP bloqueia CDN externo) -->
+<script src="vendor/chart.js"></script>
 
 </head>
 <body>
@@ -575,11 +573,8 @@
 
 <script src="/api/config.js"></script>
 
-<!-- lucide -->
-<script
-  src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js"
-  integrity="sha384-wHFvAtjmgnkA2PJcMsDaCgdipf7X7YV44X/igbLHpvGiq6T5/PvFKl93grpvtbQT"
-  crossorigin="anonymous"></script>
+<!-- lucide (vendorizado localmente — CSP bloqueia CDN externo) -->
+<script src="vendor/lucide.js"></script>
 
 <script src="icons.js?v=19"></script>
 <script src="js/store.js"></script>
