@@ -752,131 +752,6 @@ h2 {
   display: none !important;
 }
 
-/* ===== DASHBOARD PANEL (compacto, com filtro de período) ===== */
-.dashboard-panel {
-  margin: 14px 0 18px;
-  padding: 14px 16px;
-  border: 1px solid rgba(20, 32, 29, 0.07);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
-}
-
-.dashboard-panel-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-@media (max-width: 560px) {
-  .dashboard-panel-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .period-filter {
-    width: 100%;
-  }
-
-  .period-btn {
-    flex: 1;
-    text-align: center;
-  }
-
-  .custom-period-inputs {
-    flex-wrap: wrap;
-  }
-
-  .custom-period-inputs input[type="date"] {
-    max-width: none;
-    min-width: 130px;
-  }
-}
-
-.dashboard-panel-header h2 {
-  margin: 0;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.period-filter {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.period-btn {
-  border: 1px solid rgba(20, 32, 29, 0.1);
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.period-btn:hover {
-  border-color: #0f766e;
-  color: #0f766e;
-}
-
-.period-btn.active {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: white;
-}
-
-.custom-period-inputs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(20, 32, 29, 0.08);
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.custom-period-inputs input[type="date"] {
-  flex: 1;
-  max-width: 160px;
-  padding: 6px 10px;
-  font-size: 0.78rem;
-  border: 1px solid rgba(20, 32, 29, 0.12);
-  border-radius: 6px;
-  background: var(--panel);
-  color: var(--ink);
-}
-
-.dashboard-panel-body {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.dashboard-panel-body strong {
-  font-size: clamp(1.6rem, 5vw, 2.05rem);
-  line-height: 1;
-  color: var(--ink);
-}
-
-.dashboard-panel-body small {
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
 /* ===== SUMMARY CARDS ===== */
 .summary-grid {
   display: grid;
@@ -2624,7 +2499,6 @@ button[type="submit"]:active,
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid,
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .dashboard-panel,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .quick-actions,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
   display: none !important;
@@ -2749,7 +2623,6 @@ button[type="submit"]:active,
   .app-header .user-info,
   .panel:not(#reports),
   .summary-grid,
-  .dashboard-panel,
   #printReportButton {
     display: none !important;
   }
@@ -2854,20 +2727,6 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin: 12px 0 16px;
-  }
-
-  .dashboard-panel {
-    margin: 10px 0 14px;
-    padding: 12px;
-  }
-
-  .dashboard-panel-header h2 {
-    font-size: 0.7rem;
-  }
-
-  .period-btn {
-    font-size: 0.68rem;
-    padding: 4px 8px;
   }
 
   .summary {

@@ -92,25 +92,32 @@
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
-  <section class="dashboard-panel" aria-label="Resumo de produção">
-    <div class="dashboard-panel-header">
-      <h2>Produção</h2>
-      <div class="period-filter" role="group" aria-label="Período">
-        <button type="button" class="period-btn active" data-period="today">Hoje</button>
-        <button type="button" class="period-btn" data-period="fortnight">Quinzena</button>
-        <button type="button" class="period-btn" data-period="month">Mês</button>
-        <button type="button" class="period-btn" data-period="custom">Personalizado</button>
-      </div>
-      <div id="customPeriodInputs" class="custom-period-inputs hidden">
-        <input type="date" id="customPeriodStart" aria-label="Data inicial">
-        <span>até</span>
-        <input type="date" id="customPeriodEnd" aria-label="Data final">
-      </div>
-    </div>
-    <div class="dashboard-panel-body">
-      <strong id="periodTotal">0 L</strong>
-      <small id="periodValue">R$ 0,00</small>
-    </div>
+  <section class="summary-grid" aria-label="Resumo">
+    <article class="summary primary">
+      <span>Produção de hoje</span>
+      <strong id="todayTotal">0 L</strong>
+      <small id="todayValue">R$ 0,00</small>
+    </article>
+    <article class="summary">
+      <span>Quinzena atual</span>
+      <strong id="fortnightTotal">0 L</strong>
+      <small id="fortnightValue">R$ 0,00</small>
+    </article>
+    <article class="summary">
+      <span>Mês atual</span>
+      <strong id="monthTotal">0 L</strong>
+      <small id="monthValue">R$ 0,00</small>
+    </article>
+    <article class="summary">
+      <span>Cotação do leite</span>
+      <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
+      <small>Altere em Configurações</small>
+    </article>
+    <article class="summary">
+      <span>Animais</span>
+      <strong id="animalTotal">0</strong>
+      <small id="lactatingTotal">0 em lactação</small>
+    </article>
   </section>
 
   <!-- Mantidos ocultos para compatibilidade com código existente que lê estes elementos -->
