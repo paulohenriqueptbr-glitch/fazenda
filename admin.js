@@ -10,6 +10,13 @@ const riskCountEl = document.getElementById("adminRiskCount");
 let adminToken = localStorage.getItem("controle-fazenda-admin-token") || "";
 let customers = [];
 
+const cleanAdminToken = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^[`'"\u201c\u201d]+|[`'"\u201c\u201d]+$/g, "");
+
+const isHeaderSafeValue = (value) => /^[\u0009\u0020-\u00ff]*$/.test(value) && !/[\r\n]/.test(value);
+
 if (tokenInput) tokenInput.value = adminToken;
 
 const setAdminMessage = (message, type = "info") => {
@@ -91,12 +98,21 @@ const renderCustomers = () => {
 };
 
 const loadCustomers = async () => {
-  adminToken = tokenInput.value.trim();
+  adminToken = cleanAdminToken(tokenInput.value);
   if (!adminToken) {
     setAdminMessage("Informe o ADMIN_TOKEN configurado na Vercel.", "error");
     return;
   }
 
+  if (!isHeaderSafeValue(adminToken)) {
+    setAdminMessage(
+      "O token tem caractere invalido para cabecalho HTTP. Copie o ADMIN_TOKEN sem aspas especiais, acentos ou quebras de linha.",
+      "error"
+    );
+    return;
+  }
+
+  tokenInput.value = adminToken;
   localStorage.setItem("controle-fazenda-admin-token", adminToken);
   setAdminMessage("Carregando clientes...");
 
