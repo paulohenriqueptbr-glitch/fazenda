@@ -365,6 +365,11 @@ const el = {
   appShell,
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
+  periodTotal: $("#periodTotal"),
+  periodValue: $("#periodValue"),
+  customPeriodInputs: $("#customPeriodInputs"),
+  customPeriodStart: $("#customPeriodStart"),
+  customPeriodEnd: $("#customPeriodEnd"),
   todayValue: $("#todayValue"),
   monthTotal: $("#monthTotal"),
   monthValue: $("#monthValue"),
@@ -1969,41 +1974,78 @@ const renderPriceQuote = () => {
   el.priceQuoteValue.textContent = `R$ ${formatted} por litro`;
 };
 
-const renderSummary = () => {
-  const price = Number(state.priceQuote || 0);
-  const todayRecord = state.milk.find((record) => record.date === todayIso());
-  const todayLiters = Number(todayRecord?.liters || 0);
-  const monthRecords = state.milk.filter((record) => record.date?.startsWith(monthKey()));
-  const monthLiters = monthRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
-  const lactating = state.animals.filter((animal) => animal.status === "Em lactação").length;
+// ─── Filtro de período do painel ──────────────────────────────────────────────
+let dashboardPeriod = "today"; // today | fortnight | month | custom
 
+const getPeriodRange = (period) => {
+  const today = todayIso();
   const now = new Date();
   const day = now.getDate();
-  const fortnightStart = day <= 15
-    ? `${monthKey()}-01`
-    : `${monthKey()}-16`;
-  const fortnightEnd = day <= 15
-    ? `${monthKey()}-15`
-    : null; // até hoje
-  const fortnightRecords = state.milk.filter((record) => {
+
+  if (period === "today") {
+    return { start: today, end: today };
+  }
+  if (period === "fortnight") {
+    const start = day <= 15 ? `${monthKey()}-01` : `${monthKey()}-16`;
+    return { start, end: today };
+  }
+  if (period === "month") {
+    return { start: `${monthKey()}-01`, end: today };
+  }
+  if (period === "custom") {
+    const start = el.customPeriodStart?.value || today;
+    const end = el.customPeriodEnd?.value || today;
+    return { start, end };
+  }
+  return { start: today, end: today };
+};
+
+const renderSummary = () => {
+  const price = Number(state.priceQuote || 0);
+  const { start, end } = getPeriodRange(dashboardPeriod);
+
+  const periodRecords = state.milk.filter((record) => {
     if (!record.date) return false;
-    if (record.date < fortnightStart) return false;
-    if (fortnightEnd && record.date > fortnightEnd) return false;
+    if (record.date < start) return false;
+    if (record.date > end) return false;
     return true;
   });
-  const fortnightLiters = fortnightRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
+  const periodLiters = periodRecords.reduce((sum, record) => sum + Number(record.liters || 0), 0);
 
-  el.todayTotal.textContent = formatLiters(todayLiters);
-  el.todayValue.textContent = formatMoney(todayLiters * price);
-  el.monthTotal.textContent = formatLiters(monthLiters);
-  el.monthValue.textContent = formatMoney(monthLiters * price);
-  el.animalTotal.textContent = state.animals.length;
-  el.lactatingTotal.textContent = `${lactating} em lactação`;
+  if (el.periodTotal) el.periodTotal.textContent = formatLiters(periodLiters);
+  if (el.periodValue) el.periodValue.textContent = formatMoney(periodLiters * price);
+};
 
-  const fortnightTotalEl = document.getElementById("fortnightTotal");
-  const fortnightValueEl = document.getElementById("fortnightValue");
-  if (fortnightTotalEl) fortnightTotalEl.textContent = formatLiters(fortnightLiters);
-  if (fortnightValueEl) fortnightValueEl.textContent = formatMoney(fortnightLiters * price);
+const setupPeriodFilter = () => {
+  const buttons = document.querySelectorAll(".period-btn");
+  buttons.forEach((btn) => {
+    if (btn._periodAttached) return;
+    btn._periodAttached = true;
+    btn.addEventListener("click", () => {
+      buttons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      dashboardPeriod = btn.dataset.period;
+
+      if (el.customPeriodInputs) {
+        el.customPeriodInputs.classList.toggle("hidden", dashboardPeriod !== "custom");
+      }
+      if (dashboardPeriod === "custom") {
+        const today = todayIso();
+        if (el.customPeriodStart && !el.customPeriodStart.value) el.customPeriodStart.value = today;
+        if (el.customPeriodEnd && !el.customPeriodEnd.value) el.customPeriodEnd.value = today;
+      }
+      renderSummary();
+    });
+  });
+
+  if (el.customPeriodStart && !el.customPeriodStart._periodAttached) {
+    el.customPeriodStart._periodAttached = true;
+    el.customPeriodStart.addEventListener("change", renderSummary);
+  }
+  if (el.customPeriodEnd && !el.customPeriodEnd._periodAttached) {
+    el.customPeriodEnd._periodAttached = true;
+    el.customPeriodEnd.addEventListener("change", renderSummary);
+  }
 };
 
 const renderMilk = () => {
@@ -3062,6 +3104,9 @@ const initApp = () => {
 
   // Validação inline nos campos dos formulários
   setupInlineValidations();
+
+  // Filtro de período do painel
+  setupPeriodFilter();
 
   loadData();
 };
