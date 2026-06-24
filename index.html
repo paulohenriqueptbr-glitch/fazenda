@@ -266,10 +266,16 @@
       <p>Controle plantio, insumos, tarefas e observações de campo.</p>
     </div>
     <form id="cropForm" class="form-grid">
+      <label for="cropGroup">Lavoura</label>
+      <select id="cropGroup">
+        <option value="Milho/Sorgo">Milho/Sorgo</option>
+        <option value="Palma Forrageira">Palma Forrageira</option>
+        <option value="Outra">Outra</option>
+      </select>
       <label for="cropPlot">Talhão/área</label>
       <input id="cropPlot" type="text" placeholder="Ex.: Talhão 1" required>
       <label for="cropName">Cultura</label>
-      <input id="cropName" type="text" placeholder="Ex.: Milho, capim, cana" required>
+      <input id="cropName" type="text" placeholder="Ex.: Milho, Sorgo, Palma" required>
       <label for="cropEventType">Manejo</label>
       <select id="cropEventType">
         <option>Plantio</option>

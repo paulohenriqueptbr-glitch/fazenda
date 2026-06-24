@@ -118,6 +118,7 @@ create table crop_events (
   user_id      uuid not null references auth.users on delete cascade,
   plot_name    text not null,
   crop_name    text not null,
+  crop_group   text not null default 'Milho/Sorgo' check (crop_group in ('Milho/Sorgo', 'Palma Forrageira', 'Outra')),
   event_type   text not null,
   event_date   date not null,
   product      text,
@@ -131,6 +132,7 @@ create table crop_events (
 );
 
 create index idx_crop_events_user_date on crop_events(user_id, event_date desc);
+create index idx_crop_events_user_group on crop_events(user_id, crop_group, event_date desc);
 
 -- ============================================================================
 -- TABELA: LEMBRETES E ALERTAS MANUAIS

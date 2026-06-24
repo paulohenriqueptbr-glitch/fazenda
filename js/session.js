@@ -58,8 +58,9 @@ loginForm.addEventListener("submit", async (event) => {
       failedLoginAttempts += 1;
       showLoginError(json.message || "Usuário ou senha incorretos.");
       return;
-    } catch {
-      showLoginError("Erro ao verificar credenciais locais.");
+    } catch (error) {
+      console.error("Erro no fetch de login local:", error);
+      showLoginError("Não foi possível conectar ao servidor local. Verifique se o servidor está rodando.");
       return;
     }
   }

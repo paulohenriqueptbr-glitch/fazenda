@@ -3483,6 +3483,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const reg = await navigator.serviceWorker.register("service-worker.js");
+      await reg.update();
 
       // Detecta quando um novo SW termina de instalar (waiting)
       const onNewSW = (worker) => {

@@ -1,11 +1,11 @@
-const CACHE_NAME = "terrasyn-v33";
+const CACHE_NAME = "terrasyn-v35";
 const APP_FILES = [
   "./",
   "./index.html",
   "./landing.html",
   "./admin.html",
   "./privacy.html",
-  "./styles.css?v=28",
+  "./styles.css",
   "./icons.js?v=19",
   "./privacy.js?v=20",
   "./landing.js?v=21",
@@ -27,7 +27,8 @@ const emptyConfigResponse = () =>
   });
 
 self.addEventListener("install", (event) => {
-  // NÃO chama skipWaiting() aqui — o usuário decide quando atualizar
+  // Ativa imediatamente a nova versão
+event.waitUntil(self.skipWaiting());
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(APP_FILES.map((file) => cache.add(file).catch(() => null)))
@@ -109,18 +110,20 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then(async (cached) => {
-      try {
-        const response = await fetch(event.request);
-        if (response && response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(event.request, response.clone());
-        }
-        return response;
-      } catch {
-        if (cached) return cached;
-        if (event.request.mode === "navigate") return caches.match("./index.html");
-        return Response.error();
-      }
+       try {
+         console.log('[SW] Fetching:', event.request.url);
+         const response = await fetch(event.request);
+         if (response && response.ok) {
+           const cache = await caches.open(CACHE_NAME);
+           cache.put(event.request, response.clone());
+         }
+         return response;
+       } catch (err) {
+         console.log('[SW] Fetch error for', event.request.url, err);
+         if (cached) return cached;
+         if (event.request.mode === "navigate") return caches.match("./index.html");
+         return Response.error();
+       }
     })
   );
 });
