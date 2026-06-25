@@ -19,8 +19,11 @@ const installPromptClose = $("#installPromptClose");
 const iosInstallSteps = $("#iosInstallSteps");
 let deferredInstallPrompt = null;
 
+const themeToggleBtn = $("#themeToggle");
+
 const el = {
   appShell,
+  themeToggle: themeToggleBtn,
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
   todayValue: $("#todayValue"),

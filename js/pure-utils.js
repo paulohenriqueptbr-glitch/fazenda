@@ -117,6 +117,46 @@ const createStatusBadge = (status) => {
   return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
 };
 
+// ─── Tema (modo escuro) ──────────────────────────────────────────────────────
+const THEME_STORAGE_KEY = "terrasyn-theme";
+
+const getStoredTheme = () => localStorage.getItem(THEME_STORAGE_KEY);
+
+const getPreferredTheme = () => {
+  const stored = getStoredTheme();
+  if (stored === "dark" || stored === "light") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
+
+const setThemeAttribute = (theme) => {
+  document.documentElement.setAttribute("data-theme", theme);
+};
+
+const persistTheme = (theme) => {
+  try { localStorage.setItem(THEME_STORAGE_KEY, theme); } catch {}
+};
+
+const toggleTheme = () => {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const next = current === "dark" ? "light" : "dark";
+  setThemeAttribute(next);
+  persistTheme(next);
+  return next;
+};
+
+const updateThemeToggleIcon = (theme) => {
+  const lucideIcons = document.querySelectorAll("#themeToggle i[data-lucide]");
+  if (lucideIcons.length) {
+    const iconName = theme === "dark" ? "sun" : "moon";
+    lucideIcons.forEach((icon) => icon.setAttribute("data-lucide", iconName));
+    if (window.lucide) window.lucide.createIcons();
+  }
+  const textIcons = document.querySelectorAll("#themeToggle .theme-toggle-icon");
+  if (textIcons.length) {
+    textIcons.forEach((icon) => { icon.textContent = theme === "dark" ? "☀" : "☾"; });
+  }
+};
+
 // ─── Exportação dupla: funciona no browser (<script>) e no Node (Jest) ───────
 // No browser, este arquivo é carregado via <script> e as funções acima ficam
 // no escopo global, exatamente como antes. No Node (testes), module.exports
@@ -142,5 +182,12 @@ if (typeof module !== "undefined" && module.exports) {
     PRODUCTION_THRESHOLDS,
     getProductionStatus,
     createStatusBadge,
+    THEME_STORAGE_KEY,
+    getStoredTheme,
+    getPreferredTheme,
+    setThemeAttribute,
+    persistTheme,
+    toggleTheme,
+    updateThemeToggleIcon,
   };
 }

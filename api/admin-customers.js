@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+const { sendJson, timingSafeEqual, pickEnv, fetchSupabaseJson } = require("./utils");
 
 const allowedStatuses = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 const CLIENT_PROFILE_KEY = "client_profile";
@@ -7,18 +7,6 @@ const SUBSCRIPTION_ADMIN_KEY = "subscription_admin";
 const MAX_ADMIN_AUTH_ATTEMPTS = 10;
 const ADMIN_AUTH_WINDOW_MS = 15 * 60 * 1000;
 const adminAuthAttempts = new Map();
-
-const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
-
-const sendJson = (response, status, payload) => {
-  response.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store, max-age=0");
-  response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("X-Frame-Options", "DENY");
-  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
-  response.send(JSON.stringify(payload));
-};
 
 const safeParse = (value, fallback = {}) => {
   try {
@@ -65,16 +53,6 @@ const authToken = (request) => {
   return request.headers["x-admin-token"] || "";
 };
 
-const timingSafeEqual = (a, b) => {
-  const bufA = Buffer.from(String(a || ""));
-  const bufB = Buffer.from(String(b || ""));
-  if (bufA.length !== bufB.length) {
-    crypto.timingSafeEqual(bufA, bufA);
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
-};
-
 const clientIp = (request) =>
   String(request.headers["x-forwarded-for"] || request.socket?.remoteAddress || "unknown")
     .split(",")[0]
@@ -111,27 +89,6 @@ const recordAdminAuthFailure = (request) => {
 
 const clearAdminAuthFailures = (request) => {
   adminAuthAttempts.delete(adminRateLimitKey(request));
-};
-
-const supabaseHeaders = (serviceRoleKey) => ({
-  apikey: serviceRoleKey,
-  Authorization: `Bearer ${serviceRoleKey}`,
-  "Content-Type": "application/json",
-});
-
-const fetchSupabaseJson = async (url, serviceRoleKey, options = {}) => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...supabaseHeaders(serviceRoleKey),
-      ...(options.headers || {}),
-    },
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.message || data?.error || `Supabase retornou ${response.status}`);
-  }
-  return data;
 };
 
 module.exports = async function handler(request, response) {

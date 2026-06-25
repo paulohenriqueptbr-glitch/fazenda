@@ -1,6 +1,4 @@
-const crypto = require("crypto");
-
-const pickEnv = (...names) => names.map((name) => process.env[name]).find(Boolean) || "";
+const { sendJson, timingSafeEqual, pickEnv, fetchSupabaseJson } = require("./utils");
 
 const tables = [
   "milk_records",
@@ -16,47 +14,10 @@ const tables = [
 const optionalTables = new Set(["crop_events", "stock_items", "reminders"]);
 const PAGE_SIZE = 1000;
 
-const sendJson = (response, status, payload) => {
-  response.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store, max-age=0");
-  response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("X-Frame-Options", "DENY");
-  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
-  response.send(JSON.stringify(payload));
-};
-
 const headerSecret = (request) => {
   const authorization = request.headers.authorization || "";
   if (authorization.toLowerCase().startsWith("bearer ")) return authorization.slice(7).trim();
   return request.headers["x-cron-secret"] || "";
-};
-
-const timingSafeEqual = (a, b) => {
-  const bufA = Buffer.from(String(a || ""));
-  const bufB = Buffer.from(String(b || ""));
-  if (bufA.length !== bufB.length) {
-    crypto.timingSafeEqual(bufA, bufA);
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
-};
-
-const supabaseHeaders = (serviceRoleKey) => ({
-  apikey: serviceRoleKey,
-  Authorization: `Bearer ${serviceRoleKey}`,
-});
-
-const fetchSupabaseJson = async (url, serviceRoleKey) => {
-  const response = await fetch(url, { headers: supabaseHeaders(serviceRoleKey) });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    const error = new Error(data?.message || data?.error || `Supabase retornou ${response.status}`);
-    error.status = response.status;
-    error.code = data?.code;
-    throw error;
-  }
-  return data;
 };
 
 const fetchSupabaseTable = async (supabaseUrl, table, serviceRoleKey) => {
@@ -121,7 +82,7 @@ module.exports = async function handler(request, response) {
       }
     }
 
-    const fileName = `agro-plus/${new Date().toISOString().slice(0, 10)}.json`;
+    const fileName = `terrasyn/${new Date().toISOString().slice(0, 10)}.json`;
     const upload = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`, {
       method: "POST",
       headers: {

@@ -44,3 +44,21 @@ if (planPriceEl) planPriceEl.textContent = `${money(landingPlanPrice)}/mês`;
 if (trialDaysEl) trialDaysEl.textContent = `${landingTrialDays} dias grátis`;
 
 setupLandingLinks();
+
+// ─── Toggle de tema ──────────────────────────────────────────────────────────
+const landingThemeBtn = document.getElementById("themeToggle");
+if (landingThemeBtn) {
+  landingThemeBtn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "light";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("terrasyn-theme", next); } catch {}
+    landingThemeBtn.querySelectorAll(".theme-toggle-icon").forEach((icon) => {
+      icon.textContent = next === "dark" ? "☀" : "☾";
+    });
+  });
+  const theme = document.documentElement.getAttribute("data-theme") || "light";
+  landingThemeBtn.querySelectorAll(".theme-toggle-icon").forEach((icon) => {
+    icon.textContent = theme === "dark" ? "☀" : "☾";
+  });
+}

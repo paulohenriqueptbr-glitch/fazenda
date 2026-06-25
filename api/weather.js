@@ -1,3 +1,5 @@
+const { sendJson } = require("./utils");
+
 const WEATHER_CODES = {
   0: "Ceu limpo",
   1: "Poucas nuvens",
@@ -17,16 +19,6 @@ const WEATHER_CODES = {
   95: "Trovoadas",
   96: "Trovoadas com granizo",
   99: "Trovoadas fortes com granizo",
-};
-
-const sendJson = (response, status, payload) => {
-  response.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store, max-age=0");
-  response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("X-Frame-Options", "DENY");
-  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
-  response.send(JSON.stringify(payload));
 };
 
 const parseNumber = (value) => {

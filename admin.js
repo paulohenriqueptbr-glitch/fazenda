@@ -155,3 +155,21 @@ refreshButton.addEventListener("click", loadCustomers);
 if (adminToken) {
   loadCustomers();
 }
+
+// ─── Toggle de tema ──────────────────────────────────────────────────────────
+const adminThemeBtn = document.getElementById("themeToggle");
+if (adminThemeBtn) {
+  adminThemeBtn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "light";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("terrasyn-theme", next); } catch {}
+    adminThemeBtn.querySelectorAll(".theme-toggle-icon").forEach((icon) => {
+      icon.textContent = next === "dark" ? "☀" : "☾";
+    });
+  });
+  const theme = document.documentElement.getAttribute("data-theme") || "light";
+  adminThemeBtn.querySelectorAll(".theme-toggle-icon").forEach((icon) => {
+    icon.textContent = theme === "dark" ? "☀" : "☾";
+  });
+}

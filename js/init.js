@@ -429,5 +429,15 @@ const initApp = () => {
   // Validação inline nos campos dos formulários
   setupInlineValidations();
 
+  // Inicializa toggle de tema
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+  updateThemeToggleIcon(currentTheme);
+  if (el.themeToggle) {
+    el.themeToggle.addEventListener("click", () => {
+      const next = toggleTheme();
+      updateThemeToggleIcon(next);
+    });
+  }
+
   loadData();
 };

@@ -3,11 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#115e59">
-    <meta name="description" content="Terrasyn: gestão rural simples para produtores acompanharem produção, rebanho, saúde e relatórios pelo celular.">
-    <title>Terrasyn - Gestão rural no celular</title>
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=27">
+<meta name="theme-color" content="#115e59">
+<meta name="description" content="Terrasyn: gestão rural simples para produtores acompanharem produção, rebanho, saúde e relatórios pelo celular.">
+<title>Terrasyn - Gestão rural no celular</title>
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>!function(){var e=localStorage.getItem("terrasyn-theme");e||(e=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"),document.documentElement.setAttribute("data-theme",e)}()</script>
+<link rel="stylesheet" href="styles.css?v=27">
   </head>
   <body class="commercial-page">
     <header class="commercial-nav">
@@ -18,6 +19,9 @@
       <nav>
         <a href="privacy.html">Privacidade</a>
         <a href="index.html">Login</a>
+        <button id="themeToggle" class="theme-toggle" type="button" title="Alternar modo escuro">
+          <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+        </button>
         <a class="support-button" href="#" data-subscribe-link>Assinar</a>
       </nav>
     </header>

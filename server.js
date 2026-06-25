@@ -50,8 +50,17 @@ const wrapHandler = (handler) => async (req, res) => {
   }
 };
 
-app.post('/api/admin-customers', wrapHandler(adminCustomersHandler));
-app.post('/api/backup', wrapHandler(backupHandler));
+// Rate limit mais restritivo para endpoints sensíveis (admin e backup)
+const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20, // 20 requisições por 15 minutos
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas tentativas. Tente novamente mais tarde." },
+});
+
+app.post('/api/admin-customers', sensitiveLimiter, wrapHandler(adminCustomersHandler));
+app.post('/api/backup', sensitiveLimiter, wrapHandler(backupHandler));
 app.get('/api/weather', wrapHandler(weatherHandler));
 
 // Rotas de API (inclui login local)
