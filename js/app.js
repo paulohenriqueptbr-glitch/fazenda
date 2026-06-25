@@ -1,10 +1,10 @@
 import {
   $, state, hasSupabase, db, currentUserId, setCurrentUserId, config,
   todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, localId,
-  canUseLocalAccountWithPassword,
+  canUseLocalAccountWithPassword, supabaseUnavailableMessage,
 } from "./state.js";
 import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus } from "./ui.js";
-import { setupAuthListeners, checkSession, setupAuthStateListener, supabaseUnavailableMessage, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
+import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
 import { dismissAutoAlert, confirmAutoAlert, toggleReminder } from "./alerts.js";
