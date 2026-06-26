@@ -1,3 +1,23 @@
+// ─── Re-exports from pure-utils.js ──────────────────────────────────────────
+// Importa funções puras de pure-utils.js e re-exporta para manter compatibilidade.
+// Isso garante que testes (app.test.js) e app real usam a mesma implementação.
+export {
+  formatLiters,
+  formatMoney,
+  formatTasks,
+  formatStockQuantity,
+  formatDate,
+  escapeHtml,
+  isValidDate,
+  isNotFutureDate,
+  isValidDateRange,
+  validateNumber,
+  cleanText,
+  optionalText,
+  getProductionStatus,
+  createStatusBadge,
+} from "./pure-utils.js";
+
 // ─── Toast ──────────────────────────────────────────────────────────────────
 export const showToast = (message, type = "success") => {
   const container = document.getElementById("toastContainer");
@@ -39,66 +59,6 @@ export const addInlineValidation = (inputEl, validateFn) => {
   };
   inputEl.addEventListener("blur", validate);
   inputEl.addEventListener("input", () => { if (inputEl.classList.contains("input-error")) validate(); });
-};
-
-// ─── Formatação ─────────────────────────────────────────────────────────────
-export const formatLiters = (value) => `${Number(value || 0).toLocaleString("pt-BR")} L`;
-export const formatMoney = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-export const formatTasks = (value) => {
-  const tasks = Number(value || 0);
-  if (!tasks) return "";
-  return `${tasks.toLocaleString("pt-BR")} tarefa${tasks === 1 ? "" : "s"}`;
-};
-export const formatStockQuantity = (quantity, unit) =>
-  `${Number(quantity || 0).toLocaleString("pt-BR")} ${String(unit || "").trim()}`.trim();
-export const formatDate = (isoDate) => {
-  if (!isoDate) return "-";
-  const [year, month, day] = isoDate.split("-");
-  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
-};
-
-// ─── Escape HTML ────────────────────────────────────────────────────────────
-export const escapeHtml = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[ch]);
-
-// ─── Validação de dados ─────────────────────────────────────────────────────
-import { parseIsoDate } from "./state.js";
-
-export const isValidDate = (dateStr) => Boolean(parseIsoDate(dateStr));
-export const isNotFutureDate = (dateStr) => {
-  const date = parseIsoDate(dateStr);
-  if (!date) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date <= today;
-};
-export const isValidDateRange = (startStr, endStr) => {
-  if (!endStr) return true;
-  const start = parseIsoDate(startStr);
-  const end = parseIsoDate(endStr);
-  if (!start || !end) return false;
-  return start <= end;
-};
-export const validateNumber = (value, min = 0, max = 10000) => {
-  const num = Number.parseFloat(value);
-  return Number.isFinite(num) && num >= min && num <= max ? num : null;
-};
-export const cleanText = (value, maxLength) => String(value || "").trim().slice(0, maxLength);
-export const optionalText = (value, maxLength) => cleanText(value, maxLength) || null;
-
-// ─── Status de produção ─────────────────────────────────────────────────────
-import { PRODUCTION_THRESHOLDS } from "./state.js";
-
-export const getProductionStatus = (liters, monthAverage) => {
-  const ratio = monthAverage > 0 ? liters / monthAverage : 1;
-  if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", kind: "good" };
-  if (ratio >= PRODUCTION_THRESHOLDS.warning) return { status: "Baixo", kind: "warning" };
-  return { status: "Crítico", kind: "critical" };
-};
-
-export const createStatusBadge = (status) => {
-  const safeKind = ["good", "warning", "critical"].includes(status.kind) ? status.kind : "good";
-  return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
 };
 
 export const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;

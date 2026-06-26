@@ -321,4 +321,144 @@ describe("Formatação de Dados", () => {
   });
 });
 
-console.log("✅ Testes carregados! Execute com: npm test");
+// ============================================================================
+// TESTES: Alertas e Lembretes (lógica pura)
+// ============================================================================
+
+const { addDaysIso, monthKey, todayIso } = require("./js/pure-utils.js");
+
+describe("Alertas e Lembretes", () => {
+  const mockAlertState = () => ({
+    milk: [{ id: "1", date: todayIso(), liters: 25 }],
+    animals: [{ id: "a1", identification: "BOV-001", type: "Bovino", status: "Em lactação" }],
+    lactations: [],
+    breeding: [
+      { id: "b1", cow_id: "a1", insemination_date: "2026-01-01", expected_calving_date: addDaysIso(todayIso(), 5) },
+    ],
+    medication: [
+      { id: "m1", cow_id: "a1", medication_name: "Ivermectina", dosage: "10ml", administration_date: addDaysIso(todayIso(), -28) },
+    ],
+    cropEvents: [],
+    stockItems: [],
+    reminders: [
+      { id: "r1", title: "Vacinar bezerros", category: "Saude", due_date: todayIso(), done: false, notes: "" },
+      { id: "r2", title: "Comprar ração", category: "Estoque", due_date: addDaysIso(todayIso(), 3), done: true, notes: "Já comprado" },
+    ],
+    dismissedAutoAlerts: new Set(),
+    confirmedAutoAlerts: new Set(),
+  });
+
+  test("Detecta parto previsto nos próximos 7 dias", () => {
+    const state = mockAlertState();
+    const today = todayIso();
+    const in7days = addDaysIso(today, 7);
+    const upcoming = state.breeding.filter(
+      (b) => b.expected_calving_date >= today && b.expected_calving_date <= in7days
+    );
+    expect(upcoming.length).toBe(1);
+    expect(upcoming[0].cow_id).toBe("a1");
+  });
+
+  test("Detecta medicação com retorno próximo", () => {
+    const state = mockAlertState();
+    const today = todayIso();
+    const in3days = addDaysIso(today, 3);
+    const upcoming = state.medication.filter((m) => {
+      const ret = addDaysIso(m.administration_date, 30);
+      return ret >= today && ret <= in3days;
+    });
+    expect(upcoming.length).toBe(1);
+    expect(upcoming[0].medication_name).toBe("Ivermectina");
+  });
+
+  test("Conta lembretes abertos e concluídos", () => {
+    const state = mockAlertState();
+    const open = state.reminders.filter((r) => !r.done);
+    const done = state.reminders.filter((r) => r.done);
+    expect(open.length).toBe(1);
+    expect(done.length).toBe(1);
+    expect(open[0].title).toBe("Vacinar bezerros");
+  });
+
+  test("Dismissed alerts são filtrados", () => {
+    const state = mockAlertState();
+    state.dismissedAutoAlerts.add("auto-calving-b1");
+    const filtered = state.breeding.filter(
+      (b) => !state.dismissedAutoAlerts.has(`auto-calving-${b.id}`)
+    );
+    expect(filtered.length).toBe(0);
+  });
+
+  test("Confirmed alerts são marcados como done", () => {
+    const state = mockAlertState();
+    state.confirmedAutoAlerts.add("auto-calving-b1");
+    const breeding = state.breeding.find((b) => b.id === "b1");
+    const isDone = state.confirmedAutoAlerts.has(`auto-calving-${breeding.id}`);
+    expect(isDone).toBe(true);
+  });
+});
+
+// ============================================================================
+// TESTES: Normalização de Inputs (js/ui.js re-exports de pure-utils.js)
+// ============================================================================
+
+const {
+  cleanText,
+  optionalText,
+  formatStockQuantity,
+} = require("./js/pure-utils.js");
+
+describe("Normalização de Inputs", () => {
+  test("cleanText limita caracteres", () => {
+    expect(cleanText("hello world", 5)).toBe("hello");
+    expect(cleanText("  abc  ", 10)).toBe("abc");
+    expect(cleanText(null, 10)).toBe("");
+    expect(cleanText(undefined, 10)).toBe("");
+  });
+
+  test("optionalText retorna null para strings vazias", () => {
+    expect(optionalText("", 100)).toBe(null);
+    expect(optionalText("   ", 100)).toBe(null);
+    expect(optionalText("abc", 100)).toBe("abc");
+  });
+
+  test("formatStockQuantity formata quantidade e unidade", () => {
+    expect(formatStockQuantity(10, "kg")).toBe("10 kg");
+    expect(formatStockQuantity(0, "L")).toBe("0 L");
+    expect(formatStockQuantity(5.5, "sacos")).toBe("5,5 sacos");
+  });
+
+  test("validateNumber para preços (0-100)", () => {
+    expect(validateNumber(3.5, 0, 100)).toBe(3.5);
+    expect(validateNumber(0, 0, 100)).toBe(0);
+    expect(validateNumber(100, 0, 100)).toBe(100);
+    expect(validateNumber(101, 0, 100)).toBe(null);
+    expect(validateNumber(-1, 0, 100)).toBe(null);
+  });
+});
+
+// ============================================================================
+// TESTES: State Helpers (js/state.js)
+// ============================================================================
+
+describe("State Helpers", () => {
+  test("addDaysIso soma dias corretamente", () => {
+    const result = addDaysIso("2026-06-01", 10);
+    expect(result).toBe("2026-06-11");
+  });
+
+  test("addDaysIso lida com mês de transição", () => {
+    const result = addDaysIso("2026-06-25", 10);
+    expect(result).toBe("2026-07-05");
+  });
+
+  test("monthKey retorna chave do mês atual", () => {
+    const key = monthKey();
+    expect(key).toMatch(/^\d{4}-\d{2}$/);
+  });
+
+  test("todayIso retorna data ISO de hoje", () => {
+    const today = todayIso();
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});

@@ -7,6 +7,7 @@ import {
   readLocal, loadLocal, writeLocal,
 } from "./state.js";
 import { showToast } from "./ui.js";
+import { error } from "./logger.js";
 
 // ─── Elementos DOM ──────────────────────────────────────────────────────────
 const loginScreen = $("#loginScreen");
@@ -85,9 +86,9 @@ export const authErrorMessage = (error) => {
   return supabaseErrorMessage(error);
 };
 
-export const handleSupabaseError = (error, context = "") => {
-  console.error(`Erro Supabase${context ? ` [${context}]` : ""}:`, error);
-  const message = supabaseErrorMessage(error);
+export const handleSupabaseError = (err, context = "") => {
+  error(`Erro Supabase${context ? ` [${context}]` : ""}:`, err);
+  const message = supabaseErrorMessage(err);
   showToast(message, "error");
   return message;
 };
@@ -129,8 +130,8 @@ export const checkSession = async (initAppFn) => {
       showLogin();
       if (!navigator.onLine) showLoginError("Sem internet. Entre uma vez online antes de usar offline.");
     }
-  } catch (error) {
-    console.error("Session check error:", error);
+  } catch (err) {
+    error("Session check error:", err);
     showLogin();
   }
 };
@@ -208,9 +209,9 @@ export const setupAuthListeners = (initAppFn) => {
       saveLoginEmail(data.user.email || email);
       showApp(data.user.email);
       initAppFn();
-    } catch (error) {
+    } catch (err) {
       showLoginError("Erro ao conectar. Tente novamente.");
-      console.error(error);
+      error(err);
     }
   });
 
@@ -249,9 +250,9 @@ export const setupAuthListeners = (initAppFn) => {
       saveLoginEmail(email);
       restoreLoginEmail();
       showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
-    } catch (error) {
+    } catch (err) {
       showLoginError("Erro ao criar conta. Tente novamente.");
-      console.error(error);
+      error(err);
     } finally { submitButton.disabled = false; }
   });
 

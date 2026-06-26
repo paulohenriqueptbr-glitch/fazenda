@@ -3,6 +3,7 @@ import {
 } from "./state.js";
 import { showToast } from "./ui.js";
 import { requireSession } from "./auth.js";
+import { warn, error } from "./logger.js";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
@@ -32,8 +33,8 @@ const saveSyncQueue = (queue) => {
   try {
     localStorage.setItem(userStorageKey(SYNC_QUEUE_KEY), JSON.stringify(queue.slice(-MAX_SYNC_QUEUE_SIZE)));
     return true;
-  } catch (error) {
-    console.error("Erro ao salvar fila offline:", error);
+  } catch (err) {
+    error("Erro ao salvar fila offline:", err);
     showToast("Nao foi possivel salvar a fila offline.", "error");
     return false;
   }
@@ -169,7 +170,7 @@ export const processSyncQueue = async ({ refresh = true, renderFn, loadSupabaseF
     try {
       const col = collections[item.type];
       if (!col) continue;
-      if (!validateSyncPayload(item.type, item.action, item.payload)) { console.warn("Payload inválido descartado:", item); continue; }
+      if (!validateSyncPayload(item.type, item.action, item.payload)) { warn("Payload inválido descartado:", item); continue; }
       if (item.action === "insert") await db.from(col.table).insert({ ...item.payload, user_id: currentUserId });
       else if (item.action === "update") await db.from(col.table).update(item.payload).eq("id", item.recordId).eq("user_id", currentUserId);
       else if (item.action === "delete") await db.from(col.table).delete().eq("id", item.recordId).eq("user_id", currentUserId);

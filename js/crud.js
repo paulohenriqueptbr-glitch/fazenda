@@ -8,6 +8,7 @@ import {
 } from "./ui.js";
 import { requireSession, handleSupabaseError } from "./auth.js";
 import { collections, enqueueMutation, loadSupabase, loadAppSettings, setStatus } from "./sync.js";
+import { warn } from "./logger.js";
 
 // ─── Find record ────────────────────────────────────────────────────────────
 export const findRecord = (type, id) => {
@@ -240,7 +241,7 @@ export const deleteRecord = async (type, id) => {
       ]);
       const cleanupError = results.find((r) => r.error)?.error;
       if (cleanupError) throw cleanupError;
-    } catch (err) { console.warn("Aviso ao limpar registros relacionados:", err); }
+    } catch (err) { warn("Aviso ao limpar registros relacionados:", err); }
   }
 
   if (hasSupabase) {
@@ -266,7 +267,6 @@ export const deleteRecord = async (type, id) => {
 export const savePriceQuote = async (value) => {
   state.priceQuote = Number(value || 0);
   if (!hasSupabase) { writeLocal(); return; }
-  try { await requireSession(); } catch { /* noop */ }
   try {
     await requireSession();
     const { error } = await db.from("app_settings").upsert(

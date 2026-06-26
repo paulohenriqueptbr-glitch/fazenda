@@ -1,4 +1,4 @@
-const CACHE_NAME = "terrasyn-v35";
+const CACHE_NAME = "terrasyn-v36";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -10,13 +10,13 @@ const APP_FILES = [
   "./privacy.js?v=20",
   "./landing.js?v=21",
   "./admin.js?v=19",
-  "./app.js?v=32",
+  "./js/app.js",
   "./vendor/supabase.js?v=2.108.0",
+  "./vendor/chart.js",
+  "./vendor/lucide.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
-  "https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js",
 ];
 
 const isConfigRequest = (url) => url.pathname === "/api/config.js";
@@ -27,8 +27,7 @@ const emptyConfigResponse = () =>
   });
 
 self.addEventListener("install", (event) => {
-  // Ativa imediatamente a nova versão
-event.waitUntil(self.skipWaiting());
+  event.waitUntil(self.skipWaiting());
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(APP_FILES.map((file) => cache.add(file).catch(() => null)))
@@ -36,7 +35,6 @@ event.waitUntil(self.skipWaiting());
   );
 });
 
-// O app envia SKIP_WAITING quando o usuário clica em "Atualizar agora"
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
@@ -111,7 +109,6 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then(async (cached) => {
        try {
-         console.log('[SW] Fetching:', event.request.url);
          const response = await fetch(event.request);
          if (response && response.ok) {
            const cache = await caches.open(CACHE_NAME);
@@ -119,7 +116,6 @@ self.addEventListener("fetch", (event) => {
          }
          return response;
        } catch (err) {
-         console.log('[SW] Fetch error for', event.request.url, err);
          if (cached) return cached;
          if (event.request.mode === "navigate") return caches.match("./index.html");
          return Response.error();

@@ -12,6 +12,7 @@ import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
 } from "./render.js";
+import { log, warn, error } from "./logger.js";
 
 // ─── Push notifications ─────────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = config.vapidPublicKey || "";
@@ -34,7 +35,7 @@ const savePushSubscription = async (subscription, remove = false) => {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(remove ? { endpoint: subscription.endpoint } : { subscription }),
     });
-  } catch (err) { console.warn("push-subscription:", err); }
+  } catch (err) { warn("push-subscription:", err); }
 };
 
 const initPushNotifications = async () => {
@@ -47,7 +48,7 @@ const initPushNotifications = async () => {
   try {
     const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
     await savePushSubscription(subscription);
-  } catch (err) { console.warn("Erro ao inscrever notificações push:", err); }
+  } catch (err) { warn("Erro ao inscrever notificações push:", err); }
 };
 
 const checkPushAlerts = async () => {
@@ -109,7 +110,7 @@ const maybeAutoBackup = () => {
     document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
     localStorage.setItem(userStorageKey(AUTO_BACKUP_KEY), String(now));
     showToast("Backup automático semanal gerado", "sync");
-  } catch (err) { console.warn("Auto-backup falhou:", err); }
+  } catch (err) { warn("Auto-backup falhou:", err); }
 };
 
 export const exportDataBackup = () => {
@@ -182,10 +183,10 @@ const loadData = async () => {
   try {
     await processSyncQueue({ refresh: false });
     await loadSupabase(loadAppSettings);
-  } catch (error) {
-    console.error("Supabase load error:", error);
+  } catch (err) {
+    error("Supabase load error:", err);
     loadLocal();
-    setStatus(navigator.onLine ? supabaseUnavailableMessage(error) : "Offline (Modo Local)", "error");
+    setStatus(navigator.onLine ? supabaseUnavailableMessage(err) : "Offline (Modo Local)", "error");
   }
   populateCowSelects();
   render();
@@ -250,7 +251,7 @@ const initApp = () => {
         if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); }
         if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); }
         if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); }
-      } catch (error) { console.error(error); showToast("Não foi possível concluir a ação.", "error"); }
+      } catch (err) { error(err); showToast("Não foi possível concluir a ação.", "error"); }
     });
   }
 
@@ -538,7 +539,7 @@ if ("serviceWorker" in navigator) {
 }
 
 // ─── Global events ──────────────────────────────────────────────────────────
-window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)); } });
+window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)).catch(() => {}); } });
 window.addEventListener("offline", () => { const q = getSyncQueue(); setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error"); updateSyncBadge(); });
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; });
 window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; hideInstallPrompt(); showToast("Terrasyn instalado com sucesso."); });

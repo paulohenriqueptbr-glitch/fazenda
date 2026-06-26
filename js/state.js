@@ -9,6 +9,7 @@ export const MAX_LOGIN_ATTEMPTS = 5;
 export const PAGE_SIZE = 100;
 export const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 export const PRODUCTION_THRESHOLDS = { critical: 0.5, warning: 0.75, good: 1.0 };
+import { error } from "./logger.js";
 
 // ─── Estado global ──────────────────────────────────────────────────────────
 export const state = {
@@ -150,8 +151,8 @@ export const writeLocal = () => {
     };
     localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(toSave));
     return true;
-  } catch (error) {
-    console.error("Erro ao salvar dados locais:", error);
+  } catch (err) {
+    error("Erro ao salvar dados locais:", err);
     return false;
   }
 };
