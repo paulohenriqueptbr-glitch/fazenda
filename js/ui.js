@@ -1,6 +1,15 @@
-// ─── Re-exports from pure-utils.js ──────────────────────────────────────────
-// Importa funções puras de pure-utils.js e re-exporta para manter compatibilidade.
-// Isso garante que testes (app.test.js) e app real usam a mesma implementação.
+// ─── Imports and Re-exports from pure-utils.js ──────────────────────────────
+// Importa funções puras de pure-utils.js para uso local E re-exporta para manter compatibilidade.
+// NOTA: re-export alone (export { X } from) NÃO cria binding local — usar import separado.
+import {
+  escapeHtml,
+  cleanText,
+  optionalText,
+  validateNumber,
+  isValidDate,
+  isNotFutureDate,
+} from "./pure-utils.js";
+
 export {
   formatLiters,
   formatMoney,
