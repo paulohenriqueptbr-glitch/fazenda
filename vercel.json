@@ -1,5 +1,6 @@
 {
   "cleanUrls": true,
+  "installCommand": "npm install --no-frozen-lockfile",
   "crons": [
     {
       "path": "/api/backup",

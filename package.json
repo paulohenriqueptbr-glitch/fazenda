@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "preview": "node node_modules/vite/bin/vite.js preview",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
