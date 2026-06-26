@@ -10,6 +10,7 @@
 <title>Terrasyn</title>
 <link rel="manifest" href="/assets/webmanifest/manifest-DA_fQU1N.webmanifest">
 <link rel="apple-touch-icon" href="/assets/png/icon-192-DY_XMLeP.png">
+<script>!function(){var e=localStorage.getItem("terrasyn-theme");e||(e=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"),document.documentElement.setAttribute("data-theme",e)}()</script>
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -27,8 +28,8 @@
 <!-- chart.js (vendorizado localmente — CSP bloqueia CDN externo) -->
 <script src="vendor/chart.js"></script>
 
-  <script type="module" crossorigin src="/assets/js/main-CLBAu9iF.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/css/main-CXX6cTsJ.css">
+  <script type="module" crossorigin src="/assets/js/main-Brlopu9k.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/css/main-C9Qmc83k.css">
 </head>
 <body>
 
@@ -92,6 +93,9 @@
     <div class="user-info">
       <span id="syncStatus" class="status">Local</span>
       <span id="userEmail" class="user-email"></span>
+      <button id="themeToggle" class="theme-toggle" type="button" title="Alternar modo escuro">
+        <i data-lucide="moon"></i>
+      </button>
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
