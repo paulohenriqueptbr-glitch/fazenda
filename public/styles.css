@@ -1356,20 +1356,27 @@ button[type="submit"]:active,
     -webkit-text-fill-color: #4b5563 !important; /* Corrige bug do iOS */
 }
 
+.medical-cow-tab {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #10a981 !important;
+  -webkit-text-fill-color: #10a981 !important;
+}
+
 .medical-cow-tab:hover {
-  border-color: rgba(16, 169, 129, 0.55);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  background: transparent !important;
+  border-color: transparent !important;
+  transform: none !important;
 }
 
 .medical-cow-tab.active,
-    .quick-action.active,
-    .filter-btn.active,
-    .category-btn.active,
-    .animal-tab.active {
-        color: #10a981 !important; /* Verde vibrante no modo escuro */
-        -webkit-text-fill-color: #10a981 !important;
-
+.quick-action.active,
+.filter-btn.active,
+.category-btn.active,
+.animal-tab.active {
+  color: #10a981 !important;
+  -webkit-text-fill-color: #10a981 !important;
 }
 
 .medical-cow-tab span {
