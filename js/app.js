@@ -7,7 +7,7 @@ import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFu
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
-import { dismissAutoAlert, confirmAutoAlert, toggleReminder } from "./alerts.js";
+import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
@@ -66,15 +66,16 @@ const checkPushAlerts = async () => {
       alerts.push({ title: "Parto Previsto", body: diff === 0 ? `${name} está com parto previsto para hoje!` : `${name} tem parto previsto em ${diff} dia${diff > 1 ? "s" : ""}.`, tag: `calving-${b.id}`, url: "/?tab=breeding" });
     }
   }
-  const in3days = addDaysIso(today, 3);
   for (const m of state.medication) {
     if (!m.administration_date) continue;
-    const ret = addDaysIso(m.administration_date, 30);
-    if (ret >= today && ret <= in3days) {
-      const animal = state.animals.find((a) => a.id === m.cow_id);
-      const name = animal?.identification || m.cow_id || "Animal";
-      alerts.push({ title: "Retorno de Medicação", body: `Retorno de ${m.medication_name || "medicação"} para ${name}.`, tag: `med-${m.id}`, url: "/?tab=medication" });
-    }
+    const interval = getMedicationInterval(m.medication_name, m.reapply_interval_days);
+    const nextDate = addDaysIso(m.administration_date, interval.days);
+    if (nextDate < today || nextDate > in7days) continue;
+    const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+    const name = animal?.identification || m.cow_id || "Animal";
+    const diff = Math.round((new Date(nextDate) - new Date(today)) / 86400000);
+    const diffText = diff === 0 ? "hoje" : `em ${diff} dia${diff === 1 ? "" : "s"}`;
+    alerts.push({ title: `Reaplicar ${m.medication_name || "medicação"}`, body: `${name}: reaplicar ${diffText}. Intervalo: ${interval.days} dias.`, tag: `med-reapply-${m.id}-${nextDate}`, url: "/?tab=medication" });
   }
   const hour = new Date().getHours();
   const todayRegistered = state.milk.some((r) => r.date === today);
@@ -357,7 +358,8 @@ const initApp = () => {
       if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
       if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
       selectedMedicationCowId = medCowId;
-      await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate });
+      const reapplyDays = $("#medReapplyInterval")?.value ? validateNumber($("#medReapplyInterval").value, 1, 365) : null;
+      await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate, reapply_interval_days: reapplyDays });
       el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; render(); showToast("Medicação registrada!");
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar medicação", "error"); }
   }, "Registrando..."));

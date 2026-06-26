@@ -4,6 +4,7 @@ import { animalLabel } from "./crud.js";
 import { findRecord, updateRecord } from "./crud.js";
 import { showToast } from "./ui.js";
 import { writeLocal } from "./state.js";
+import { getMedicationInfo } from "./medication-catalog.js";
 
 // ─── Date helpers ───────────────────────────────────────────────────────────
 export const diffDays = (fromIso, toIso) => {
@@ -16,6 +17,31 @@ export const diffDays = (fromIso, toIso) => {
 };
 
 export const daysFromToday = (isoDate) => diffDays(todayIso(), isoDate);
+
+// ─── Medication reapplication (catalog-based) ────────────────────────────────
+/**
+ * Determines the reapplication interval for a medication based on catalog lookup.
+ * @param {string} medicationName - The name of the medication
+ * @param {number|null} customInterval - User-defined interval override (days)
+ * @returns {{ days: number, label: string }}
+ */
+export const getMedicationInterval = (medicationName, customInterval = null) => {
+  const info = getMedicationInfo(medicationName, customInterval);
+  return { days: info.days, label: info.label };
+};
+
+/**
+ * Calculates the next reapplication date for a medication record.
+ * @param {{ administration_date: string, medication_name: string, reapply_interval_days?: number|null }} record
+ * @returns {{ nextDate: string, daysUntil: number, interval: { days: number, label: string } }|null}
+ */
+export const getNextReapplyDate = (record) => {
+  if (!record?.administration_date) return null;
+  const interval = getMedicationInterval(record.medication_name, record.reapply_interval_days);
+  const nextDate = addDaysIso(record.administration_date, interval.days);
+  const daysUntil = daysFromToday(nextDate);
+  return { nextDate, daysUntil, interval };
+};
 
 // ─── Alert status ───────────────────────────────────────────────────────────
 export const alertStatus = (dueDate, done = false) => {
@@ -80,6 +106,34 @@ const buildAutomaticAlerts = () => {
     const days = daysFromToday(dueDate);
     if (days === null || days < -15 || days > 45) return;
     alerts.push(makeAlert({ id: `auto-crop-${r.id || r.plot_name}-${dueDate}`, title: rule.title, due_date: dueDate, category: "Lavoura", notes: `${r.plot_name || "Area"} - ${r.crop_name || r.event_type || "manejo"}.` }));
+  });
+
+  // Medication reapplication reminders
+  state.medication.forEach((m) => {
+    if (!m.administration_date) return;
+    const reapply = getNextReapplyDate(m);
+    if (!reapply) return;
+    const { nextDate, daysUntil, interval } = reapply;
+    // Only show alert in the 5 days before and 3 days after the due date
+    if (daysUntil === null || daysUntil < -3 || daysUntil > 5) return;
+    const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+    const animalName = animal?.identification || m.cow_id || "";
+    const animalPart = animalName ? ` para ${animalName}` : "";
+    let title;
+    if (daysUntil < 0) {
+      title = `Reaplicar ${m.medication_name || "medicamento"}${animalPart} — ${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"} atrasado`;
+    } else if (daysUntil === 0) {
+      title = `Hoje: reaplicar ${m.medication_name || "medicamento"}${animalPart}`;
+    } else {
+      title = `Reaplicar ${m.medication_name || "medicamento"}${animalPart} em ${daysUntil} dia${daysUntil === 1 ? "" : "s"}`;
+    }
+    alerts.push(makeAlert({
+      id: `auto-med-reapply-${m.id || `${m.cow_id}-${m.administration_date}`}-${nextDate}`,
+      title,
+      due_date: nextDate,
+      category: "Medicação",
+      notes: `Intervalo: ${interval.days} dias (${interval.label}). Última aplicação: ${formatDate(m.administration_date)}.`,
+    }));
   });
 
   return alerts;

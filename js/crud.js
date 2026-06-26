@@ -121,7 +121,7 @@ export const insertBreeding = async (record) => {
 
 export const insertMedication = async (record) => {
   const newId = localId();
-  const payload = { cow_id: record.cow_id, medication_name: record.medication_name, dosage: record.dosage, administration_date: record.administration_date };
+  const payload = { cow_id: record.cow_id, medication_name: record.medication_name, dosage: record.dosage, administration_date: record.administration_date, reapply_interval_days: record.reapply_interval_days ?? null };
   if (hasSupabase) {
     try {
       await requireSession();
