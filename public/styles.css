@@ -29,34 +29,34 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  background: #0f172a;
+  background: #0a0a0a;
   color: #f0f9ff;
   --ink: #f0f9ff;
   --muted: #cbd5e1;
-  --line: #334155;
-  --panel: #1e293b;
-  --field: #0f172a;
+  --line: #333333;
+  --panel: #1a1a1a;
+  --field: #0a0a0a;
   --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  --input-bg: #1e293b;
-  --input-bg-focus: #263348;
-  --auth-border: #334155;
-  --auth-muted-surface: #1e293b;
+  --input-bg: #1a1a1a;
+  --input-bg-focus: #252525;
+  --auth-border: #333333;
+  --auth-muted-surface: #1a1a1a;
 }
 
-[data-theme="dark"] html { background: #0f172a; }
+[data-theme="dark"] html { background: #0a0a0a; }
 [data-theme="dark"] body {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 50%, #020617 100%);
+  background: linear-gradient(180deg, #111111 0%, #0a0a0a 50%, #000000 100%);
 }
 
 [data-theme="dark"] .login-screen {
-  background: #0f172a;
+  background: #0a0a0a;
 }
 
 [data-theme="dark"] .login-card {
   background: var(--panel);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  border-color: #334155;
+  border-color: #333333;
 }
 
 /* ── Inputs globais no dark mode ── */
@@ -65,7 +65,7 @@
 [data-theme="dark"] textarea {
   background: var(--input-bg);
   color: var(--ink);
-  border-color: #334155;
+  border-color: #333333;
   -webkit-text-fill-color: var(--ink);
   color-scheme: dark;
 }
@@ -90,18 +90,18 @@
 [data-theme="dark"] select:-webkit-autofill,
 [data-theme="dark"] select:-webkit-autofill:hover,
 [data-theme="dark"] select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px #1a1a1a inset !important;
   -webkit-text-fill-color: #f0f9ff !important;
   caret-color: #f0f9ff;
-  border-color: #334155 !important;
-  background-color: #1e293b !important;
+  border-color: #333333 !important;
+  background-color: #1a1a1a !important;
 }
 
 /* ── Login form inputs ── */
 [data-theme="dark"] .login-form input {
   background: var(--input-bg);
   color: var(--ink);
-  border-color: #334155;
+  border-color: #333333;
   -webkit-text-fill-color: var(--ink);
 }
 
@@ -115,30 +115,30 @@
 [data-theme="dark"] button:disabled { opacity: 0.5; }
 
 [data-theme="dark"] .item {
-  background: #1e293b;
-  border-color: #334155;
+  background: #1a1a1a;
+  border-color: #333333;
 }
 
 [data-theme="dark"] .form-grid {
-  background: #1e293b;
-  border-color: #334155;
+  background: #1a1a1a;
+  border-color: #333333;
 }
 
 [data-theme="dark"] .ghost {
-  background: #1e293b;
-  border-color: #334155;
+  background: #1a1a1a;
+  border-color: #333333;
   color: var(--ink);
 }
 
 [data-theme="dark"] .ghost:hover {
-  background: #334155;
+  background: #2a2a2a;
 }
 
 /* ── Modal de edição no dark mode ── */
 [data-theme="dark"] .edit-modal-card {
-  background: #1e293b;
+  background: #1a1a1a;
   color: var(--ink);
-  border: 1px solid #334155;
+  border: 1px solid #333333;
 }
 
 [data-theme="dark"] .edit-modal-card h2 {
@@ -148,17 +148,17 @@
 /* ── App header no dark mode ── */
 [data-theme="dark"] .app-header {
   border-bottom-color: rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.88);
+  background: rgba(10, 10, 10, 0.92);
 }
 
 [data-theme="dark"] .quick-action {
   border-color: rgba(148, 163, 184, 0.22);
-  background: rgba(30, 41, 59, 0.86);
+  background: rgba(26, 26, 26, 0.9);
 }
 
 [data-theme="dark"] .quick-action:hover,
 [data-theme="dark"] .quick-action.active {
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(10, 10, 10, 0.98);
 }
 
 [data-theme="dark"] .summary,

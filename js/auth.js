@@ -63,6 +63,11 @@ export const saveLoginEmail = (email) => {
 const restoreLoginEmail = () => {
   const input = $("#loginEmail");
   if (!input || input.value) return;
+  const checkbox = $("#rememberLoginEmail");
+  if (checkbox && !checkbox.checked) {
+    // If checkbox not checked, don't restore (but still allow manual entry)
+    return;
+  }
   try { input.value = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || ""; } catch { /* noop */ }
 };
 
@@ -173,7 +178,7 @@ export const setupAuthListeners = (initAppFn) => {
         if (json.ok) {
           resetFailedLoginAttempts();
           setCurrentUserId("local-admin");
-          saveLoginEmail(email);
+          if ($("#rememberLoginEmail")?.checked) saveLoginEmail(email);
           showApp("admin local");
           initAppFn();
           showToast("Modo local ativo.");
@@ -206,7 +211,7 @@ export const setupAuthListeners = (initAppFn) => {
       }
       resetFailedLoginAttempts();
       setCurrentUserId(data.user.id);
-      saveLoginEmail(data.user.email || email);
+      if ($("#rememberLoginEmail")?.checked) saveLoginEmail(data.user.email || email);
       showApp(data.user.email);
       initAppFn();
     } catch (err) {
@@ -247,6 +252,7 @@ export const setupAuthListeners = (initAppFn) => {
         return;
       }
       setAuthMode("login");
+      // Always save email on signup for convenience
       saveLoginEmail(email);
       restoreLoginEmail();
       showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");
