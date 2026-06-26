@@ -10,8 +10,13 @@ export const el = {
   appShell: $("#appShell"),
   syncStatus: $("#syncStatus"),
   todayTotal: $("#todayTotal"),
-  periodTotal: $("#periodTotal"),
-  periodValue: $("#periodValue"),
+  todayValue: $("#todayValue"),
+  fortnightTotal: $("#fortnightTotal"),
+  fortnightValue: $("#fortnightValue"),
+  monthTotal: $("#monthTotal"),
+  monthValue: $("#monthValue"),
+  animalTotal: $("#animalTotal"),
+  lactatingTotal: $("#lactatingTotal"),
   customPeriodInputs: $("#customPeriodInputs"),
   customPeriodStart: $("#customPeriodStart"),
   customPeriodEnd: $("#customPeriodEnd"),
@@ -186,11 +191,34 @@ const getPeriodRange = (period) => {
 
 export const renderSummary = () => {
   const price = Number(state.priceQuote || 0);
-  const { start, end } = getPeriodRange(dashboardPeriod);
-  const periodRecords = state.milk.filter((r) => r.date && r.date >= start && r.date <= end);
-  const periodLiters = periodRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
-  if (el.periodTotal) el.periodTotal.textContent = formatLiters(periodLiters);
-  if (el.periodValue) el.periodValue.textContent = formatMoney(periodLiters * price);
+  const today = todayIso();
+  const day = new Date().getDate();
+  const currentMonth = monthKey();
+  const fortnightStart = day <= 15 ? `${currentMonth}-01` : `${currentMonth}-16`;
+  const monthStart = `${currentMonth}-01`;
+
+  // Today
+  const todayRecords = state.milk.filter((r) => r.date === today);
+  const todayLiters = todayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  if (el.todayTotal) el.todayTotal.textContent = formatLiters(todayLiters);
+  if (el.todayValue) el.todayValue.textContent = formatMoney(todayLiters * price);
+
+  // Fortnight
+  const fortnightRecords = state.milk.filter((r) => r.date && r.date >= fortnightStart && r.date <= today);
+  const fortnightLiters = fortnightRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  if (el.fortnightTotal) el.fortnightTotal.textContent = formatLiters(fortnightLiters);
+  if (el.fortnightValue) el.fortnightValue.textContent = formatMoney(fortnightLiters * price);
+
+  // Month
+  const monthRecords = state.milk.filter((r) => r.date && r.date >= monthStart && r.date <= today);
+  const monthLiters = monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  if (el.monthTotal) el.monthTotal.textContent = formatLiters(monthLiters);
+  if (el.monthValue) el.monthValue.textContent = formatMoney(monthLiters * price);
+
+  // Animals
+  if (el.animalTotal) el.animalTotal.textContent = String(state.animals.length);
+  const lactating = state.animals.filter((a) => a.status === "Em lactação").length;
+  if (el.lactatingTotal) el.lactatingTotal.textContent = `${lactating} em lactação`;
 };
 
 export const setupPeriodFilter = () => {
