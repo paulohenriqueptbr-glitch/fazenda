@@ -91,7 +91,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' blob:; style-src 'self'; connect-src 'self' *.supabase.co geocoding-api.open-meteo.com api.open-meteo.com; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' blob:; style-src 'self'; connect-src 'self' *.supabase.co geocoding-api.open-meteo.com api.open-meteo.com www.google-analytics.com; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         }
       ]
     }
