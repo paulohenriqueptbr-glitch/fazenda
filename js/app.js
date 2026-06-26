@@ -3,7 +3,7 @@ import {
   todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, localId,
   canUseLocalAccountWithPassword, supabaseUnavailableMessage,
 } from "./state.js";
-import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus } from "./ui.js";
+import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme } from "./ui.js";
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
@@ -448,6 +448,19 @@ const initApp = () => {
   initPushNotifications();
   setupInlineValidations();
   setupPeriodFilter();
+
+  // ─── Dark mode toggle ───────────────────────────────────────────────────
+  const themeToggleBtn = $("#themeToggle");
+  if (themeToggleBtn && !themeToggleBtn._listenerAttached) {
+    themeToggleBtn._listenerAttached = true;
+    const initialTheme = getPreferredTheme();
+    updateThemeToggleIcon(initialTheme);
+    themeToggleBtn.addEventListener("click", () => {
+      const newTheme = toggleTheme();
+      updateThemeToggleIcon(newTheme);
+    });
+  }
+
   loadData();
 };
 

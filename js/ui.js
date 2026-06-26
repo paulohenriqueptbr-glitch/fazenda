@@ -25,6 +25,9 @@ export {
   optionalText,
   getProductionStatus,
   createStatusBadge,
+  toggleTheme,
+  updateThemeToggleIcon,
+  getPreferredTheme,
 } from "./pure-utils.js";
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
