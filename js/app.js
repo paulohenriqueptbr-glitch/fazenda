@@ -10,7 +10,7 @@ import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, ins
 import { findMedication, getMedicationInfo, BOVINE_MEDICATIONS } from "./medication-catalog.js";
 import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval } from "./alerts.js";
 import {
-  el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
+  el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary, renderLoginSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
 } from "./render.js";
 import { log, warn, error } from "./logger.js";
@@ -85,6 +85,7 @@ const loadData = async () => {
   }
   populateCowSelects();
   render();
+  renderLoginSummary();
   maybeShowOnboarding();
   checkPushAlerts();
   maybeAutoBackup();

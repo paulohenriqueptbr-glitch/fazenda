@@ -58,6 +58,7 @@ export const alertStatusLabel = (dueDate, done = false) => {
   const status = alertStatus(dueDate, done);
   const days = daysFromToday(dueDate);
   if (status === "done") return "Concluido";
+  if (status === "overdue" && days !== null && days < -7) return `🔴 ${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"} atrasado (CRÍTICO)`;
   if (status === "overdue") return `${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"} atrasado`;
   if (status === "today") return "Hoje";
   if (status === "week") return `Em ${days} dia${days === 1 ? "" : "s"}`;
@@ -101,7 +102,7 @@ const buildAutomaticAlerts = () => {
   state.cropEvents.forEach((r) => {
     const eventType = String(r.event_type || "").toLowerCase();
     const rule = cropFollowUpRules.find((item) => eventType.includes(item.match));
-    if (!rule || !formatDate(r.event_date) === "-") return;
+    if (!rule || !r.event_date || formatDate(r.event_date) === "-") return;
     const dueDate = addDaysIso(r.event_date, rule.days);
     const days = daysFromToday(dueDate);
     if (days === null || days < -15 || days > 45) return;
@@ -150,11 +151,182 @@ const buildAutomaticAlerts = () => {
   return alerts;
 };
 
+/**
+ * Checks for milk withdrawal period violations.
+ * Returns alerts if any cow was treated with antibiotics and the withdrawal period hasn't expired.
+ */
+const buildMilkWithdrawalAlerts = () => {
+  const today = todayIso();
+  const alerts = [];
+  
+  state.medication.forEach((m) => {
+    if (!m.administration_date || !m.medication_name) return;
+    
+    const info = getMedicationInfo(m.medication_name, m.reapply_interval_days);
+    const notes = (info.notes || "").toLowerCase();
+    
+    // Extract withdrawal period from notes (look for "carência leite: Xh")
+    const withdrawalMatch = notes.match(/car[eê]ncia leite:\s*(\d+)\s*h/);
+    if (!withdrawalMatch) return;
+    
+    const withdrawalHours = parseInt(withdrawalMatch[1], 10);
+    if (isNaN(withdrawalHours) || withdrawalHours <= 0) return;
+    
+    // Calculate when withdrawal expires
+    const adminDate = new Date(m.administration_date);
+    const withdrawEndDate = new Date(adminDate.getTime() + withdrawalHours * 60 * 60 * 1000);
+    const withdrawEndDateStr = withdrawEndDate.toISOString().split("T")[0];
+    
+    // If withdrawal hasn't expired yet
+    if (withdrawEndDateStr >= today) {
+      const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+      const animalName = animal?.identification || m.cow_id || "";
+      const hoursLeft = Math.round((withdrawEndDate - new Date()) / (1000 * 60 * 60));
+      
+      alerts.push(makeAlert({
+        id: `auto-withdrawal-${m.id || `${m.cow_id}-${m.administration_date}`}`,
+        title: `🚫 Carência de leite: ${animalName} — ${m.medication_name}`,
+        due_date: today,
+        category: "Segurança",
+        notes: `Não ordenhar leite de ${animalName || "este animal"} para consumo. Carência: ${withdrawalHours}h. Expira em ${hoursLeft > 24 ? Math.ceil(hoursLeft / 24) + " dias" : hoursLeft + " horas"}. Última aplicação: ${formatDate(m.administration_date)}.`,
+        urgency: "critical",
+      }));
+    }
+  });
+  
+  return alerts;
+};
+
+/**
+ * Checks for abortifacient medications given to pregnant cows.
+ * Returns alerts if a cow with an active breeding record (pregnant) receives an abortifacient.
+ */
+const buildAbortifacientAlerts = () => {
+  const today = todayIso();
+  const alerts = [];
+  
+  // Known abortifacient patterns
+  const abortifacientPatterns = [
+    "dexametasona", "dexamethasone", "dexasone",
+    "prednisolona", "prednisolone",
+    "flunixina", "flunixin", "banamine",
+    "pgf2", "cloprostenol", "d-clost", "estrumate",
+    "misoprostol",
+  ];
+  
+  state.medication.forEach((m) => {
+    if (!m.administration_date || !m.medication_name) return;
+    
+    const medLower = m.medication_name.toLowerCase();
+    const isAbortifacient = abortifacientPatterns.some((p) => medLower.includes(p));
+    if (!isAbortifacient) return;
+    
+    // Check if this cow has an active pregnancy (breeding record with expected_calving_date in the future)
+    const activePregnancy = state.breeding.find((b) => 
+      String(b.cow_id) === String(m.cow_id) && 
+      b.expected_calving_date && 
+      b.expected_calving_date > today
+    );
+    
+    if (activePregnancy) {
+      const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+      const animalName = animal?.identification || m.cow_id || "";
+      
+      alerts.push(makeAlert({
+        id: `auto-abortifacient-${m.id || `${m.cow_id}-${m.administration_date}`}`,
+        title: `⚠️ ALERTA: ${m.medication_name} em vaca gestante (${animalName})`,
+        due_date: m.administration_date,
+        category: "Segurança",
+        notes: `${animalName} está com prenhez registrada (parto previsto: ${formatDate(activePregnancy.expected_calving_date)}). ${m.medication_name} pode causaraborto! Verifique com o veterinário.`,
+        urgency: "critical",
+      }));
+    }
+  });
+  
+  return alerts;
+};
+
+/**
+ * Checks for low stock items and generates reorder alerts.
+ */
+const buildStockAlerts = () => {
+  const today = todayIso();
+  const alerts = [];
+  
+  state.stockItems.forEach((item) => {
+    const qty = Number(item.quantity || 0);
+    const minQty = item.min_quantity === null || item.min_quantity === undefined ? null : Number(item.min_quantity);
+    if (minQty === null || qty > minQty) return;
+    
+    const isZero = qty === 0;
+    alerts.push(makeAlert({
+      id: `auto-stock-${item.id || item.item_name}`,
+      title: isZero ? `📦 ESTOQUE ZERADO: ${item.item_name}` : `📦 Estoque baixo: ${item.item_name}`,
+      due_date: today,
+      category: "Estoque",
+      notes: `${isZero ? "Sem unidades em estoque!" : `Atual: ${qty}. Mínimo: ${minQty}.`}${item.category ? ` Categoria: ${item.category}.` : ""}${item.notes ? ` ${item.notes}` : ""}`,
+      urgency: isZero ? "critical" : "today",
+    }));
+  });
+  
+  return alerts;
+};
+
+/**
+ * Checks for weather-related crop issues.
+ * Warns if spraying was done recently and rain is forecast, or if planting was done in bad conditions.
+ */
+const buildWeatherCropAlerts = () => {
+  const today = todayIso();
+  const alerts = [];
+
+  state.cropEvents.forEach((r) => {
+    if (!r.event_date) return;
+    const eventDate = r.event_date;
+    const eventType = String(r.event_type || "").toLowerCase();
+    const daysSince = diffDays(eventDate, today);
+
+    if (daysSince === null || daysSince < -1 || daysSince > 3) return;
+
+    if (eventType.includes("pulver") || eventType.includes("aplicação") || eventType.includes("aplicacao")) {
+      if (daysSince >= 0 && daysSince <= 1) {
+        alerts.push(makeAlert({
+          id: `auto-weather-spray-${r.id || r.event_date}`,
+          title: `🌧️ Verificar chuva após pulverização`,
+          due_date: today,
+          category: "Lavoura",
+          notes: `Pulverização em ${formatDate(r.event_date)} em ${r.plot_name || "área"}. Verifique se houve chuva — pode reduzir a eficácia do produto.`,
+          urgency: daysSince === 0 ? "today" : "soon",
+        }));
+      }
+    }
+
+    if (eventType.includes("plantio") || eventType.includes("semeadura")) {
+      if (daysSince >= 0 && daysSince <= 2) {
+        alerts.push(makeAlert({
+          id: `auto-weather-plant-${r.id || r.event_date}`,
+          title: `🌱 Acompanhar germinação`,
+          due_date: addDaysIso(eventDate, 7),
+          category: "Lavoura",
+          notes: `Plantio em ${formatDate(r.event_date)} em ${r.plot_name || "área"}. Verifique umidade do solo e germinação em 7 dias.`,
+          urgency: "upcoming",
+        }));
+      }
+    }
+  });
+
+  return alerts;
+};
+
 export const buildAlerts = () => {
   const dismissed = state.dismissedAutoAlerts || new Set();
   const confirmed = state.confirmedAutoAlerts || new Set();
   const manual = state.reminders.map((r) => makeAlert({ id: r.id, title: r.title, due_date: r.due_date, category: r.category || "Geral", notes: r.notes || "", type: "manual", done: Boolean(r.done) }));
-  const autoAlerts = buildAutomaticAlerts()
+  const withdrawalAlerts = buildMilkWithdrawalAlerts();
+  const abortifacientAlerts = buildAbortifacientAlerts();
+  const stockAlerts = buildStockAlerts();
+  const weatherCropAlerts = buildWeatherCropAlerts();
+  const autoAlerts = [...buildAutomaticAlerts(), ...withdrawalAlerts, ...abortifacientAlerts, ...stockAlerts, ...weatherCropAlerts]
     .filter((a) => !dismissed.has(a.id))
     .map((a) => { const done = confirmed.has(a.id); return done ? { ...a, done, status: alertStatus(a.due_date, done) } : a; });
   return [...autoAlerts, ...manual].sort((a, b) => {

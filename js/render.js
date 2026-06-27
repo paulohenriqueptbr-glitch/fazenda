@@ -1,7 +1,7 @@
 import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays } from "./state.js";
 import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
-import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts } from "./alerts.js";
+import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays } from "./alerts.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
 
@@ -189,6 +189,74 @@ const getPeriodRange = (period) => {
   return { start: today, end: today };
 };
 
+export const calculateProductionTrend = () => {
+  const today = todayIso();
+  const milkData = [...state.milk]
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (milkData.length < 7) {
+    return { hasData: false, message: "Dados insuficientes para análise de tendência (mínimo 7 dias)" };
+  }
+
+  const last30 = milkData.filter((r) => {
+    const diff = diffDays(r.date, today);
+    return diff !== null && diff >= -30 && diff <= 0;
+  });
+
+  const prev30 = milkData.filter((r) => {
+    const diff = diffDays(r.date, today);
+    return diff !== null && diff >= -60 && diff < -30;
+  });
+
+  const last7 = milkData.slice(-7);
+  const last7Avg = last7.reduce((sum, r) => sum + Number(r.liters || 0), 0) / last7.length;
+
+  const prev7 = milkData.slice(-14, -7);
+  const prev7Avg = prev7.length > 0 ? prev7.reduce((sum, r) => sum + Number(r.liters || 0), 0) / prev7.length : null;
+
+  const last30Avg = last30.length > 0 ? last30.reduce((sum, r) => sum + Number(r.liters || 0), 0) / last30.length : null;
+
+  const prev30Avg = prev30.length > 0 ? prev30.reduce((sum, r) => sum + Number(r.liters || 0), 0) / prev30.length : null;
+
+  let trendDirection = "stable";
+  let trendPercent = 0;
+  if (prev7Avg !== null && prev7Avg > 0) {
+    trendPercent = ((last7Avg - prev7Avg) / prev7Avg) * 100;
+    if (trendPercent > 5) trendDirection = "up";
+    else if (trendPercent < -5) trendDirection = "down";
+  }
+
+  let monthComparison = null;
+  if (last30Avg !== null && prev30Avg !== null && prev30Avg > 0) {
+    const monthPercent = ((last30Avg - prev30Avg) / prev30Avg) * 100;
+    monthComparison = {
+      thisMonth: last30Avg,
+      lastMonth: prev30Avg,
+      percent: monthPercent,
+      direction: monthPercent > 3 ? "up" : monthPercent < -3 ? "down" : "stable",
+    };
+  }
+
+  const sorted30 = [...last30].sort((a, b) => Number(b.liters || 0) - Number(a.liters || 0));
+  const bestDay = sorted30[0] || null;
+  const worstDay = sorted30[sorted30.length - 1] || null;
+  const totalMonth = last30.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+
+  return {
+    hasData: true,
+    last7Avg: Math.round(last7Avg * 10) / 10,
+    prev7Avg: prev7Avg ? Math.round(prev7Avg * 10) / 10 : null,
+    last30Avg: last30Avg ? Math.round(last30Avg * 10) / 10 : null,
+    trendDirection,
+    trendPercent: Math.round(trendPercent * 10) / 10,
+    monthComparison,
+    bestDay: bestDay ? { date: bestDay.date, liters: bestDay.liters } : null,
+    worstDay: worstDay ? { date: worstDay.date, liters: worstDay.liters } : null,
+    totalMonth: Math.round(totalMonth),
+    daysRecorded: last30.length,
+  };
+};
+
 export const renderSummary = () => {
   const price = Number(state.priceQuote || 0);
   const today = todayIso();
@@ -219,6 +287,59 @@ export const renderSummary = () => {
   if (el.animalTotal) el.animalTotal.textContent = String(state.animals.length);
   const lactating = state.animals.filter((a) => a.status === "Em lactação").length;
   if (el.lactatingTotal) el.lactatingTotal.textContent = `${lactating} em lactação`;
+
+  // Trend analysis panel
+  const trend = calculateProductionTrend();
+  let trendPanel = document.getElementById("trendPanel");
+  if (!trendPanel) {
+    trendPanel = document.createElement("div");
+    trendPanel.id = "trendPanel";
+    const summaryGrid = document.querySelector(".summary-grid");
+    if (summaryGrid && summaryGrid.parentNode) {
+      summaryGrid.parentNode.insertBefore(trendPanel, summaryGrid.nextSibling);
+    }
+  }
+  if (trend.hasData) {
+    const trendIcon = trend.trendDirection === "up" ? "📈" : trend.trendDirection === "down" ? "📉" : "➡️";
+    const monthIcon = trend.monthComparison?.direction === "up" ? "📈" : trend.monthComparison?.direction === "down" ? "📉" : "➡️";
+
+    trendPanel.innerHTML = `
+      <div class="production-trend-panel">
+        <div class="trend-header">
+          <span>${trendIcon}</span>
+          <strong>Tendência de Produção</strong>
+        </div>
+        <div class="trend-grid">
+          <div class="trend-card">
+            <small>Média 7 dias</small>
+            <strong>${trend.last7Avg} L/dia</strong>
+            ${trend.prev7Avg ? `<span class="trend-change ${trend.trendDirection}">${trend.trendPercent > 0 ? "+" : ""}${trend.trendPercent}% vs semana anterior</span>` : ""}
+          </div>
+          ${trend.monthComparison ? `
+            <div class="trend-card">
+              <small>${monthIcon} Comparativo mensal</small>
+              <strong>${trend.monthComparison.direction === "up" ? "↑" : trend.monthComparison.direction === "down" ? "↓" : "→"} ${Math.abs(trend.monthComparison.percent).toFixed(1)}%</strong>
+              <span class="trend-change ${trend.monthComparison.direction}">Mês atual vs anterior</span>
+            </div>
+          ` : ""}
+          ${trend.bestDay ? `
+            <div class="trend-card">
+              <small>🏆 Melhor dia (30d)</small>
+              <strong>${formatDate(trend.bestDay.date)}</strong>
+              <span class="trend-change up">${trend.bestDay.liters} L</span>
+            </div>
+          ` : ""}
+          <div class="trend-card">
+            <small>📊 Total no mês</small>
+            <strong>${trend.totalMonth} L</strong>
+            <span class="trend-change neutral">${trend.daysRecorded} dias registrados</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    trendPanel.innerHTML = "";
+  }
 };
 
 export const setupPeriodFilter = () => {
@@ -406,8 +527,95 @@ export const renderUpcomingReapplications = () => {
   `;
 };
 
+/**
+ * Detects chronic treatment patterns for each animal.
+ * Flags cows that received the same medication 3+ times in the last 30 days.
+ * @returns {Array} Array of chronic treatment alerts
+ */
+export const detectChronicTreatments = () => {
+  const today = todayIso();
+  const thirtyDaysAgo = addDaysIso(today, -30);
+  const chronicAlerts = [];
+  
+  // Group medications by cow_id
+  const cowMedications = {};
+  state.medication.forEach((m) => {
+    if (!m.administration_date || !m.cow_id || !m.medication_name) return;
+    if (m.administration_date < thirtyDaysAgo) return;
+    
+    const key = `${m.cow_id}|${m.medication_name.toLowerCase().trim()}`;
+    if (!cowMedications[key]) {
+      cowMedications[key] = { cow_id: m.cow_id, medication_name: m.medication_name, count: 0, dates: [] };
+    }
+    cowMedications[key].count++;
+    cowMedications[key].dates.push(m.administration_date);
+  });
+  
+  // Find chronic patterns (3+ treatments in 30 days)
+  Object.values(cowMedications).forEach((data) => {
+    if (data.count < 3) return;
+    
+    const animal = state.animals.find((a) => String(a.id) === String(data.cow_id));
+    const animalName = animal?.identification || data.cow_id || "";
+    
+    chronicAlerts.push({
+      animal_name: animalName,
+      cow_id: data.cow_id,
+      medication_name: data.medication_name,
+      treatment_count: data.count,
+      dates: data.dates.sort(),
+      message: `${animalName} recebeu ${data.medication_name} ${data.count} vezes nos últimos 30 dias`,
+    });
+  });
+  
+  return chronicAlerts;
+};
+
+/**
+ * Renders chronic treatment warnings in the medication panel.
+ */
+export const renderChronicTreatments = () => {
+  const container = $("#chronicTreatments");
+  if (!container) return;
+  
+  const chronicAlerts = detectChronicTreatments();
+  
+  if (chronicAlerts.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="chronic-treatment-panel">
+      <div class="chronic-header">
+        <span>⚠️</span>
+        <strong>Tratamentos Recorrentes</strong>
+        <span class="chronic-count">${chronicAlerts.length}</span>
+      </div>
+      <div class="chronic-list">
+        ${chronicAlerts.map((alert) => `
+          <div class="chronic-item">
+            <div class="chronic-info">
+              <span class="chronic-animal">${escapeHtml(alert.animal_name)}</span>
+              <span class="chronic-med">${escapeHtml(alert.medication_name)}</span>
+              <span class="chronic-count-label">${alert.treatment_count} aplicações em 30 dias</span>
+            </div>
+            <div class="chronic-dates">
+              ${alert.dates.map((d) => `<span class="chronic-date">${formatDate(d)}</span>`).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="chronic-advice">
+        <small>💡 Considere consultar um veterinário sobre padrões recorrentes de tratamento.</small>
+      </div>
+    </div>
+  `;
+};
+
 export const renderMedication = (selectedMedicationCowId) => {
   renderUpcomingReapplications();
+  renderChronicTreatments();
   const profiles = getMedicationCowProfiles();
   const selectedProfile = getSelectedMedicationProfile(profiles, selectedMedicationCowId);
   const medCowSelect = $("#medCowId");
@@ -580,6 +788,75 @@ const debounce = (fn, ms = 16) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
+};
+
+/**
+ * Renders a contextual summary banner on login showing urgent items.
+ */
+export const renderLoginSummary = () => {
+  const container = $("#loginSummary");
+  if (!container) return;
+  
+  const today = todayIso();
+  const items = [];
+  
+  // Overdue medications
+  state.medication.forEach((m) => {
+    if (!m.administration_date) return;
+    const reapply = getNextReapplyDate(m);
+    if (!reapply) return;
+    if (reapply.daysUntil < 0) {
+      const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+      const name = animal?.identification || m.cow_id || "";
+      items.push({ type: "overdue", text: `${m.medication_name} — ${name} (${Math.abs(reapply.daysUntil)} dia${Math.abs(reapply.daysUntil) === 1 ? "" : "s"} atrasado)`, icon: "🔴" });
+    }
+  });
+  
+  // Today's calvings
+  state.breeding.forEach((b) => {
+    if (b.expected_calving_date === today) {
+      const animal = state.animals.find((a) => a.id === b.cow_id);
+      items.push({ type: "today", text: `Parto previsto hoje: ${animal?.identification || b.cow_id}`, icon: "🐄" });
+    }
+  });
+  
+  // Low stock
+  state.stockItems.forEach((item) => {
+    const qty = Number(item.quantity || 0);
+    const minQty = item.min_quantity === null || item.min_quantity === undefined ? null : Number(item.min_quantity);
+    if (minQty !== null && qty <= minQty) {
+      items.push({ type: "stock", text: `Estoque baixo: ${item.item_name} (${qty} restante${qty === 1 ? "" : "s"})`, icon: "📦" });
+    }
+  });
+  
+  // No milk registered today (after 8am)
+  const hour = new Date().getHours();
+  if (hour >= 8 && !state.milk.some((r) => r.date === today)) {
+    items.push({ type: "milk", text: "Produção de leite de hoje não registrada", icon: "🥛" });
+  }
+  
+  if (items.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="login-summary-banner">
+      <div class="login-summary-header">
+        <span class="login-summary-icon">📋</span>
+        <strong>Resumo do dia</strong>
+        <span class="login-summary-count">${items.length}</span>
+      </div>
+      <div class="login-summary-list">
+        ${items.map((item) => `
+          <div class="login-summary-item ${item.type}">
+            <span>${item.icon}</span>
+            <span>${escapeHtml(item.text)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
 };
 
 // ─── Master render (debounced) ──────────────────────────────────────────────
