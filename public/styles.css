@@ -1644,15 +1644,33 @@ button[type="submit"]:active,
   text-align: center;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   FICHA MÉDICA — Redesign
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .medical-workspace {
   display: grid;
-  gap: 14px;
+  gap: var(--space-5);
 }
 
+/* ── Cow Tabs (Horizontal scroll) ── */
 .medical-cow-tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.medical-cow-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+.medical-cow-tabs::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: var(--radius-full);
 }
 
 .medical-cow-tab,
@@ -1660,22 +1678,37 @@ button[type="submit"]:active,
 .filter-btn,
 .category-btn,
 .animal-tab {
-    color: #4b5563 !important;
-    -webkit-text-fill-color: #4b5563 !important; /* Corrige bug do iOS */
+  color: var(--ink-secondary) !important;
+  -webkit-text-fill-color: var(--ink-secondary) !important;
 }
 
 .medical-cow-tab {
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  color: #10a981 !important;
-  -webkit-text-fill-color: #10a981 !important;
+  flex: 0 0 auto;
+  min-width: 140px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-lg) !important;
+  border-left: 3px solid var(--line) !important;
+  background: var(--panel) !important;
+  box-shadow: var(--shadow-xs) !important;
+  color: var(--ink-secondary) !important;
+  -webkit-text-fill-color: var(--ink-secondary) !important;
+  text-align: left;
+  scroll-snap-align: start;
+  transition: all var(--transition) !important;
+  cursor: pointer;
 }
 
 .medical-cow-tab:hover {
-  background: transparent !important;
-  border-color: transparent !important;
-  transform: none !important;
+  background: var(--green-soft) !important;
+  border-color: var(--green-vivid) !important;
+  border-left-color: var(--green-vivid) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .medical-cow-tab.active,
@@ -1683,102 +1716,218 @@ button[type="submit"]:active,
 .filter-btn.active,
 .category-btn.active,
 .animal-tab.active {
-  color: #10a981 !important;
-  -webkit-text-fill-color: #10a981 !important;
+  background: var(--green-soft) !important;
+  border-color: var(--green-vivid) !important;
+  border-left-color: var(--green) !important;
+  color: var(--green-dark) !important;
+  -webkit-text-fill-color: var(--green-dark) !important;
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(16, 169, 129, 0.15) !important;
 }
 
 .medical-cow-tab span {
-  font-weight: 900;
+  font-weight: 700;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  color: inherit;
 }
 
 .medical-cow-tab small {
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 500;
+  font-size: 0.76rem;
 }
 
 .medical-cow-tab em {
   color: var(--green-dark);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 600;
+  margin-top: 2px;
 }
 
+/* ── Medical Record Card ── */
 .medical-record-card {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius-lg);
   background: var(--panel);
+  box-shadow: var(--shadow-sm);
 }
 
 .medical-record-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
+}
+
+.medical-record-head > div {
+  display: flex;
+  flex-direction: column;
 }
 
 .medical-record-head span {
-  color: var(--green-dark);
-  font-size: 0.76rem;
-  font-weight: 900;
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .medical-record-head h3 {
   margin: 2px 0 3px;
   color: var(--ink);
-  font-size: 1.15rem;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .medical-record-head small {
   color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .medical-record-head > strong {
-  padding: 7px 10px;
-  border-radius: 999px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
   background: var(--green-light);
   color: var(--green-dark);
   font-size: 0.78rem;
+  font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
+/* ── Summary Cards ── */
 .medical-record-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .medical-record-summary span {
   display: grid;
-  gap: 3px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
   background: var(--field);
+  transition: border-color var(--transition-fast);
+}
+
+.medical-record-summary span:hover {
+  border-color: var(--green-vivid);
 }
 
 .medical-record-summary small {
   color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 800;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .medical-record-summary strong {
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
+/* ── Medical History (Timeline) ── */
 .medical-history {
   display: grid;
-  gap: 6px;
+  gap: 0;
+  position: relative;
+}
+
+.medical-history::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--green-vivid) 0%, var(--line) 100%);
+  border-radius: var(--radius-full);
 }
 
 .medical-history-item {
-  background: var(--field);
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-8);
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-height: 52px;
+  position: relative;
+}
+
+.medical-history-item::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green-vivid);
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 2px var(--green-vivid);
+  z-index: 1;
+}
+
+.medical-history-item:first-child::before {
+  background: var(--green);
+  box-shadow: 0 0 0 2px var(--green);
+}
+
+.medical-history-item:hover {
+  background: var(--green-soft) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.medical-history-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.medical-history-item span {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.medical-history-item small {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.medical-history-item > strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green-dark);
+  background: var(--green-light);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* ── Medical History Actions ── */
+.medical-history-item .item-actions {
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.medical-history-item:hover .item-actions {
+  opacity: 1;
 }
 
 .price-quote-value {
@@ -2803,8 +2952,14 @@ button[type="submit"]:active,
 /* ===== RESPONSIVE ===== */
 @media (max-width: 620px) { 
   .client-summary, .payment-panel, .modal-actions { grid-template-columns: 1fr; } 
-  .medical-record-head { align-items: flex-start; flex-direction: column; } 
-  .medical-record-summary { grid-template-columns: 1fr; } 
+  .medical-record-head { align-items: flex-start; flex-direction: column; }
+  .medical-record-head > strong { align-self: flex-start; }
+  .medical-record-summary { grid-template-columns: 1fr; }
+  .medical-cow-tabs { gap: var(--space-2); }
+  .medical-cow-tab { min-width: 120px; padding: var(--space-2) var(--space-3); }
+  .medical-record-card { padding: var(--space-4); }
+  .medical-history-item { grid-template-columns: auto 1fr auto; padding-left: var(--space-8); }
+  .medical-history-item > strong { grid-column: 2 / -1; justify-self: start; margin-top: 2px; }
   .onboarding-card { padding: 22px 18px; } 
 }
 

@@ -330,7 +330,7 @@ const renderMedicalCowRecord = (profile) => {
         <span><small>Última aplicação</small><strong>${escapeHtml(last ? formatDate(last.administration_date) : "-")}</strong></span>
         <span><small>Último medicamento</small><strong>${escapeHtml(last?.medication_name || "-")}</strong></span>
       </div>
-      <div class="medical-history">${records.length ? records.map((r) => `<article class="item medical-history-item"><div><span>${escapeHtml(r.medication_name)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(r.dosage ? r.dosage + " ml" : "Sem dosagem")}</strong>${recordActions("medication", r)}</article>`).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
+      <div class="medical-history">${records.length ? records.map((r, i) => `<article class="item medical-history-item"><div><span>${escapeHtml(r.medication_name)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(r.dosage ? r.dosage + " ml" : "Sem dosagem")}</strong>${recordActions("medication", r)}</article>`).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
     </article>`;
 };
 
@@ -345,7 +345,9 @@ export const renderMedication = (selectedMedicationCowId) => {
       <div class="medical-cow-tabs" role="tablist" aria-label="Fichas médicas das vacas">${profiles.map((p) => {
         const active = (p.ids || [p.id]).some((id) => (selectedProfile?.ids || [selectedProfile?.id]).some((sid) => cowIdKey(id) === cowIdKey(sid)));
         const last = p.records[0];
-        return `<button class="medical-cow-tab ${active ? "active" : ""}" type="button" data-medical-cow-id="${escapeHtml(p.id)}" role="tab" aria-selected="${active ? "true" : "false"}"><span>${escapeHtml(p.label)}</span><small>${escapeHtml(`${p.records.length} ${p.records.length === 1 ? "registro" : "registros"}`)}</small><em>${escapeHtml(last ? formatDate(last.administration_date) : "Sem medicação")}</em></button>`;
+        const countText = `${p.records.length} ${p.records.length === 1 ? "registro" : "registros"}`;
+        const dateText = last ? formatDate(last.administration_date) : "Sem medicação";
+        return `<button class="medical-cow-tab ${active ? "active" : ""}" type="button" data-medical-cow-id="${escapeHtml(p.id)}" role="tab" aria-selected="${active ? "true" : "false"}"><span>${escapeHtml(p.label)}</span><small>${escapeHtml(countText)}</small><em>${escapeHtml(dateText)}</em></button>`;
       }).join("")}</div>
       <div class="medical-record-panel" role="tabpanel">${selectedProfile ? renderMedicalCowRecord(selectedProfile) : empty("Selecione uma vaca para abrir a ficha médica", "medical")}</div>
     </div>`;
