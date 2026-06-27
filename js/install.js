@@ -1,7 +1,8 @@
 // ─── Install Prompt Module ──────────────────────────────────────────────────
 // Lógica de instalação PWA e prompt de instalação
 
-import { $, showToast } from "./ui.js";
+import { $ } from "./state.js";
+import { showToast } from "./ui.js";
 
 const installPromptModal = $("#installPromptModal");
 const installPromptTitle = $("#installPromptTitle");
