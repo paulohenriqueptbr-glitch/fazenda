@@ -10,7 +10,7 @@
 <title>Terrasyn</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<script>!function(){var e=localStorage.getItem("terrasyn-theme");e||(e=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"),document.documentElement.setAttribute("data-theme",e)}()</script>
+<script>!function(){try{var e=localStorage.getItem("terrasyn-theme");if(!e){e=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",e)}catch(err){document.documentElement.setAttribute("data-theme","light")}}()</script>
 <link rel="stylesheet" href="styles.css?v=29">
 
 <!--
@@ -578,10 +578,7 @@
 </div>
 
 <!--
-  SEGURANÇA: SRI nos scripts externos.
-  Ao atualizar a versão de uma biblioteca, execute "bash generate-sri.sh"
-  e substitua o hash correspondente. O atributo crossorigin="anonymous"
-  é obrigatório para SRI funcionar.
+  
 -->
 
 <!-- supabase-js local para evitar bloqueio de CDN no login -->

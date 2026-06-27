@@ -349,6 +349,8 @@ const initApp = () => {
   if (themeToggleBtn && !themeToggleBtn._listenerAttached) {
     themeToggleBtn._listenerAttached = true;
     const initialTheme = getPreferredTheme();
+    // Garante que o atributo data-theme está correto (redundância de segurança)
+    document.documentElement.setAttribute("data-theme", initialTheme);
     updateThemeToggleIcon(initialTheme);
     themeToggleBtn.addEventListener("click", () => {
       const newTheme = toggleTheme();
