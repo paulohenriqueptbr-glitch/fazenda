@@ -253,26 +253,26 @@ export const renderMilk = () => {
       const ps = getProductionStatus(Number(r.liters || 0), monthAverage);
       return `<article class="item" data-milk-id="${escapeHtml(r.id)}"><div><div class="item-title-row"><span>${escapeHtml(formatDate(r.date))}</span>${createStatusBadge(ps)}</div><small>${escapeHtml(formatMoney(price))} por litro</small></div><strong>${escapeHtml(formatLiters(r.liters))} | ${escapeHtml(formatMoney(Number(r.liters) * price))}</strong>${recordActions("milk", r)}</article>`;
     }).join("")
-    : empty("Nenhuma produção registrada.");
+    : empty("Nenhuma produção registrada", "milk");
 };
 
 export const renderAnimals = () => {
   el.animalList.innerHTML = state.animals.length
     ? state.animals.map((a) => `<article class="item" data-animal-id="${escapeHtml(a.id)}"><div><span>${escapeHtml(a.identification)}</span><small>${escapeHtml(a.type)}</small></div><strong>${escapeHtml(a.status)}</strong>${recordActions("animal", a)}</article>`).join("")
-    : empty("Nenhum animal cadastrado.");
+    : empty("Nenhum animal cadastrado", "animal");
 };
 
 export const renderLactations = () => {
   if (!el.lactationList) return;
   el.lactationList.innerHTML = state.lactations.length
     ? state.lactations.map((r) => `<article class="item"><div><span>${escapeHtml(animalLabel(r.cow_id))}</span><small>${escapeHtml(formatDate(r.start_date))} -> ${r.end_date ? escapeHtml(formatDate(r.end_date)) : "atual"}</small></div><strong>${escapeHtml(formatLiters(r.daily_liters))} / dia</strong>${recordActions("lactation", r)}</article>`).join("")
-    : empty("Nenhuma lactação registrada.");
+    : empty("Nenhuma lactação registrada", "milk");
 };
 
 export const renderBreeding = () => {
   el.breedingList.innerHTML = state.breeding.length
     ? state.breeding.map((r) => `<article class="item"><div><span>${escapeHtml(animalLabel(r.cow_id))}</span><small>Prenhez: ${escapeHtml(formatDate(r.insemination_date))}</small></div><strong>Parto: ${escapeHtml(formatDate(r.expected_calving_date))}</strong>${recordActions("breeding", r)}</article>`).join("")
-    : empty("Nenhuma reprodução registrada.");
+    : empty("Nenhuma reprodução registrada", "breeding");
 };
 
 // ─── Medication profiles ────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ const renderMedicalCowRecord = (profile) => {
         <span><small>Última aplicação</small><strong>${escapeHtml(last ? formatDate(last.administration_date) : "-")}</strong></span>
         <span><small>Último medicamento</small><strong>${escapeHtml(last?.medication_name || "-")}</strong></span>
       </div>
-      <div class="medical-history">${records.length ? records.map((r) => `<article class="item medical-history-item"><div><span>${escapeHtml(r.medication_name)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(r.dosage ? r.dosage + " ml" : "Sem dosagem")}</strong>${recordActions("medication", r)}</article>`).join("") : empty("Nenhuma medicação registrada para esta vaca.")}</div>
+      <div class="medical-history">${records.length ? records.map((r) => `<article class="item medical-history-item"><div><span>${escapeHtml(r.medication_name)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(r.dosage ? r.dosage + " ml" : "Sem dosagem")}</strong>${recordActions("medication", r)}</article>`).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
     </article>`;
 };
 
@@ -338,7 +338,7 @@ export const renderMedication = (selectedMedicationCowId) => {
   const profiles = getMedicationCowProfiles();
   const selectedProfile = getSelectedMedicationProfile(profiles, selectedMedicationCowId);
   const medCowSelect = $("#medCowId");
-  if (!profiles.length) { el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica."); return; }
+  if (!profiles.length) { el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica", "medication"); return; }
   if (selectedProfile && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedProfile.id))) medCowSelect.value = selectedProfile.id;
   el.medicationList.innerHTML = `
     <div class="medical-workspace">
@@ -347,7 +347,7 @@ export const renderMedication = (selectedMedicationCowId) => {
         const last = p.records[0];
         return `<button class="medical-cow-tab ${active ? "active" : ""}" type="button" data-medical-cow-id="${escapeHtml(p.id)}" role="tab" aria-selected="${active ? "true" : "false"}"><span>${escapeHtml(p.label)}</span><small>${escapeHtml(`${p.records.length} ${p.records.length === 1 ? "registro" : "registros"}`)}</small><em>${escapeHtml(last ? formatDate(last.administration_date) : "Sem medicação")}</em></button>`;
       }).join("")}</div>
-      <div class="medical-record-panel" role="tabpanel">${selectedProfile ? renderMedicalCowRecord(selectedProfile) : empty("Selecione uma vaca para abrir a ficha médica.")}</div>
+      <div class="medical-record-panel" role="tabpanel">${selectedProfile ? renderMedicalCowRecord(selectedProfile) : empty("Selecione uma vaca para abrir a ficha médica", "medical")}</div>
     </div>`;
 };
 
@@ -360,7 +360,7 @@ export const renderCropEvents = () => {
       const areaLabel = formatTasks(r.area_tasks);
       return `<article class="item"><div><span>${escapeHtml(r.plot_name)} - ${escapeHtml(r.event_type)}</span><small>${escapeHtml(formatDate(r.event_date))} | ${escapeHtml(r.crop_name)}</small>${details.length ? `<small>${escapeHtml(details.join(" | "))}</small>` : ""}${r.notes ? `<small>${escapeHtml(r.notes)}</small>` : ""}</div><strong>${escapeHtml(areaLabel || r.event_type)}</strong>${recordActions("crop", r)}</article>`;
     }).join("")
-    : empty("Nenhum manejo de lavoura registrado.");
+    : empty("Nenhum manejo de lavoura registrado", "crop");
 };
 
 export const renderStockItems = () => {
@@ -377,7 +377,7 @@ export const renderStockItems = () => {
       const details = [r.category || "Estoque", minQty !== null ? `Minimo: ${formatStockQuantity(minQty, r.unit)}` : "", r.notes || ""].filter(Boolean);
       return `<article class="item ${isLow ? "stock-low" : ""}"><div><span>${escapeHtml(r.item_name)}</span><small>${escapeHtml(details.join(" | "))}</small></div><strong>${escapeHtml(`${formatStockQuantity(qty, r.unit)}${isLow ? " | baixo" : ""}`)}</strong>${recordActions("stock", r)}</article>`;
     }).join("")
-    : empty("Nenhum item em estoque cadastrado.");
+    : empty("Nenhum item em estoque cadastrado", "stock");
 };
 
 // ─── Alerts ─────────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ export const renderAlerts = () => {
   if (el.alertTodayTotal) el.alertTodayTotal.textContent = String(counts.today);
   if (el.alertWeekTotal) el.alertWeekTotal.textContent = String(counts.week);
   if (el.alertOpenTotal) el.alertOpenTotal.textContent = String(counts.open);
-  el.alertList.innerHTML = alerts.length ? alerts.map(renderAlertItem).join("") : empty("Nenhum alerta no momento.");
+  el.alertList.innerHTML = alerts.length ? alerts.map(renderAlertItem).join("") : empty("Nenhum alerta no momento", "alert");
 };
 
 // ─── Weather ────────────────────────────────────────────────────────────────
@@ -416,7 +416,14 @@ export const renderWeatherForecast = (data) => {
 
 export const loadWeatherForecast = async (city) => {
   if (!el.weatherForecast) return;
-  el.weatherForecast.innerHTML = `<p class="empty">Buscando previsao...</p>`;
+  el.weatherForecast.innerHTML = `
+    <div class="weather-header skeleton skeleton-card">
+      <span>Previsão do tempo</span>
+      <strong>Carregando...</strong>
+    </div>
+    <div class="weather-grid">
+      ${[1,2,3].map(() => '<article class="weather-day skeleton skeleton-card"><span>&nbsp;</span><strong>&nbsp;</strong><small>&nbsp;</small></article>').join('')}
+    </div>`;
   const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
@@ -426,6 +433,13 @@ export const loadWeatherForecast = async (city) => {
 
 // ─── Reports ────────────────────────────────────────────────────────────────
 let productionChart = null;
+
+const destroyChart = () => {
+  if (productionChart) {
+    productionChart.destroy();
+    productionChart = null;
+  }
+};
 
 const buildMonthlyReport = () => {
   const price = Number(state.priceQuote || 0);
@@ -458,10 +472,13 @@ export const renderReports = () => {
   }
   if (chartRecords.length > 0 && window.Chart && el.productionChart) {
     const ctx = el.productionChart.getContext ? el.productionChart : document.createElement("canvas");
-    if (!productionChart) {
-      el.productionChart.innerHTML = "";
-      el.productionChart.appendChild(ctx);
-      productionChart = new window.Chart(ctx, {
+
+    // Destrói chart anterior antes de criar novo (previne memory leak)
+    destroyChart();
+
+    el.productionChart.innerHTML = "";
+    el.productionChart.appendChild(ctx);
+    productionChart = new window.Chart(ctx, {
         type: "line",
         data: {
           labels: chartRecords.map((r) => formatDate(r.date)),
@@ -476,17 +493,26 @@ export const renderReports = () => {
           scales: { y: { beginAtZero: true, ticks: { callback: (v) => formatLiters(v) } } },
         },
       });
-    } else {
-      productionChart.data.labels = chartRecords.map((r) => formatDate(r.date));
-      productionChart.data.datasets[0].data = chartRecords.map((r) => Number(r.liters || 0));
-      productionChart.data.datasets[1].data = chartRecords.map(() => report.average);
-      productionChart.update();
-    }
+  } else {
+    destroyChart();
   }
 };
 
-// ─── Master render ──────────────────────────────────────────────────────────
-export const render = (selectedMedicationCowId) => {
+// ─── Debounce helper ────────────────────────────────────────────────────────
+const debounce = (fn, ms = 16) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+};
+
+// ─── Master render (debounced) ──────────────────────────────────────────────
+let _renderScheduled = false;
+let _pendingMedicationCowId = null;
+
+const _doRender = () => {
+  _renderScheduled = false;
   renderClientPanel();
   renderPriceQuote();
   renderSummary();
@@ -494,12 +520,30 @@ export const render = (selectedMedicationCowId) => {
   renderAnimals();
   renderLactations();
   renderBreeding();
-  renderMedication(selectedMedicationCowId);
+  renderMedication(_pendingMedicationCowId);
   renderCropEvents();
   renderStockItems();
   renderAlerts();
   renderReports();
 };
+
+export const render = (selectedMedicationCowId) => {
+  _pendingMedicationCowId = selectedMedicationCowId ?? _pendingMedicationCowId;
+  if (_renderScheduled) return;
+  _renderScheduled = true;
+  // Use requestAnimationFrame para batch de updates visuais
+  if (typeof requestAnimationFrame !== "undefined") {
+    requestAnimationFrame(_doRender);
+  } else {
+    setTimeout(_doRender, 0);
+  }
+};
+
+// Versão debounce para chamadas externas que podem ser frecuentes
+export const debouncedRender = debounce((selectedMedicationCowId) => {
+  _pendingMedicationCowId = selectedMedicationCowId ?? _pendingMedicationCowId;
+  _doRender();
+}, 50);
 
 // ─── Populate cow selects ───────────────────────────────────────────────────
 export const populateCowSelects = () => {

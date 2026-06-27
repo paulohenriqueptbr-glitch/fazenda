@@ -87,38 +87,73 @@ const validateSyncPayload = (type, action, payload) => {
   return Object.keys(payload).every((k) => allowed.includes(k));
 };
 
+// ─── Load all pages from a table ─────────────────────────────────────────────
+const loadAllPages = async (table, options = {}) => {
+  const { orderBy = "created_at", ascending = false, isOptional = false } = options;
+  const PAGE_SIZE = 1000;
+  let allData = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const { data, error } = await db
+        .from(table)
+        .select("*")
+        .order(orderBy, { ascending })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) {
+        if (isOptional && isMissingOptionalTable(error, table)) {
+          return asArray(readLocal()[table] || []);
+        }
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        offset += PAGE_SIZE;
+        hasMore = data.length === PAGE_SIZE;
+      } else {
+        hasMore = false;
+      }
+    } catch (err) {
+      if (isOptional && isMissingOptionalTable(err, table)) {
+        return asArray(readLocal()[table] || []);
+      }
+      throw err;
+    }
+  }
+
+  return allData;
+};
+
 // ─── Load from Supabase ─────────────────────────────────────────────────────
 export const loadSupabase = async (loadAppSettingsFn) => {
   setStatus("Sincronizando", "syncing");
   await requireSession();
 
-  const [milkResult, animalResult, lactationResult, breedingResult, medicationResult, cropResult, stockResult, reminderResult] = await Promise.all([
-    db.from("milk_records").select("*").order("date", { ascending: false }).range(0, 99),
-    db.from("animals").select("*").order("created_at", { ascending: false }).range(0, 99),
-    db.from("lactation_records").select("*").order("start_date", { ascending: false }).range(0, 99),
-    db.from("breeding_records").select("*").order("insemination_date", { ascending: false }).range(0, 99),
-    db.from("medication_records").select("*").order("administration_date", { ascending: false }).range(0, 99),
-    db.from("crop_events").select("*").order("event_date", { ascending: false }).range(0, 99),
-    db.from("stock_items").select("*").order("item_name", { ascending: true }).range(0, 99),
-    db.from("reminders").select("*").order("due_date", { ascending: true }).range(0, 99),
+  // Carrega todos os registros de cada tabela (com paginação completa)
+  const [milk, animals, lactations, breeding, medication, cropEvents, stockItems, reminders] = await Promise.all([
+    loadAllPages("milk_records", { orderBy: "date", ascending: false }),
+    loadAllPages("animals", { orderBy: "created_at", ascending: false }),
+    loadAllPages("lactation_records", { orderBy: "start_date", ascending: false }),
+    loadAllPages("breeding_records", { orderBy: "insemination_date", ascending: false }),
+    loadAllPages("medication_records", { orderBy: "administration_date", ascending: false }),
+    loadAllPages("crop_events", { orderBy: "event_date", ascending: false, isOptional: true }),
+    loadAllPages("stock_items", { orderBy: "item_name", ascending: true, isOptional: true }),
+    loadAllPages("reminders", { orderBy: "due_date", ascending: true, isOptional: true }),
   ]);
 
-  const error = milkResult.error || animalResult.error || lactationResult.error || breedingResult.error ||
-    medicationResult.error ||
-    (isMissingOptionalTable(cropResult.error, "crop_events") ? null : cropResult.error) ||
-    (isMissingOptionalTable(stockResult.error, "stock_items") ? null : stockResult.error) ||
-    (isMissingOptionalTable(reminderResult.error, "reminders") ? null : reminderResult.error);
+  state.milk = milk;
+  state.animals = animals;
+  state.lactations = lactations;
+  state.breeding = breeding;
+  state.medication = medication;
+  state.cropEvents = cropEvents;
+  state.stockItems = stockItems;
+  state.reminders = reminders;
 
-  if (error) throw error;
-
-  state.milk = milkResult.data || [];
-  state.animals = animalResult.data || [];
-  state.lactations = lactationResult.data || [];
-  state.breeding = breedingResult.data || [];
-  state.medication = medicationResult.data || [];
-  state.cropEvents = isMissingOptionalTable(cropResult.error, "crop_events") ? asArray(readLocal().cropEvents) : (cropResult.data || []);
-  state.stockItems = isMissingOptionalTable(stockResult.error, "stock_items") ? asArray(readLocal().stockItems) : (stockResult.data || []);
-  state.reminders = isMissingOptionalTable(reminderResult.error, "reminders") ? asArray(readLocal().reminders) : (reminderResult.data || []);
   await loadAppSettingsFn();
   setStatus("Online", "online");
 };

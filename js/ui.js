@@ -73,7 +73,26 @@ export const addInlineValidation = (inputEl, validateFn) => {
   inputEl.addEventListener("input", () => { if (inputEl.classList.contains("input-error")) validate(); });
 };
 
-export const empty = (text) => `<p class="empty">${escapeHtml(text)}</p>`;
+// ─── Empty states ilustrados ────────────────────────────────────────────────
+const emptyIcons = {
+  milk: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l2 6H6l2-6z"/><path d="M6 8v10a2 2 0 002 2h8a2 2 0 002-2V8"/></svg>`,
+  animal: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.172C10 3.782 8.883 2.3 7.5 2.3S5 3.782 5 5.172c0 1.39 2.5 3.828 2.5 3.828S10 6.562 10 5.172z"/><path d="M19 5.172C19 3.782 17.883 2.3 16.5 2.3S14 3.782 14 5.172c0 1.39 2.5 3.828 2.5 3.828S19 6.562 19 5.172z"/><path d="M12 22c-4 0-7-2-7-5 0-2 1-3 2-4l1-1c1-1 2-2 4-2s3 1 4 2l1 1c1 1 2 2 2 4 0 3-3 5-7 5z"/></svg>`,
+  breeding: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></svg>`,
+  medication: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4-8 8-4-4 8-8z"/><path d="M9 15l-4 4"/><path d="M7 12l-4 4"/><path d="M12 12l-3 3"/><path d="M15 9l-3 3"/></svg>`,
+  crop: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0020 0h-3"/><path d="M12 8a6 6 0 00-6-6c0 3 2 5 6 6"/><path d="M12 8a6 6 0 016-6c0 3-2 5-6 6"/></svg>`,
+  stock: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>`,
+  alert: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>`,
+  medical: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+  default: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>`,
+};
+
+export const empty = (text, type = "default") => {
+  const icon = emptyIcons[type] || emptyIcons.default;
+  return `<div class="empty-state" data-type="${escapeHtml(type)}">
+    <div class="empty-state-icon">${icon}</div>
+    <p class="empty-state-title">${escapeHtml(text)}</p>
+  </div>`;
+};
 
 // ─── Normalização de inputs ─────────────────────────────────────────────────
 export const normalizeCropEventInput = (data) => {

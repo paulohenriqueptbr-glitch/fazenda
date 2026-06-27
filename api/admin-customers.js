@@ -1,4 +1,5 @@
 const { sendJson, timingSafeEqual, pickEnv, fetchSupabaseJson } = require("./utils");
+const { validateEnvOrError } = require("./validate-env");
 
 const allowedStatuses = new Set(["trial", "active", "overdue", "blocked", "canceled"]);
 const CLIENT_PROFILE_KEY = "client_profile";
@@ -101,6 +102,11 @@ module.exports = async function handler(request, response) {
     return;
   }
 
+  // Validação de env vars
+  if (!validateEnvOrError(request, response, ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ADMIN_TOKEN"])) {
+    return;
+  }
+
   if (isAdminRateLimited(request)) {
     sendJson(response, 429, { error: "Muitas tentativas. Tente novamente mais tarde." });
     return;
@@ -116,24 +122,37 @@ module.exports = async function handler(request, response) {
 
   if (request.method === "GET") {
     try {
+      // Busca apenas settings dos usuários que existem (evita expor todos os Auth users)
       const settingsUrl = `${supabaseUrl}/rest/v1/app_settings?select=user_id,key,value,updated_at&key=in.(${CLIENT_PROFILE_KEY},${PRICE_QUOTE_KEY},${SUBSCRIPTION_ADMIN_KEY})&order=updated_at.desc`;
       const settings = await fetchSupabaseJson(settingsUrl, serviceRoleKey);
-      let users = [];
 
-      try {
-        const authData = await fetchSupabaseJson(`${supabaseUrl}/auth/v1/admin/users?per_page=1000`, serviceRoleKey);
-        users = authData.users || [];
-      } catch {
-        users = [];
+      // Coleta user_ids únicos das settings (usuários reais do sistema)
+      const userIds = [...new Set(settings.map((s) => s.user_id).filter(Boolean))];
+
+      // Busca emails apenas dos usuários que têm settings (paginado)
+      const usersMap = new Map();
+      const PAGE_SIZE = 100;
+      for (let offset = 0; offset < userIds.length; offset += PAGE_SIZE) {
+        const chunk = userIds.slice(offset, offset + PAGE_SIZE);
+        try {
+          const filter = chunk.map((id) => `id:eq.${id}`).join(",");
+          const authUrl = `${supabaseUrl}/auth/v1/admin/users?select=id,email,created_at&${filter}`;
+          const authData = await fetchSupabaseJson(authUrl, serviceRoleKey);
+          (authData.users || []).forEach((u) => usersMap.set(u.id, u));
+        } catch {
+          // Ignora erro - usuários sem email ficam com string vazia
+        }
       }
 
       const customers = new Map();
 
-      users.forEach((user) => {
-        customers.set(user.id, {
-          userId: user.id,
-          email: user.email || "",
-          createdAt: user.created_at || "",
+      // Inicializa apenas usuários que têm settings
+      userIds.forEach((userId) => {
+        const user = usersMap.get(userId);
+        customers.set(userId, {
+          userId,
+          email: user?.email || "",
+          createdAt: user?.created_at || "",
           ...defaultProfile(),
           ...defaultSubscription(),
           milkPriceQuote: 0,

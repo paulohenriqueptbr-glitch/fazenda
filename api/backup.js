@@ -1,4 +1,5 @@
-const { sendJson, timingSafeEqual, pickEnv, fetchSupabaseJson } = require("./utils");
+const { sendJson, timingSafeEqual, pickEnv, fetchSupabaseJson, supabaseHeaders } = require("./utils");
+const { validateEnvOrError } = require("./validate-env");
 
 const tables = [
   "milk_records",
@@ -44,6 +45,11 @@ module.exports = async function handler(request, response) {
   const expectedSecret = process.env.BACKUP_CRON_SECRET || process.env.CRON_SECRET || "";
   if (!expectedSecret) {
     sendJson(response, 500, { error: "Configure CRON_SECRET ou BACKUP_CRON_SECRET antes de habilitar o backup." });
+    return;
+  }
+
+  // Validação de env vars
+  if (!validateEnvOrError(request, response, ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"])) {
     return;
   }
 

@@ -13,116 +13,9 @@ import {
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
 } from "./render.js";
 import { log, warn, error } from "./logger.js";
-
-// ─── Push notifications ─────────────────────────────────────────────────────
-const VAPID_PUBLIC_KEY = config.vapidPublicKey || "";
-
-const urlBase64ToUint8Array = (base64String) => {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
-};
-
-const savePushSubscription = async (subscription, remove = false) => {
-  if (!hasSupabase || !db) return;
-  try {
-    const { data: { session } } = await db.auth.getSession();
-    const token = session?.access_token;
-    if (!token) return;
-    await fetch("/api/push-subscription", {
-      method: remove ? "DELETE" : "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(remove ? { endpoint: subscription.endpoint } : { subscription }),
-    });
-  } catch (err) { warn("push-subscription:", err); }
-};
-
-const initPushNotifications = async () => {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !VAPID_PUBLIC_KEY) return;
-  const reg = await navigator.serviceWorker.ready;
-  const existing = await reg.pushManager.getSubscription();
-  if (existing) { await savePushSubscription(existing); return; }
-  const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
-  if (permission !== "granted") return;
-  try {
-    const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
-    await savePushSubscription(subscription);
-  } catch (err) { warn("Erro ao inscrever notificações push:", err); }
-};
-
-const checkPushAlerts = async () => {
-  if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return;
-  const reg = await navigator.serviceWorker.ready;
-  const today = todayIso();
-  const in7days = addDaysIso(today, 7);
-  const alerts = [];
-  for (const b of state.breeding) {
-    if (!b.expected_calving_date) continue;
-    if (b.expected_calving_date >= today && b.expected_calving_date <= in7days) {
-      const animal = state.animals.find((a) => a.id === b.cow_id);
-      const name = animal?.identification || b.cow_id || "Animal";
-      const diff = Math.round((new Date(b.expected_calving_date) - new Date(today)) / 86400000);
-      alerts.push({ title: "Parto Previsto", body: diff === 0 ? `${name} está com parto previsto para hoje!` : `${name} tem parto previsto em ${diff} dia${diff > 1 ? "s" : ""}.`, tag: `calving-${b.id}`, url: "/?tab=breeding" });
-    }
-  }
-  for (const m of state.medication) {
-    if (!m.administration_date) continue;
-    const interval = getMedicationInterval(m.medication_name, m.reapply_interval_days);
-    const nextDate = addDaysIso(m.administration_date, interval.days);
-    if (nextDate < today || nextDate > in7days) continue;
-    const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
-    const name = animal?.identification || m.cow_id || "Animal";
-    const diff = Math.round((new Date(nextDate) - new Date(today)) / 86400000);
-    const diffText = diff === 0 ? "hoje" : `em ${diff} dia${diff === 1 ? "" : "s"}`;
-    alerts.push({ title: `Reaplicar ${m.medication_name || "medicação"}`, body: `${name}: reaplicar ${diffText}. Intervalo: ${interval.days} dias.`, tag: `med-reapply-${m.id}-${nextDate}`, url: "/?tab=medication" });
-  }
-  const hour = new Date().getHours();
-  const todayRegistered = state.milk.some((r) => r.date === today);
-  if (!todayRegistered && hour >= 8) alerts.push({ title: "Produção Pendente", body: "Você ainda não registrou a produção de leite de hoje.", tag: "milk-pending", url: "/?tab=milk" });
-  const shownKey = userStorageKey("push_shown_tags");
-  let shown = [];
-  try { shown = JSON.parse(localStorage.getItem(shownKey) || "[]"); } catch { shown = []; }
-  for (const alert of alerts) {
-    if (shown.includes(alert.tag)) continue;
-    reg.showNotification(alert.title, { body: alert.body, icon: "./icons/icon-192.png", badge: "./icons/icon-192.png", tag: alert.tag, data: { url: alert.url } });
-    shown.push(alert.tag);
-  }
-  try { localStorage.setItem(shownKey, JSON.stringify(shown.slice(-50))); } catch { /* noop */ }
-};
-
-// ─── Backup ─────────────────────────────────────────────────────────────────
-const AUTO_BACKUP_KEY = "terrasyn_last_auto_backup";
-
-const maybeAutoBackup = () => {
-  try {
-    const last = localStorage.getItem(userStorageKey(AUTO_BACKUP_KEY));
-    const now = Date.now();
-    if (last && now - Number(last) < 7 * 24 * 60 * 60 * 1000) return;
-    const backup = {
-      exported_at: new Date().toISOString(), auto: true,
-      data: { milk: state.milk, animals: state.animals, lactations: state.lactations, breeding: state.breeding, medication: state.medication, cropEvents: state.cropEvents, stockItems: state.stockItems, reminders: state.reminders, priceQuote: state.priceQuote },
-      pending_sync_count: getSyncQueue().length,
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url; link.download = `terrasyn-autobackup-${todayIso()}.json`;
-    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
-    localStorage.setItem(userStorageKey(AUTO_BACKUP_KEY), String(now));
-    showToast("Backup automático semanal gerado", "sync");
-  } catch (err) { warn("Auto-backup falhou:", err); }
-};
-
-export const exportDataBackup = () => {
-  const backup = { exported_at: new Date().toISOString(), data: state, pending_sync_count: getSyncQueue().length };
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url; link.download = `terrasyn-backup-${todayIso()}.json`;
-  document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
-  showToast("Backup exportado com sucesso!");
-};
+import { initPushNotifications, checkPushAlerts } from "./push.js";
+import { maybeAutoBackup, exportDataBackup } from "./backup.js";
+import { setupInstallPrompt, setupInstallListeners } from "./install.js";
 
 // ─── Onboarding ─────────────────────────────────────────────────────────────
 const hideOnboarding = () => { if (el.onboardingModal) el.onboardingModal.classList.add("hidden"); };
@@ -463,6 +356,16 @@ const initApp = () => {
     });
   }
 
+  // ─── Export button ─────────────────────────────────────────────────────
+  if (el.exportDataButton && !el.exportDataButton._listenerAttached) {
+    el.exportDataButton._listenerAttached = true;
+    el.exportDataButton.addEventListener("click", exportDataBackup);
+  }
+
+  // ─── Install prompt ───────────────────────────────────────────────────
+  setupInstallPrompt();
+  setupInstallListeners();
+
   loadData();
 };
 
@@ -497,35 +400,6 @@ const setupSupportLinks = () => {
   });
 };
 
-// ─── Install prompt ─────────────────────────────────────────────────────────
-const installPromptModal = $("#installPromptModal");
-const installPromptTitle = $("#installPromptTitle");
-const installPromptMessage = $("#installPromptMessage");
-const installPromptAction = $("#installPromptAction");
-const installPromptLater = $("#installPromptLater");
-const installPromptClose = $("#installPromptClose");
-const iosInstallSteps = $("#iosInstallSteps");
-let deferredInstallPrompt = null;
-
-const hideInstallPrompt = () => { installPromptModal?.classList.add("hidden"); };
-const isStandalonePwa = () => window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
-const isMobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isIosDevice = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isAndroidDevice = () => /Android/i.test(navigator.userAgent);
-
-const showInstallPrompt = () => {
-  if (!installPromptModal || !isMobileDevice() || isStandalonePwa()) return;
-  const ios = isIosDevice();
-  const android = isAndroidDevice();
-  const canPromptAndroid = android && deferredInstallPrompt;
-  if (ios) { installPromptTitle.textContent = "Salve o Terrasyn no iPhone"; installPromptMessage.textContent = "No iOS a instalação é feita pelo Safari, salvando o ícone na tela de início."; installPromptAction.textContent = "Entendi"; }
-  else if (canPromptAndroid) { installPromptTitle.textContent = "Instale o Terrasyn"; installPromptMessage.textContent = "Coloque o aplicativo na tela inicial do Android para abrir com um toque."; installPromptAction.textContent = "Instalar aplicativo"; }
-  else if (android) { installPromptTitle.textContent = "Instale pelo menu do navegador"; installPromptMessage.textContent = "Se o botão de instalação ainda não aparecer, abra o menu do Chrome e escolha Instalar app."; installPromptAction.textContent = "Entendi"; }
-  else return;
-  iosInstallSteps?.classList.toggle("hidden", !ios);
-  installPromptModal.classList.remove("hidden");
-};
-
 // ─── Service worker ─────────────────────────────────────────────────────────
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
@@ -549,19 +423,23 @@ if ("serviceWorker" in navigator) {
       if (reg.waiting) onNewSW(reg.waiting);
       reg.addEventListener("updatefound", () => onNewSW(reg.installing));
       navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload());
-    } catch (err) { console.warn("Service Worker não registrado:", err); }
+    } catch (err) { warn("Service Worker não registrado:", err); }
   });
 }
 
 // ─── Global events ──────────────────────────────────────────────────────────
 window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)).catch(() => {}); } });
 window.addEventListener("offline", () => { const q = getSyncQueue(); setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error"); updateSyncBadge(); });
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; });
-window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; hideInstallPrompt(); showToast("Terrasyn instalado com sucesso."); });
-installPromptAction?.addEventListener("click", async () => { if (isIosDevice() || !deferredInstallPrompt) { hideInstallPrompt(); return; } const p = deferredInstallPrompt; deferredInstallPrompt = null; hideInstallPrompt(); await p.prompt(); });
-installPromptLater?.addEventListener("click", hideInstallPrompt);
-installPromptClose?.addEventListener("click", hideInstallPrompt);
-installPromptModal?.addEventListener("click", (e) => { if (e.target === installPromptModal) hideInstallPrompt(); });
+
+// ─── Error boundary global ──────────────────────────────────────────────────
+window.addEventListener("error", (event) => {
+  error("Erro global não tratado:", event.error);
+  event.preventDefault();
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  error("Promise rejeitada não tratada:", event.reason);
+});
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 setupSupportLinks();

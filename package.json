@@ -35,7 +35,8 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "app.test.js"
+      "app.test.js",
+      "integration.test.js"
     ],
     "testMatch": [
       "**/*.test.js"
