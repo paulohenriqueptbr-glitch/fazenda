@@ -65,8 +65,8 @@ export const alertStatusLabel = (dueDate, done = false) => {
 };
 
 // ─── Build alerts ───────────────────────────────────────────────────────────
-const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false }) => ({
-  id, title, due_date, category, notes, type, done, status: alertStatus(due_date, done),
+const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false, urgency = "normal" }) => ({
+  id, title, due_date, category, notes, type, done, status: alertStatus(due_date, done), urgency,
 });
 
 const cropFollowUpRules = [
@@ -114,18 +114,28 @@ const buildAutomaticAlerts = () => {
     const reapply = getNextReapplyDate(m);
     if (!reapply) return;
     const { nextDate, daysUntil, interval } = reapply;
-    // Only show alert in the 5 days before and 3 days after the due date
-    if (daysUntil === null || daysUntil < -3 || daysUntil > 5) return;
+    // Only show alert in the 7 days before and 7 days after the due date
+    if (daysUntil === null || daysUntil < -7 || daysUntil > 7) return;
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
     const animalName = animal?.identification || m.cow_id || "";
     const animalPart = animalName ? ` para ${animalName}` : "";
     let title;
+    let urgency = "normal";
     if (daysUntil < 0) {
-      title = `Reaplicar ${m.medication_name || "medicamento"}${animalPart} — ${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"} atrasado`;
+      title = `⚠️ Reaplicar ${m.medication_name || "medicamento"}${animalPart} — ${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"} ATRASADO`;
+      urgency = "overdue";
     } else if (daysUntil === 0) {
-      title = `Hoje: reaplicar ${m.medication_name || "medicamento"}${animalPart}`;
+      title = `🔴 HOJE: reaplicar ${m.medication_name || "medicamento"}${animalPart}`;
+      urgency = "today";
+    } else if (daysUntil <= 2) {
+      title = `🟡 Amanhã: reaplicar ${m.medication_name || "medicamento"}${animalPart}`;
+      urgency = "soon";
+    } else if (daysUntil <= 5) {
+      title = `Reaplicar ${m.medication_name || "medicamento"}${animalPart} em ${daysUntil} dias`;
+      urgency = "week";
     } else {
-      title = `Reaplicar ${m.medication_name || "medicamento"}${animalPart} em ${daysUntil} dia${daysUntil === 1 ? "" : "s"}`;
+      title = `Próxima reaplicação: ${m.medication_name || "medicamento"}${animalPart} em ${daysUntil} dias`;
+      urgency = "upcoming";
     }
     alerts.push(makeAlert({
       id: `auto-med-reapply-${m.id || `${m.cow_id}-${m.administration_date}`}-${nextDate}`,
@@ -133,6 +143,7 @@ const buildAutomaticAlerts = () => {
       due_date: nextDate,
       category: "Medicação",
       notes: `Intervalo: ${interval.days} dias (${interval.label}). Última aplicação: ${formatDate(m.administration_date)}.`,
+      urgency,
     }));
   });
 
@@ -151,6 +162,22 @@ export const buildAlerts = () => {
     const order = { overdue: 0, today: 1, week: 2, upcoming: 3, done: 4 };
     return (order[a.status] ?? 3) - (order[b.status] ?? 3) || String(a.due_date || "").localeCompare(String(b.due_date || ""));
   });
+};
+
+/**
+ * Counts medication reapplication alerts grouped by urgency.
+ * @returns {{ overdue: number, today: number, soon: number, upcoming: number, total: number }}
+ */
+export const countMedicationAlerts = () => {
+  const alerts = buildAlerts();
+  const medAlerts = alerts.filter((a) => a.category === "Medicação" && !a.done);
+  return {
+    overdue: medAlerts.filter((a) => a.urgency === "overdue").length,
+    today: medAlerts.filter((a) => a.urgency === "today").length,
+    soon: medAlerts.filter((a) => a.urgency === "soon").length,
+    upcoming: medAlerts.filter((a) => a.urgency === "upcoming" || a.urgency === "week").length,
+    total: medAlerts.length,
+  };
 };
 
 // ─── Alert actions ──────────────────────────────────────────────────────────

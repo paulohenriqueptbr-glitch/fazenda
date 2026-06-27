@@ -1,7 +1,7 @@
 import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays } from "./state.js";
 import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
-import { buildAlerts, alertStatusLabel, daysFromToday } from "./alerts.js";
+import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts } from "./alerts.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
 
@@ -334,7 +334,80 @@ const renderMedicalCowRecord = (profile) => {
     </article>`;
 };
 
+export const renderUpcomingReapplications = () => {
+  const container = $("#upcomingReapply");
+  if (!container) return;
+  
+  const today = todayIso();
+  const upcoming = [];
+  
+  state.medication.forEach((m) => {
+    if (!m.administration_date) return;
+    const reapply = getNextReapplyDate(m);
+    if (!reapply) return;
+    const { nextDate, daysUntil, interval } = reapply;
+    if (daysUntil === null || daysUntil < -7 || daysUntil > 7) return;
+    
+    const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
+    const animalName = animal?.identification || m.cow_id || "";
+    
+    let urgencyClass = "upcoming";
+    let dueLabel = "";
+    if (daysUntil < 0) {
+      urgencyClass = "overdue";
+      dueLabel = `${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"} atrasado`;
+    } else if (daysUntil === 0) {
+      urgencyClass = "today";
+      dueLabel = "Hoje!";
+    } else if (daysUntil <= 2) {
+      urgencyClass = "soon";
+      dueLabel = daysUntil === 1 ? "Amanhã" : `Em ${daysUntil} dias`;
+    } else {
+      dueLabel = `Em ${daysUntil} dias`;
+    }
+    
+    upcoming.push({
+      medication_name: m.medication_name || "Medicamento",
+      animalName,
+      nextDate,
+      daysUntil,
+      interval,
+      urgencyClass,
+      dueLabel,
+    });
+  });
+  
+  upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+  
+  if (upcoming.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  const urgentCount = upcoming.filter((u) => u.urgencyClass === "overdue" || u.urgencyClass === "today").length;
+  
+  container.innerHTML = `
+    <div class="upcoming-reapply-header">
+      <h3>📋 Próximas reaplicações</h3>
+      ${urgentCount > 0 ? `<span class="upcoming-reapply-count urgent">${urgentCount}</span>` : `<span class="upcoming-reapply-count">${upcoming.length}</span>`}
+    </div>
+    <div class="upcoming-reapply-list">
+      ${upcoming.map((u) => `
+        <div class="upcoming-reapply-item ${u.urgencyClass}">
+          <div class="upcoming-reapply-info">
+            <span class="reapply-med-name">${escapeHtml(u.medication_name)}</span>
+            ${u.animalName ? `<span class="reapply-animal">${escapeHtml(u.animalName)}</span>` : ""}
+            <span class="reapply-interval">Intervalo: ${u.interval.days} dias</span>
+          </div>
+          <div class="upcoming-reapply-due ${u.urgencyClass}">${u.dueLabel}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+};
+
 export const renderMedication = (selectedMedicationCowId) => {
+  renderUpcomingReapplications();
   const profiles = getMedicationCowProfiles();
   const selectedProfile = getSelectedMedicationProfile(profiles, selectedMedicationCowId);
   const medCowSelect = $("#medCowId");

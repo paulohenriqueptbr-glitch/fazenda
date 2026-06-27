@@ -246,11 +246,14 @@
       </div>
       <p>Escolha uma vaca para abrir todo o histórico de medicamentos em um só lugar.</p>
     </div>
+    <div id="upcomingReapply" class="upcoming-reapply-panel"></div>
     <form id="medicationForm" class="form-grid">
       <label for="medCowId">Vaca</label>
       <select id="medCowId"></select>
       <label for="medName">Medicamento</label>
-      <input id="medName" type="text" placeholder="Ex.: Vitamina A" required>
+      <input id="medName" type="text" placeholder="Ex.: Vitamina A" list="medNameOptions" required>
+      <datalist id="medNameOptions"></datalist>
+      <div id="medInfoBadge" class="med-info-badge" style="display:none;"></div>
       <label for="medDosage">Dosagem</label>
       <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
       <label for="medReapplyInterval">Reaplicar em (dias, opcional)</label>

@@ -9,6 +9,7 @@ export const MEDICATION_CATEGORIES = {
   ANTIBIOTICO: { label: "Antibiótico", icon: "shield" },
   ANTI_INFLAMATORIO: { label: "Anti-inflamatório", icon: "heart-pulse" },
   ANTIPARASITARIO: { label: "Antiparasitário (Vermífugo)", icon: "shield-check" },
+  ANTIPARASITARIO_COMBO: { label: "Antiparasitário (Combo)", icon: "shield-check" },
   VITAMINICO: { label: "Vitamínico / Suplemento", icon: "sparkles" },
   VACINA: { label: "Vacina", icon: "syringe" },
   ANESTESICO: { label: "Anestésico", icon: "zap" },
@@ -93,6 +94,10 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["nitroxinil", "nitroxynil"], reapplyDays: 60, dosage: "10 mg/kg", route: "SC", category: "ANTIPARASITARIO", notes: "Trematicida. Fasciola hepática." },
   { patterns: ["triclabendazol", "triclabendazole"], reapplyDays: 60, dosage: "10 mg/kg", route: "PO", category: "ANTIPARASITARIO", notes: "Triclabendazol. Fasciola hepática adulta e imatura." },
   { patterns: ["clorsulon", "clorsulon"], reapplyDays: 60, dosage: "7 mg/kg", route: "PO", category: "ANTIPARASITARIO", notes: "Fasciolicida. Fasciola hepática adulta." },
+  { patterns: ["doramectina", "doramectin", "dectomax", "dectomax"], reapplyDays: 7, dosage: "1 ml/50 kg", route: "SC", category: "ANTIPARASITARIO", notes: "Macrociclo lactona. Para verminose e ectoparasitos. Protocolo: reaplicar em 7-14 dias conforme orientação veterinária. Carência leite: 60h." },
+  { patterns: ["abamectina", "abamectin", "vermectin plus"], reapplyDays: 14, dosage: "1 ml/50 kg", route: "SC", category: "ANTIPARASITARIO", notes: "Macrociclo lactona. Vermífugo e ectoparasiticida. Intervalo de 14-21 dias." },
+  { patterns: ["closamectina", "closamectin", "closantel ivermectina"], reapplyDays: 60, dosage: "1 ml/50 kg", route: "SC", category: "ANTIPARASITARIO_COMBO", notes: "Combinação anti-helmíntica e ectoparasiticida. Fasciola + nematódeos + carrapato." },
+  { patterns: ["nitranil", "nitroxynil"], reapplyDays: 60, dosage: "10 mg/kg", route: "SC", category: "ANTIPARASITARIO", notes: "Trematicida. Fasciola hepática. (Nota: já existe nitroxinil listado separadamente.)" },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // VITAMÍNICOS E SUPLEMENTOS
@@ -106,6 +111,10 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["fosforo", "fósforo", "phosphorus"], reapplyDays: 30, dosage: "Via sal mineral ou mistura mineral", route: "PO", category: "VITAMINICO", notes: "Balancear Ca:P em 2:1. Deficiência afeta reprodução e crescimento." },
   { patterns: ["selenio vitamina e", "se ve"], reapplyDays: 28, dosage: "1 ml/45 kg", route: "IM ou SC", category: "VITAMINICO", notes: "Combinação de selênio e vitamina E. Prevenção de miopatias brancas." },
   { patterns: ["biotina", "biotin"], reapplyDays: 30, dosage: "20 mg/animal", route: "IM", category: "VITAMINICO", notes: "Saúde da pele e cascos." },
+  { patterns: ["bcomplex", "b complex", "b-complex", "vitamina b complexo", "vitamin b complex"], reapplyDays: 14, dosage: "5-10 ml/animal", route: "IM ou SC", category: "VITAMINICO", notes: "Complexo de vitaminas do grupo B. Estímulo ao apetite, metabolismo. Indicado em animais debilitados, pós-parto, estresse." },
+  { patterns: ["vitamina ad3e", "ad3e", "vitamin ad3e", "ad 3 e", "a d3 e"], reapplyDays: 30, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Combinação de vitaminas A, D3 e E. Suplementação em pastagens pobres, pós-parto, crescimento." },
+  { patterns: ["vitaminas injetaveis", "vitaminas", "injetavel vitaminico"], reapplyDays: 30, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Suplemento vitaminico injetável. Pós-parto, estresse, deficiência nutricional." },
+  { patterns: ["complexo b", "complexo-b", "complexo b injetavel"], reapplyDays: 14, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Metabolismo energético. Indicado em anorexia, convalescença, pós-cirúrgico." },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // VACINAS
@@ -136,6 +145,7 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["misoprostol", "misoprostol"], reapplyDays: 1, dosage: "400-800 mcg", route: "PO", category: "OUTROS", notes: "Análogo de PGE1. Proteção gástrica com AINEs." },
   { patterns: ["ranitidina", "ranitidine"], reapplyDays: 1, dosage: "300-600 mg/animal", route: "PO", category: "OUTROS", notes: "Antiulceroso. Gastrite por estresse." },
   { patterns: ["diuron", "diurona"], reapplyDays: 14, dosage: "4 ml/100 kg", route: "TÓPICA (banho)", category: "ECTOPARASITICIDA", notes: "Inseticida para mosca dos chifres (Haematobia irritans)." },
+  { patterns: ["dexametasona longa", "dexamethasone long acting", "dexasone"], reapplyDays: 7, dosage: "20-40 mg/animal", route: "IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide de depósito. Anti-inflamatório prolongado. CUIDADO: causaraborto em gestantes." },
 ];
 
 /**

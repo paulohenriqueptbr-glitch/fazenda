@@ -7,6 +7,7 @@ import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFu
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
+import { findMedication, getMedicationInfo, BOVINE_MEDICATIONS } from "./medication-catalog.js";
 import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
@@ -239,6 +240,67 @@ const initApp = () => {
       el.breedingForm.reset(); render(); showToast("Reprodução registrada!");
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar reprodução", "error"); }
   }, "Registrando..."));
+
+  // ─── Medication Autocomplete + Smart Badge ────────────────────────────────────
+  const setupMedicationAutocomplete = () => {
+    const medNameInput = $("#medName");
+    const medInfoBadge = $("#medInfoBadge");
+    const medDosageInput = $("#medDosage");
+    const medReapplyInput = $("#medReapplyInterval");
+    const medDatalist = $("#medNameOptions");
+    if (!medNameInput || !medDatalist) return;
+
+    // Build datalist from catalog
+    const allNames = new Set();
+    BOVINE_MEDICATIONS.forEach((med) => {
+      med.patterns.forEach((p) => allNames.add(p));
+    });
+    ["dectomax", "baytril", "terramicina", "ivomec", "banamine", "cydectin", "draxxin", "nuflor", "cidr", "estrumate", "cystorelina", "multimin", "ferrodex", "ferridex", "hematitan", "benzetacil", "tylan", "naxcel", "excede", "valbazen"].forEach((n) => allNames.add(n));
+
+    medDatalist.innerHTML = "";
+    [...allNames].sort().forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      medDatalist.appendChild(opt);
+    });
+
+    const updateBadge = () => {
+      const val = medNameInput.value.trim();
+      if (!val) { medInfoBadge.style.display = "none"; return; }
+
+      const match = findMedication(val);
+      if (match) {
+        const info = getMedicationInfo(val);
+        medInfoBadge.className = "med-info-badge";
+        medInfoBadge.innerHTML = `
+          <span class="med-badge-name">✓ ${info.label}</span>
+          <span class="med-badge-detail">Dosagem: ${info.dosage}</span>
+          <span class="med-badge-detail">Via: ${info.route}</span>
+          <span class="med-badge-detail">Reaplicar: ${info.days} dias</span>
+          ${info.notes ? `<br><small>${info.notes}</small>` : ""}
+        `;
+        medInfoBadge.style.display = "block";
+
+        // Auto-fill dosage if empty
+        if (medDosageInput && !medDosageInput.value.trim()) {
+          medDosageInput.value = info.dosage;
+        }
+        // Auto-fill reapply interval if empty
+        if (medReapplyInput && !medReapplyInput.value) {
+          medReapplyInput.value = info.days;
+        }
+      } else {
+        medInfoBadge.className = "med-info-badge med-badge-warn";
+        medInfoBadge.innerHTML = `<span class="med-badge-name">⚠ Não identificado no catálogo</span><span class="med-badge-detail">Intervalo padrão: 30 dias</span>`;
+        medInfoBadge.style.display = "block";
+      }
+    };
+
+    medNameInput.addEventListener("input", updateBadge);
+    medNameInput.addEventListener("change", updateBadge);
+  };
+
+  setupMedicationAutocomplete();
 
   el.medicationForm.addEventListener("submit", withButtonLoading(el.medicationForm, async (event) => {
     event.preventDefault();

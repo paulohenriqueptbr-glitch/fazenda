@@ -43,6 +43,12 @@ export const initPushNotifications = async () => {
   } catch (err) { warn("Erro ao inscrever notificações push:", err); }
 };
 
+const formatDatePush = (isoDate) => {
+  if (!isoDate) return "";
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+};
+
 export const checkPushAlerts = async () => {
   if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return;
   const reg = await navigator.serviceWorker.ready;
@@ -64,12 +70,39 @@ export const checkPushAlerts = async () => {
     if (!m.administration_date) continue;
     const interval = getMedicationInterval(m.medication_name, m.reapply_interval_days);
     const nextDate = addDaysIso(m.administration_date, interval.days);
-    if (nextDate < today || nextDate > in7days) continue;
+
+    const todayDate = new Date(today);
+    const nextDateObj = new Date(nextDate);
+    const diffMs = nextDateObj - todayDate;
+    const diffDaysCalc = Math.round(diffMs / 86400000);
+
+    const notifyDays = [3, 1, 0, -1];
+    if (!notifyDays.includes(diffDaysCalc)) continue;
+
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
     const name = animal?.identification || m.cow_id || "Animal";
-    const diff = Math.round((new Date(nextDate) - new Date(today)) / 86400000);
-    const diffText = diff === 0 ? "hoje" : `em ${diff} dia${diff === 1 ? "" : "s"}`;
-    alerts.push({ title: `Reaplicar ${m.medication_name || "medicação"}`, body: `${name}: reaplicar ${diffText}. Intervalo: ${interval.days} dias.`, tag: `med-reapply-${m.id}-${nextDate}`, url: "/?tab=medication" });
+
+    let title, body;
+    if (diffDaysCalc === 3) {
+      title = `📋 Reaplicar ${m.medication_name || "medicação"} em 3 dias`;
+      body = `${name}: reaplicar em ${diffDaysCalc} dias. Intervalo: ${interval.days} dias. Última aplicação: ${formatDatePush(m.administration_date)}.`;
+    } else if (diffDaysCalc === 1) {
+      title = `⏰ Amanhã: reaplicar ${m.medication_name || "medicação"}`;
+      body = `${name}: reaplicar AMANHÃ. Intervalo: ${interval.days} dias.`;
+    } else if (diffDaysCalc === 0) {
+      title = `🔴 HOJE: reaplicar ${m.medication_name || "medicação"}`;
+      body = `${name}: hoje é o dia de reaplicar! Intervalo: ${interval.days} dias.`;
+    } else if (diffDaysCalc === -1) {
+      title = `⚠️ Reaplicar ${m.medication_name || "medicação"} — 1 dia atrasado`;
+      body = `${name}: reaplicação atrasada em 1 dia! Intervalo: ${interval.days} dias.`;
+    }
+
+    alerts.push({
+      title,
+      body,
+      tag: `med-reapply-${m.id}-${nextDate}-${diffDaysCalc}`,
+      url: "/?tab=medication"
+    });
   }
 
   const hour = new Date().getHours();
