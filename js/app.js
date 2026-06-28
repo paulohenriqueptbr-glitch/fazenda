@@ -320,18 +320,36 @@ const initApp = () => {
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar produção", "error"); }
   }, "Salvando..."));
 
-  el.animalForm.addEventListener("submit", withButtonLoading(el.animalForm, async (event) => {
-    event.preventDefault();
-    try {
-      const identification = $("#animalName").value.trim();
-      if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
-      const weightRaw = $("#animalWeight")?.value;
-      const weight = weightRaw ? parseFloat(weightRaw) : null;
-      if (weight !== null && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
-      await insertAnimal({ identification, type: $("#animalType").value, status: $("#animalStatus").value, weight, user_id: currentUserId });
-      el.animalForm.reset(); showToast("Animal cadastrado!"); populateCowSelects(); render();
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao cadastrar animal", "error"); }
-  }, "Cadastrando..."));
+  // ─── Animal form modal ────────────────────────────────────────────────────
+  const openAnimalFormBtn = $("#openAnimalFormBtn");
+  const animalFormModal = $("#animalFormModal");
+  const animalFormModalForm = $("#animalFormModalForm");
+  if (openAnimalFormBtn && animalFormModal) {
+    openAnimalFormBtn.addEventListener("click", () => {
+      animalFormModal.classList.remove("hidden");
+      const nameInput = $("#animalModalName");
+      if (nameInput) nameInput.focus();
+    });
+    animalFormModal.addEventListener("click", (e) => {
+      if (e.target === animalFormModal) animalFormModal.classList.add("hidden");
+    });
+  }
+  if (animalFormModalForm) {
+    animalFormModalForm.addEventListener("submit", withButtonLoading(animalFormModalForm, async (event) => {
+      event.preventDefault();
+      try {
+        const identification = $("#animalModalName").value.trim();
+        if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
+        const weightRaw = $("#animalModalWeight")?.value;
+        const weight = weightRaw ? parseFloat(weightRaw) : null;
+        if (weight !== null && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
+        await insertAnimal({ identification, type: $("#animalModalType").value, status: $("#animalModalStatus").value, weight, user_id: currentUserId });
+        animalFormModalForm.reset();
+        animalFormModal.classList.add("hidden");
+        showToast("Animal cadastrado!"); populateCowSelects(); render();
+      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao cadastrar animal", "error"); }
+    }, "Cadastrando..."));
+  }
 
   if (el.lactationForm) {
     el.lactationForm.addEventListener("submit", withButtonLoading(el.lactationForm, async (event) => {
@@ -554,7 +572,7 @@ const initApp = () => {
 const setupInlineValidations = () => {
   addInlineValidation($("#liters"), (v) => { const n = Number.parseFloat(v); if (v === "" || v === null) return "Informe os litros"; if (isNaN(n) || n < 0 || n > 1000) return "Valor deve ser entre 0 e 1000"; return null; });
   addInlineValidation($("#milkDate"), (v) => { if (!isValidDate(v)) return "Data inválida"; if (!isNotFutureDate(v)) return "Não pode ser data futura"; return null; });
-  addInlineValidation($("#animalName"), (v) => { if (!v?.trim()) return "Informe o identificador do animal"; if (v.trim().length > 100) return "Máximo 100 caracteres"; return null; });
+  addInlineValidation($("#animalModalName"), (v) => { if (!v?.trim()) return "Informe o identificador do animal"; if (v.trim().length > 100) return "Máximo 100 caracteres"; return null; });
   addInlineValidation($("#lactStart"), (v) => (!isValidDate(v) ? "Data inválida" : null));
   addInlineValidation($("#lactLiters"), (v) => { const n = Number.parseFloat(v); if (isNaN(n) || n < 0 || n > 500) return "Valor deve ser entre 0 e 500"; return null; });
   addInlineValidation($("#inseminationDate"), (v) => (!isValidDate(v) ? "Data inválida" : null));

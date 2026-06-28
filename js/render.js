@@ -62,7 +62,7 @@ export const el = {
   alertList: $("#alertList"),
   milkForm: $("#milkForm"),
   milkDate: $("#milkDate"),
-  animalForm: $("#animalForm"),
+  animalForm: null,
   lactationForm: $("#lactationForm"),
   breedingForm: $("#breedingForm"),
   medicationForm: $("#medicationForm"),
@@ -153,7 +153,7 @@ const subscriptionMessage = (profile) => {
 const applySubscriptionAccess = (profile) => {
   const blocked = ["blocked", "canceled"].includes(profile.subscriptionStatus);
   document.body.classList.toggle("subscription-blocked", blocked);
-  document.querySelectorAll("#milkForm input, #milkForm button, #animalForm input, #animalForm select, #animalForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button, #stockForm input, #stockForm select, #stockForm textarea, #stockForm button, #reminderForm input, #reminderForm select, #reminderForm textarea, #reminderForm button")
+  document.querySelectorAll("#milkForm input, #milkForm button, #lactationForm input, #lactationForm select, #lactationForm button, #breedingForm input, #breedingForm select, #breedingForm button, #medicationForm input, #medicationForm select, #medicationForm button, #cropForm input, #cropForm select, #cropForm textarea, #cropForm button, #stockForm input, #stockForm select, #stockForm textarea, #stockForm button, #reminderForm input, #reminderForm select, #reminderForm textarea, #reminderForm button")
     .forEach((c) => { c.disabled = blocked; });
 };
 
@@ -204,8 +204,8 @@ export const renderClientPanel = () => {
 export const renderPriceQuote = () => {
   const price = Number(state.priceQuote || 0);
   const formatted = price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  el.priceQuoteDisplay.textContent = `R$ ${formatted}/L`;
-  el.priceQuoteValue.textContent = `R$ ${formatted} por litro`;
+  if (el.priceQuoteDisplay) el.priceQuoteDisplay.textContent = `R$ ${formatted}/L`;
+  if (el.priceQuoteValue) el.priceQuoteValue.textContent = `R$ ${formatted} por litro`;
 };
 
 // ─── Period filter ──────────────────────────────────────────────────────────

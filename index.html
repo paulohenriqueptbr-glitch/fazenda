@@ -99,52 +99,7 @@
       <button id="logoutBtn" class="btn-logout" type="button">Sair</button>
     </div>
   </div>
-  <section class="summary-grid" aria-label="Resumo">
-    <article class="summary primary">
-      <div class="summary-header">
-        <i data-lucide="milk" class="summary-icon"></i>
-        <span>Produção de hoje</span>
-      </div>
-      <strong id="todayTotal">0 L</strong>
-      <small id="todayValue">R$ 0,00</small>
-      <div class="sparkline-container" id="sparklineContainer"></div>
-    </article>
-    <article class="summary">
-      <div class="summary-header">
-        <i data-lucide="calendar" class="summary-icon"></i>
-        <span>Quinzena atual</span>
-      </div>
-      <strong id="fortnightTotal">0 L</strong>
-      <small id="fortnightValue">R$ 0,00</small>
-    </article>
-    <article class="summary">
-      <div class="summary-header">
-        <i data-lucide="calendar-days" class="summary-icon"></i>
-        <span>Mês atual</span>
-      </div>
-      <strong id="monthTotal">0 L</strong>
-      <small id="monthValue">R$ 0,00</small>
-    </article>
-    <article class="summary">
-      <div class="summary-header">
-        <i data-lucide="coins" class="summary-icon"></i>
-        <span>Cotação do leite</span>
-      </div>
-      <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
-      <small>Altere em Configurações</small>
-    </article>
-    <article class="summary">
-      <div class="summary-header">
-        <i data-lucide="cow" class="summary-icon"></i>
-        <span>Animais</span>
-      </div>
-      <strong id="animalTotal">0</strong>
-      <small id="lactatingTotal">0 em lactação</small>
-    </article>
-  </section>
 
-  <!-- DASHBOARD INTELIGENTE -->
-  <div id="smartDashboard" class="smart-dashboard-container"></div>
 
   <section class="quick-actions" aria-label="Ações rápidas">
     <button class="quick-action" type="button" data-tab="milk">
@@ -205,28 +160,9 @@
       </div>
       <p>Organize identificacao, tipo e situacao produtiva dos animais.</p>
     </div>
-    <form id="animalForm" class="form-grid">
-      <label for="animalName">Identificação</label>
-      <input id="animalName" type="text" placeholder="Ex.: BOV-0001" required>
-      <label for="animalType">Tipo</label>
-      <select id="animalType">
-        <option>Bovino de Leite</option>
-        <option>Caprino</option>
-        <option>Ovino</option>
-        <option>Suíno</option>
-      </select>
-      <label for="animalStatus">Status</label>
-      <select id="animalStatus">
-        <option>Em lactação</option>
-        <option>Seca</option>
-        <option>Prenhe</option>
-        <option>Para engorda</option>
-        <option>Disponível para venda</option>
-      </select>
-      <label for="animalWeight">Peso atual (kg)</label>
-      <input id="animalWeight" type="number" min="0" max="2000" step="0.1" inputmode="decimal" placeholder="Ex.: 450">
-      <button type="submit">Cadastrar animal</button>
-    </form>
+    <button id="openAnimalFormBtn" type="button" class="add-animal-btn">
+      <i data-lucide="plus-circle"></i> Cadastrar novo animal
+    </button>
     <div class="section-title"><h2>Rebanho</h2></div>
     <div id="animalList" class="list"></div>
   </section>
@@ -552,6 +488,39 @@
     <div class="modal-actions">
       <button class="ghost" type="button" onclick="document.getElementById('animalProfileModal').classList.add('hidden')">Fechar</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== ANIMAL FORM MODAL ===== -->
+<div id="animalFormModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="animalFormTitle">
+  <div class="edit-modal-card">
+    <button class="modal-close" type="button" onclick="document.getElementById('animalFormModal').classList.add('hidden')">×</button>
+    <h2 id="animalFormTitle">Cadastrar Animal</h2>
+    <form id="animalFormModalForm" class="edit-modal-form">
+      <label for="animalModalName">Identificação</label>
+      <input id="animalModalName" type="text" placeholder="Ex.: BOV-0001" required>
+      <label for="animalModalType">Tipo</label>
+      <select id="animalModalType">
+        <option>Bovino de Leite</option>
+        <option>Caprino</option>
+        <option>Ovino</option>
+        <option>Suíno</option>
+      </select>
+      <label for="animalModalStatus">Status</label>
+      <select id="animalModalStatus">
+        <option>Em lactação</option>
+        <option>Seca</option>
+        <option>Prenhe</option>
+        <option>Para engorda</option>
+        <option>Disponível para venda</option>
+      </select>
+      <label for="animalModalWeight">Peso atual (kg)</label>
+      <input id="animalModalWeight" type="number" min="0" max="2000" step="0.1" inputmode="decimal" placeholder="Ex.: 450">
+      <div class="edit-modal-actions">
+        <button type="button" class="ghost" onclick="document.getElementById('animalFormModal').classList.add('hidden')">Cancelar</button>
+        <button type="submit">Cadastrar animal</button>
+      </div>
+    </form>
   </div>
 </div>
 
