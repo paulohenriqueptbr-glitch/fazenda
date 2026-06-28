@@ -4,6 +4,9 @@ import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
 import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays } from "./alerts.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
+import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getFinancialAnalysis, getFarmScore, forecastProduction } from "./analytics.js";
+import { generateRecommendations, getRecommendationsSummary } from "./recommendations.js";
+import { forecastStock, forecastMedication, forecastLactation } from "./predictions.js";
 
 // ─── DOM Elements ───────────────────────────────────────────────────────────
 export const el = {
@@ -26,6 +29,7 @@ export const el = {
   breedingList: $("#breedingList"),
   medicationList: $("#medicationList"),
   cropEventList: $("#cropEventList"),
+  cropGroupList: $("#cropGroupList"),
   stockList: $("#stockList"),
   alertList: $("#alertList"),
   milkForm: $("#milkForm"),
@@ -379,8 +383,110 @@ export const renderMilk = () => {
 
 export const renderAnimals = () => {
   el.animalList.innerHTML = state.animals.length
-    ? state.animals.map((a) => `<article class="item" data-animal-id="${escapeHtml(a.id)}"><div><span>${escapeHtml(a.identification)}</span><small>${escapeHtml(a.type)}</small></div><strong>${escapeHtml(a.status)}</strong>${recordActions("animal", a)}</article>`).join("")
+    ? state.animals.map((a) => {
+      const weightInfo = a.weight ? ` | ${a.weight} kg` : "";
+      return `<article class="item animal-card" data-animal-id="${escapeHtml(a.id)}"><div><span>${escapeHtml(a.identification)}</span><small>${escapeHtml(a.type)}${escapeHtml(weightInfo)}</small></div><strong>${escapeHtml(a.status)}</strong>${recordActions("animal", a)}</article>`;
+    }).join("")
     : empty("Nenhum animal cadastrado", "animal");
+};
+
+// ─── Animal Profile Modal ──────────────────────────────────────────────────
+export const openAnimalProfile = (animalId) => {
+  const animal = state.animals.find((a) => String(a.id) === String(animalId));
+  if (!animal) return;
+
+  const breedingRecords = state.breeding
+    .filter((r) => String(r.cow_id) === String(animalId))
+    .sort((a, b) => String(b.insemination_date || "").localeCompare(String(a.insemination_date || "")));
+
+  const healthRecords = state.medication
+    .filter((r) => String(r.cow_id) === String(animalId))
+    .sort((a, b) => String(b.administration_date || "").localeCompare(String(a.administration_date || "")));
+
+  const activeLactations = state.lactations.filter(
+    (r) => String(r.cow_id) === String(animalId) && !r.end_date
+  );
+
+  // Fill title
+  const titleEl = document.getElementById("animalProfileTitle");
+  if (titleEl) titleEl.textContent = `Ficha: ${animal.identification}`;
+
+  // Fill status badge
+  const statusEl = document.getElementById("animalProfileStatus");
+  if (statusEl) {
+    statusEl.textContent = animal.status;
+    statusEl.className = "status-badge";
+  }
+
+  // Fill breeding list
+  const breedingListEl = document.getElementById("profileBreedingList");
+  if (breedingListEl) {
+    if (breedingRecords.length === 0) {
+      breedingListEl.innerHTML = '<div class="empty-profile-section">Nenhum registro reprodutivo</div>';
+    } else {
+      breedingListEl.innerHTML = breedingRecords.map((r) => `
+        <article class="item compact-profile-item">
+          <div>
+            <span>${escapeHtml(formatDate(r.insemination_date))}</span>
+            <small>Inseminação</small>
+          </div>
+          <strong>Parto: ${escapeHtml(formatDate(r.expected_calving_date))}</strong>
+        </article>
+      `).join("");
+    }
+  }
+
+  // Fill health list
+  const healthListEl = document.getElementById("profileHealthList");
+  if (healthListEl) {
+    if (healthRecords.length === 0) {
+      healthListEl.innerHTML = '<div class="empty-profile-section">Nenhum registro de saúde</div>';
+    } else {
+      healthListEl.innerHTML = healthRecords.map((r) => `
+        <article class="item compact-profile-item">
+          <div>
+            <span>${escapeHtml(r.medication_name)}</span>
+            <small>${escapeHtml(formatDate(r.administration_date))}</small>
+          </div>
+          <strong>${escapeHtml(r.dosage || "Sem dosagem")}</strong>
+        </article>
+      `).join("");
+    }
+  }
+
+  // Fill additional info (type + active lactations)
+  const contentEl = document.querySelector("#animalProfileModal .profile-content");
+  if (contentEl) {
+    let infoHtml = `
+      <div class="profile-info-row">
+        <span class="profile-info-label">Tipo</span>
+        <span class="profile-info-value">${escapeHtml(animal.type)}</span>
+      </div>
+    `;
+    if (activeLactations.length > 0) {
+      infoHtml += `
+        <div class="profile-info-row">
+          <span class="profile-info-label">Lactações ativas</span>
+          <span class="profile-info-value">${escapeHtml(String(activeLactations.length))} — ${activeLactations.map((l) => escapeHtml(formatLiters(l.daily_liters)) + "/dia").join(", ")}</span>
+        </div>
+      `;
+    }
+    // Insert before first section-title
+    const firstSection = contentEl.querySelector(".section-title");
+    if (firstSection) {
+      let infoContainer = contentEl.querySelector(".profile-info-container");
+      if (!infoContainer) {
+        infoContainer = document.createElement("div");
+        infoContainer.className = "profile-info-container";
+        contentEl.insertBefore(infoContainer, firstSection);
+      }
+      infoContainer.innerHTML = infoHtml;
+    }
+  }
+
+  // Open modal
+  const modal = document.getElementById("animalProfileModal");
+  if (modal) modal.classList.remove("hidden");
 };
 
 export const renderLactations = () => {
@@ -646,6 +752,91 @@ export const renderCropEvents = () => {
     : empty("Nenhum manejo de lavoura registrado", "crop");
 };
 
+// ─── Crop Groups (Lavoura Individual com Dias de Vida) ─────────────────────
+export const renderCropGroups = () => {
+  if (!el.cropGroupList) return;
+
+  const today = todayIso();
+  const groups = new Map();
+
+  state.cropEvents.forEach((r) => {
+    const key = `${r.plot_name}|||${r.crop_name}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        plot_name: r.plot_name,
+        crop_name: r.crop_name,
+        crop_group: r.crop_group || "",
+        events: [],
+        plantingDate: null,
+      });
+    }
+    const group = groups.get(key);
+    group.events.push(r);
+    if (r.event_type === "Plantio" && r.event_date) {
+      if (!group.plantingDate || r.event_date < group.plantingDate) {
+        group.plantingDate = r.event_date;
+      }
+    }
+  });
+
+  if (groups.size === 0) {
+    el.cropGroupList.innerHTML = "";
+    return;
+  }
+
+  const sortedGroups = [...groups.values()].sort((a, b) => {
+    const dateA = a.plantingDate || "";
+    const dateB = b.plantingDate || "";
+    return dateB.localeCompare(dateA);
+  });
+
+  el.cropGroupList.innerHTML = sortedGroups.map((group) => {
+    const daysAlive = group.plantingDate ? diffDays(group.plantingDate, today) : null;
+    const groupBadge = group.crop_group
+      ? `<span class="crop-group-badge">${escapeHtml(group.crop_group)}</span>`
+      : "";
+    const daysDisplay = daysAlive !== null
+      ? `<span class="crop-days-number">${daysAlive}</span><span class="crop-days-label">dias</span>`
+      : `<span class="crop-days-number">—</span>`;
+
+    const eventsList = group.events
+      .sort((a, b) => String(b.event_date || "").localeCompare(String(a.event_date || "")))
+      .map((r) => `
+        <article class="item crop-event-item">
+          <div>
+            <span>${escapeHtml(r.event_type)}</span>
+            <small>${escapeHtml(formatDate(r.event_date))}${r.product ? ` | ${escapeHtml(r.product)}` : ""}${r.dosage ? ` | ${escapeHtml(r.dosage)}` : ""}</small>
+          </div>
+          <strong>${escapeHtml(formatTasks(r.area_tasks) || r.event_type)}</strong>
+        </article>
+      `).join("");
+
+    return `
+      <div class="crop-group-card" data-crop-group-key="${escapeHtml(group.plot_name + "|||" + group.crop_name)}">
+        <div class="crop-group-header" role="button" tabindex="0" aria-expanded="false">
+          <div class="crop-group-info">
+            <div class="crop-group-title-row">
+              <span class="crop-group-name">${escapeHtml(group.plot_name)}</span>
+              <span class="crop-group-crop">${escapeHtml(group.crop_name)}</span>
+            </div>
+            <div class="crop-group-meta">
+              ${groupBadge}
+              <span class="crop-event-count">${group.events.length} evento${group.events.length === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+          <div class="crop-group-days">
+            ${daysDisplay}
+          </div>
+          <span class="crop-group-chevron" aria-hidden="true">&#9662;</span>
+        </div>
+        <div class="crop-group-events hidden">
+          ${eventsList}
+        </div>
+      </div>
+    `;
+  }).join("");
+};
+
 export const renderStockItems = () => {
   if (!el.stockList) return;
   const records = [...state.stockItems].sort((a, b) => {
@@ -859,6 +1050,361 @@ export const renderLoginSummary = () => {
   `;
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD INTELIGENTE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Renderiza o painel de KPIs inteligentes no dashboard.
+ */
+export const renderSmartDashboard = () => {
+  const container = $("#smartDashboard");
+  if (!container) return;
+
+  const farmScore = getFarmScore();
+  const production = getProductionAnalysis(14);
+  const herd = getHerdAnalysis();
+  const financial = getFinancialAnalysis();
+  const anomalies = detectProductionAnomalies();
+  const recommendations = getRecommendationsSummary();
+  const forecast = forecastProduction(7);
+
+  // Score color
+  const scoreColor = farmScore.score >= 80 ? "excellent" : farmScore.score >= 60 ? "good" : farmScore.score >= 40 ? "regular" : "attention";
+
+  // Trend icon
+  const trendIcon = production.hasData
+    ? production.trendDirection === "up" ? "📈" : production.trendDirection === "down" ? "📉" : "➡️"
+    : "📊";
+
+  container.innerHTML = `
+    <div class="smart-dashboard">
+      <!-- SCORE DA FAZENDA -->
+      <div class="smart-card farm-score-card ${scoreColor}">
+        <div class="smart-card-header">
+          <span class="smart-icon">🎯</span>
+          <strong>Score da Fazenda</strong>
+        </div>
+        <div class="score-display">
+          <span class="score-number">${farmScore.score}</span>
+          <span class="score-label">${escapeHtml(farmScore.label)}</span>
+        </div>
+        <small>${escapeHtml(production.hasData ? `${trendIcon} Tendência ${production.trendDirection === "up" ? "de alta" : production.trendDirection === "down" ? "de queda" : "estável"}` : "Colete mais dados para análise")}</small>
+      </div>
+
+      <!-- KPIs DE PRODUÇÃO -->
+      <div class="smart-card">
+        <div class="smart-card-header">
+          <span class="smart-icon">🥛</span>
+          <strong>Produção</strong>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <small>Média 7 dias</small>
+            <strong>${production.hasData ? formatLiters(production.last7Avg) : "-"}</strong>
+          </div>
+          <div class="kpi">
+            <small>Consistência</small>
+            <strong>${production.hasData ? Math.round(production.consistency) + "%" : "-"}</strong>
+          </div>
+          <div class="kpi">
+            <small>Previsão 7d</small>
+            <strong>${forecast.length ? formatLiters(forecast.reduce((s, f) => s + f.predicted, 0) / 7) + "/dia" : "-"}</strong>
+          </div>
+          <div class="kpi">
+            <small>Melhor dia</small>
+            <strong>${production.bestDay ? formatDate(production.bestDay.date) : "-"}</strong>
+          </div>
+        </div>
+        ${production.trendPercent !== 0 ? `
+          <div class="trend-badge ${production.trendDirection}">
+            ${production.trendDirection === "up" ? "↑" : "↓"} ${Math.abs(production.trendPercent)}% vs semana anterior
+          </div>
+        ` : ""}
+      </div>
+
+      <!-- KPIs DO REBANHO -->
+      <div class="smart-card">
+        <div class="smart-card-header">
+          <span class="smart-icon">🐄</span>
+          <strong>Rebanho</strong>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <small>Total</small>
+            <strong>${herd.total}</strong>
+          </div>
+          <div class="kpi">
+            <small>Lactação</small>
+            <strong>${herd.lactating} (${herd.lactatingPercent}%)</strong>
+          </div>
+          <div class="kpi">
+            <small>Gestantes</small>
+            <strong>${herd.pregnant}</strong>
+          </div>
+          <div class="kpi">
+            <small>Partos 30d</small>
+            <strong>${herd.calvings30d}</strong>
+          </div>
+        </div>
+        ${herd.healthScore < 80 ? `
+          <div class="health-badge warning">
+            🩺 Saúde: ${herd.healthScore}/100
+          </div>
+        ` : `
+          <div class="health-badge good">
+            ✅ Saúde: ${herd.healthScore}/100
+          </div>
+        `}
+      </div>
+
+      <!-- KPIs FINANCEIROS -->
+      <div class="smart-card">
+        <div class="smart-card-header">
+          <span class="smart-icon">💰</span>
+          <strong>Financeiro</strong>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <small>Receita mês</small>
+            <strong>${formatMoney(financial.monthValue)}</strong>
+          </div>
+          <div class="kpi">
+            <small>Previsão</small>
+            <strong>${formatMoney(financial.projectedMonthValue)}</strong>
+          </div>
+          <div class="kpi">
+            <small>Média/dia</small>
+            <strong>${formatMoney(financial.dailyAvg * financial.price)}</strong>
+          </div>
+          <div class="kpi">
+            <small>Por animal</small>
+            <strong>${formatMoney(financial.revenuePerCow)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANOMALIAS (se houver) -->
+      ${anomalies.length > 0 ? `
+        <div class="smart-card anomaly-card">
+          <div class="smart-card-header">
+            <span class="smart-icon">⚠️</span>
+            <strong>Anomalias Detectadas</strong>
+            <span class="anomaly-count">${anomalies.length}</span>
+          </div>
+          <div class="anomaly-list">
+            ${anomalies.map((a) => `
+              <div class="anomaly-item ${a.severity}">
+                <span class="anomaly-icon">${a.severity === "critical" ? "🔴" : a.severity === "warning" ? "🟡" : "ℹ️"}</span>
+                <span>${escapeHtml(a.message)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      <!-- RECOMENDAÇÕES TOP 3 -->
+      ${recommendations.total > 0 ? `
+        <div class="smart-card recommendations-card">
+          <div class="smart-card-header">
+            <span class="smart-icon">💡</span>
+            <strong>Recomendações</strong>
+            <span class="recommendation-count">${recommendations.total}</span>
+          </div>
+          <div class="recommendation-list">
+            ${recommendations.top3.map((r) => `
+              <div class="recommendation-item ${r.priority}">
+                <span class="rec-icon">${r.icon}</span>
+                <div class="rec-content">
+                  <strong>${escapeHtml(r.title)}</strong>
+                  <small>${escapeHtml(r.message)}</small>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+};
+
+/**
+ * Renderiza previsão de produção no painel de relatórios.
+ */
+export const renderProductionForecast = () => {
+  const container = $("#forecastPanel");
+  if (!container) return;
+
+  const forecast = forecastProduction(7);
+  if (forecast.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="forecast-panel">
+      <div class="forecast-header">
+        <span>🔮</span>
+        <strong>Previsão de Produção (7 dias)</strong>
+      </div>
+      <div class="forecast-grid">
+        ${forecast.map((f) => {
+          const confClass = f.confidence === "high" ? "high" : f.confidence === "medium" ? "medium" : "low";
+          return `
+            <div class="forecast-day">
+              <small>${escapeHtml(formatDate(f.date))}</small>
+              <strong>${formatLiters(f.predicted)}</strong>
+              <span class="confidence ${confClass}">${f.confidence === "high" ? "Alta" : f.confidence === "medium" ? "Média" : "Baixa"}</span>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza recomendações no painel de alertas.
+ */
+export const renderRecommendations = () => {
+  const container = $("#recommendationList");
+  if (!container) return;
+
+  const all = generateRecommendations();
+  if (all.length === 0) {
+    container.innerHTML = `<div class="empty-recommendations"><span>✅</span><p>Nenhuma recomendação no momento — tudo sob controle!</p></div>`;
+    return;
+  }
+
+  container.innerHTML = all.map((r) => `
+    <div class="recommendation-card ${r.priority}">
+      <div class="rec-header">
+        <span class="rec-icon">${r.icon}</span>
+        <div class="rec-title">
+          <strong>${escapeHtml(r.title)}</strong>
+          <span class="rec-type">${escapeHtml(r.type)}</span>
+        </div>
+        <span class="rec-priority ${r.priority}">${r.priority}</span>
+      </div>
+      <p class="rec-message">${escapeHtml(r.message)}</p>
+      ${r.action ? `<button class="rec-action" type="button">${escapeHtml(r.action)}</button>` : ""}
+    </div>
+  `).join("");
+};
+
+/**
+ * Renderiza previsão de estoque.
+ */
+export const renderStockForecast = () => {
+  const container = $("#stockForecastPanel");
+  if (!container) return;
+
+  const stock = forecastStock();
+  const urgentItems = stock.filter((s) => s.recommendation?.type === "critical" || s.recommendation?.type === "warning");
+
+  if (urgentItems.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="stock-forecast-panel">
+      <div class="forecast-header">
+        <span>📦</span>
+        <strong>Estoque — Atenção Necessária</strong>
+      </div>
+      <div class="stock-forecast-list">
+        ${urgentItems.map((s) => `
+          <div class="stock-forecast-item ${s.recommendation?.type}">
+            <div class="stock-info">
+              <strong>${escapeHtml(s.item_name)}</strong>
+              <small>${escapeHtml(s.recommendation?.message || "")}</small>
+            </div>
+            <div class="stock-qty">
+              <span>${formatStockQuantity(s.currentQty, s.unit)}</span>
+              ${s.daysUntilEmpty !== null ? `<small>~${s.daysUntilEmpty} dias</small>` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza previsão de medicação.
+ */
+export const renderMedicationForecast = () => {
+  const container = $("#medicationForecastPanel");
+  if (!container) return;
+
+  const forecast = forecastMedication();
+  const urgent = forecast.filter((f) => f.urgency === "overdue" || f.urgency === "urgent");
+
+  if (urgent.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="medication-forecast-panel">
+      <div class="forecast-header">
+        <span>💊</span>
+        <strong>Medicação — Próximas Reaplicações</strong>
+      </div>
+      <div class="medication-forecast-list">
+        ${urgent.map((f) => `
+          <div class="medication-forecast-item ${f.urgency}">
+            <div class="med-info">
+              <strong>${escapeHtml(f.medication_name)}</strong>
+              <small>${escapeHtml(f.cow_name)}</small>
+            </div>
+            <div class="med-due">
+              <span>${f.daysUntil < 0 ? `${Math.abs(f.daysUntil)}d atrasado` : f.daysUntil === 0 ? "Hoje" : `${f.daysUntil}d`}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza previsão de lactação.
+ */
+export const renderLactationForecast = () => {
+  const container = $("#lactationForecastPanel");
+  if (!container) return;
+
+  const lactations = forecastLactation();
+  const alerts = lactations.filter((l) => l.isLongLactation || l.recommendation);
+
+  if (alerts.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="lactation-forecast-panel">
+      <div class="forecast-header">
+        <span>🐄</span>
+        <strong>Lactação — Atenção</strong>
+      </div>
+      <div class="lactation-forecast-list">
+        ${alerts.map((l) => `
+          <div class="lactation-forecast-item ${l.isLongLactation ? "critical" : "warning"}">
+            <div class="lact-info">
+              <strong>${escapeHtml(l.cow_name)}</strong>
+              <small>${l.daysActive} dias em lactação — ${escapeHtml(l.productivityPhase)}</small>
+            </div>
+            ${l.recommendation ? `<div class="lact-rec"><small>${escapeHtml(l.recommendation)}</small></div>` : ""}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+};
+
 // ─── Master render (debounced) ──────────────────────────────────────────────
 let _renderScheduled = false;
 let _pendingMedicationCowId = null;
@@ -868,15 +1414,22 @@ const _doRender = () => {
   renderClientPanel();
   renderPriceQuote();
   renderSummary();
+  renderSmartDashboard();
   renderMilk();
   renderAnimals();
   renderLactations();
   renderBreeding();
   renderMedication(_pendingMedicationCowId);
   renderCropEvents();
+  renderCropGroups();
   renderStockItems();
+  renderStockForecast();
+  renderMedicationForecast();
+  renderLactationForecast();
   renderAlerts();
+  renderRecommendations();
   renderReports();
+  renderProductionForecast();
 };
 
 export const render = (selectedMedicationCowId) => {

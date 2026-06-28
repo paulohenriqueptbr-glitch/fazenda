@@ -7,11 +7,12 @@ import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFu
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
-import { findMedication, getMedicationInfo, BOVINE_MEDICATIONS } from "./medication-catalog.js";
+import { findMedication, getMedicationInfo, calculateDosage, BOVINE_MEDICATIONS } from "./medication-catalog.js";
 import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary, renderLoginSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
+  openAnimalProfile,
 } from "./render.js";
 import { log, warn, error } from "./logger.js";
 import { initPushNotifications, checkPushAlerts } from "./push.js";
@@ -134,7 +135,13 @@ const initApp = () => {
           if (!data) return;
           // validation per type
           if (type === "milk") { const liters = validateNumber(data.liters, 0, 1000); if (liters === null) throw new Error("Litros inválido"); await updateRecord(type, id, { liters }); }
-          else if (type === "animal") { if (!data.type?.trim()) throw new Error("Tipo inválido"); if (!data.status?.trim()) throw new Error("Status inválido"); await updateRecord(type, id, { type: data.type.trim(), status: data.status.trim() }); }
+          else if (type === "animal") {
+            if (!data.type?.trim()) throw new Error("Tipo inválido");
+            if (!data.status?.trim()) throw new Error("Status inválido");
+            const weight = data.weight ? parseFloat(data.weight) : null;
+            if (data.weight && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
+            await updateRecord(type, id, { type: data.type.trim(), status: data.status.trim(), weight });
+          }
           else if (type === "lactation") { const dl = validateNumber(data.daily_liters, 0, 500); if (dl === null) throw new Error("Litros/dia inválido"); if (data.end_date && !isValidDateRange(record.start_date, data.end_date)) throw new Error("Data de fim inválida"); await updateRecord(type, id, { daily_liters: dl, end_date: data.end_date || null }); }
           else if (type === "breeding") { if (!isValidDate(data.expected_calving_date)) throw new Error("Data inválida"); await updateRecord(type, id, { expected_calving_date: data.expected_calving_date }); }
           else if (type === "medication") { if (!data.medication_name?.trim()) throw new Error("Medicamento inválido"); if (!isValidDate(data.administration_date)) throw new Error("Data inválida"); await updateRecord(type, id, { medication_name: data.medication_name.trim(), dosage: (data.dosage || "").trim(), administration_date: data.administration_date }); }
@@ -164,6 +171,44 @@ const initApp = () => {
     });
   }
 
+  // Animal card click → open profile modal
+  if (!document.body._animalCardClickAttached) {
+    document.body._animalCardClickAttached = true;
+    document.addEventListener("click", (event) => {
+      const card = event.target.closest(".animal-card[data-animal-id]");
+      if (!card) return;
+      // Don't open profile if clicking action buttons
+      if (event.target.closest(".item-actions")) return;
+      openAnimalProfile(card.dataset.animalId);
+    });
+  }
+
+  // Crop group expand/collapse toggle
+  if (!document.body._cropGroupToggleAttached) {
+    document.body._cropGroupToggleAttached = true;
+    document.addEventListener("click", (event) => {
+      const header = event.target.closest(".crop-group-header");
+      if (!header) return;
+      const card = header.closest(".crop-group-card");
+      if (!card) return;
+      const eventsContainer = card.querySelector(".crop-group-events");
+      if (!eventsContainer) return;
+      const isHidden = eventsContainer.classList.contains("hidden");
+      eventsContainer.classList.toggle("hidden", !isHidden);
+      header.setAttribute("aria-expanded", String(isHidden));
+      const chevron = card.querySelector(".crop-group-chevron");
+      if (chevron) chevron.style.transform = isHidden ? "rotate(180deg)" : "";
+    });
+    // Also handle keyboard activation
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const header = event.target.closest(".crop-group-header");
+      if (!header) return;
+      event.preventDefault();
+      header.click();
+    });
+  }
+
   // Insemination auto-fill
   const inseminationInput = $("#inseminationDate");
   const calvingInput = $("#expectedCalving");
@@ -172,12 +217,66 @@ const initApp = () => {
     inseminationInput.addEventListener("change", () => { if (inseminationInput.value) calvingInput.value = addDaysIso(inseminationInput.value, 285); });
   }
 
-  // Med cow select
+  // Med cow select — auto-suggest dosage based on weight
   const medCowInput = $("#medCowId");
   if (medCowInput && !medCowInput._listenerAttached) {
     medCowInput._listenerAttached = true;
-    medCowInput.addEventListener("change", () => { selectedMedicationCowId = medCowInput.value; renderMedication(selectedMedicationCowId); });
+    medCowInput.addEventListener("change", () => {
+      selectedMedicationCowId = medCowInput.value;
+      renderMedication(selectedMedicationCowId);
+      // Auto-suggest dosage based on cow weight
+      updateDosageSuggestion();
+    });
   }
+
+  // Med name input — recalculate dosage when medication name changes
+  const medNameInput = $("#medName");
+  if (medNameInput && !medNameInput._dosageListenerAttached) {
+    medNameInput._dosageListenerAttached = true;
+    medNameInput.addEventListener("input", () => { updateDosageSuggestion(); });
+    medNameInput.addEventListener("change", () => { updateDosageSuggestion(); });
+  }
+
+  // Update dosage suggestion based on selected cow's weight
+  const updateDosageSuggestion = () => {
+    const cowId = $("#medCowId")?.value;
+    const medName = $("#medName")?.value;
+    const dosageInput = $("#medDosage");
+    const dosageBadge = $("#dosageSuggestion");
+    if (!dosageInput || !dosageBadge) return;
+
+    if (!cowId || !medName) {
+      dosageBadge.style.display = "none";
+      return;
+    }
+
+    // Find cow's weight
+    const cow = state.animals.find((a) => String(a.id) === String(cowId));
+    const weight = cow?.weight ? parseFloat(cow.weight) : null;
+
+    if (!weight || weight <= 0) {
+      dosageBadge.innerHTML = `<span class="dosage-badge-info">ℹ️ Informe o peso do animal no cadastro para sugestão automática</span>`;
+      dosageBadge.style.display = "block";
+      return;
+    }
+
+    const result = calculateDosage(medName, weight);
+    
+    if (result.calculatedDose) {
+      dosageBadge.innerHTML = `
+        <span class="dosage-badge-success">💊 Dose sugerida: <strong>${result.calculatedDose}</strong></span>
+        <span class="dosage-badge-detail">Base: ${result.dosage} | Peso: ${weight} kg</span>
+      `;
+      dosageBadge.className = "dosage-suggestion success";
+      dosageBadge.style.display = "block";
+    } else if (result.warning) {
+      dosageBadge.innerHTML = `<span class="dosage-badge-warning">⚠️ ${result.warning}</span>`;
+      dosageBadge.className = "dosage-suggestion warning";
+      dosageBadge.style.display = "block";
+    } else {
+      dosageBadge.style.display = "none";
+    }
+  };
 
   // ─── Form submissions ─────────────────────────────────────────────────────
   el.milkForm.addEventListener("submit", withButtonLoading(el.milkForm, async (event) => {
@@ -206,7 +305,10 @@ const initApp = () => {
     try {
       const identification = $("#animalName").value.trim();
       if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
-      await insertAnimal({ identification, type: $("#animalType").value, status: $("#animalStatus").value, user_id: currentUserId });
+      const weightRaw = $("#animalWeight")?.value;
+      const weight = weightRaw ? parseFloat(weightRaw) : null;
+      if (weight !== null && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
+      await insertAnimal({ identification, type: $("#animalType").value, status: $("#animalStatus").value, weight, user_id: currentUserId });
       el.animalForm.reset(); showToast("Animal cadastrado!"); populateCowSelects(); render();
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao cadastrar animal", "error"); }
   }, "Cadastrando..."));

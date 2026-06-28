@@ -210,3 +210,74 @@ export const getMedicationInfo = (medicationName, customIntervalDays = null) => 
     route: "Consultar bula",
   };
 };
+
+/**
+ * Calcula a dose recomendada de um medicamento baseado no peso do animal.
+ * @param {string} medicationName - Nome do medicamento
+ * @param {number|null} animalWeight - Peso do animal em kg
+ * @param {number|null} customInterval - Intervalo customizado de reaplicação
+ * @returns {{ dosage: string, calculatedDose: string|null, weightUsed: number|null, warning: string|null }}
+ */
+export const calculateDosage = (medicationName, animalWeight = null, customInterval = null) => {
+  const info = getMedicationInfo(medicationName, customInterval);
+  
+  if (!animalWeight || animalWeight <= 0) {
+    return {
+      dosage: info.dosage,
+      calculatedDose: null,
+      weightUsed: null,
+      warning: "Peso não informado — informe o peso do animal para calcular a dose",
+    };
+  }
+
+  // Padrões de dosagem por kg (extraídos do catálogo)
+  const dosagePatterns = [
+    { pattern: /(\d+(?:,\d+)?)\s*ml\/(\d+)\s*kg/i, unit: "ml", factor: true },
+    { pattern: /(\d+(?:,\d+)?)\s*mg\/kg/i, unit: "mg", factor: true },
+    { pattern: /(\d+(?:,\d+)?)\s*ml\/animal/i, unit: "ml", factor: false },
+    { pattern: /(\d+(?:,\d+)?)\s*ml\/100\s*kg/i, unit: "ml", per100: true },
+    { pattern: /(\d+(?:,\d+)?)\s*ml\/50\s*kg/i, unit: "ml", per50: true },
+    { pattern: /(\d+(?:,\d+)?)\s*UI\/kg/i, unit: "UI", factor: true },
+    { pattern: /(\d+(?:,\d+)?)\s*mcg\/kg/i, unit: "mcg", factor: true },
+    { pattern: /(\d+(?:,\d+)?)\s*g\/kg/i, unit: "g", factor: true },
+  ];
+
+  const dosageStr = info.dosage;
+  
+  for (const { pattern, unit, factor, per100, per50 } of dosagePatterns) {
+    const match = dosageStr.match(pattern);
+    if (!match) continue;
+    
+    const baseValue = parseFloat(match[1].replace(",", "."));
+    let calculatedDose = null;
+    
+    if (factor) {
+      // Ex: "1 ml/50 kg" → 1 ml para cada 50 kg
+      calculatedDose = (baseValue * animalWeight) / (per50 ? 50 : per100 ? 100 : 1);
+    } else if (per100) {
+      calculatedDose = (baseValue * animalWeight) / 100;
+    } else if (per50) {
+      calculatedDose = (baseValue * animalWeight) / 50;
+    }
+    
+    if (calculatedDose !== null) {
+      const rounded = Math.round(calculatedDose * 10) / 10;
+      const calculatedStr = `${rounded} ${unit} (${animalWeight} kg)`;
+      
+      return {
+        dosage: dosageStr,
+        calculatedDose: calculatedStr,
+        weightUsed: animalWeight,
+        warning: rounded <= 0 ? "Dose calculada ZERO — verificar peso e dosagem" : null,
+      };
+    }
+  }
+
+  // Não conseguiu calcular automaticamente
+  return {
+    dosage: dosageStr,
+    calculatedDose: null,
+    weightUsed: animalWeight,
+    warning: "Fórmula de dosagem não reconhecida — consulte a bula",
+  };
+};

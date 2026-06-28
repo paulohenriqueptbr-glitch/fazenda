@@ -136,6 +136,9 @@
     <span id="animalTotal"></span><span id="lactatingTotal"></span>
   </div>
 
+  <!-- DASHBOARD INTELIGENTE -->
+  <div id="smartDashboard" class="smart-dashboard-container"></div>
+
   <section class="quick-actions" aria-label="Ações rápidas">
     <button class="quick-action" type="button" data-tab="milk">
       <i data-lucide="milk"></i> Registrar Leite
@@ -212,6 +215,8 @@
         <option>Para engorda</option>
         <option>Disponível para venda</option>
       </select>
+      <label for="animalWeight">Peso atual (kg)</label>
+      <input id="animalWeight" type="number" min="0" max="2000" step="0.1" inputmode="decimal" placeholder="Ex.: 450">
       <button type="submit">Cadastrar animal</button>
     </form>
     <div class="section-title"><h2>Rebanho</h2></div>
@@ -237,6 +242,7 @@
     </form>
     <div class="section-title"><h2>Reproduções</h2></div>
     <div id="breedingList" class="list"></div>
+    <div id="lactationForecastPanel"></div>
   </section>
 
   <section id="medication" class="panel">
@@ -249,6 +255,7 @@
     </div>
     <div id="upcomingReapply" class="upcoming-reapply-panel"></div>
     <div id="chronicTreatments" class="chronic-treatment-container"></div>
+    <div id="medicationForecastPanel"></div>
     <form id="medicationForm" class="form-grid">
       <label for="medCowId">Vaca</label>
       <select id="medCowId"></select>
@@ -258,6 +265,7 @@
       <div id="medInfoBadge" class="med-info-badge" style="display:none;"></div>
       <label for="medDosage">Dosagem</label>
       <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
+      <div id="dosageSuggestion" class="dosage-suggestion" style="display:none;"></div>
       <label for="medReapplyInterval">Reaplicar em (dias, opcional)</label>
       <input id="medReapplyInterval" type="number" placeholder="Automático (catálogo)" min="1" max="365" step="1">
       <label for="medDate">Data de aplicação</label>
@@ -308,7 +316,9 @@
       <textarea id="cropNotes" rows="3" placeholder="Detalhes do manejo"></textarea>
       <button type="submit">Salvar manejo</button>
     </form>
-    <div class="section-title"><h2>Lavoura</h2></div>
+    <div class="section-title"><h2>Lavouras</h2></div>
+    <div id="cropGroupList" class="list crop-group-list"></div>
+    <div class="section-title"><h2>Manejos</h2></div>
     <div id="cropEventList" class="list"></div>
   </section>
 
@@ -343,6 +353,7 @@
       <button type="submit">Salvar item</button>
     </form>
     <div class="section-title"><h2>Itens em estoque</h2></div>
+    <div id="stockForecastPanel"></div>
     <div id="stockList" class="list"></div>
   </section>
 
@@ -390,6 +401,8 @@
     </div>
     <div class="section-title"><h2>Alertas</h2></div>
     <div id="alertList" class="list"></div>
+    <div class="section-title"><h2>💡 Recomendações Inteligentes</h2></div>
+    <div id="recommendationList" class="list"></div>
   </section>
 
   <section id="reports" class="panel">
@@ -435,6 +448,7 @@
         <div id="productionChart" class="chart production-chart">
       <canvas></canvas>
     </div>
+    <div id="forecastPanel"></div>
   </section>
 
   <section id="settings" class="panel">
