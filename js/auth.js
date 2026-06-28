@@ -158,10 +158,6 @@ export const requireSession = async () => {
   return session;
 };
 
-export const isMissingOptionalTable = (error, table) =>
-  Boolean(error) && ["crop_events", "reminders", "stock_items"].includes(table) &&
-  (["42P01", "PGRST205"].includes(error.code) || String(error.message || "").toLowerCase().includes(table));
-
 // ─── Check session ──────────────────────────────────────────────────────────
 export const checkSession = async (initAppFn) => {
   if (!hasSupabase || !db) {

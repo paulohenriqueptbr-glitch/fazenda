@@ -41,7 +41,7 @@ export const isLocalOrigin =
 export const canUseLocalAccount = isLocalOrigin && !hasSupabase;
 export const canUseLocalAccountWithPassword = canUseLocalAccount && Boolean(config.localModeEnabled);
 
-export const supabaseUnavailableMessage = () => {
+export const supabaseUnavailableMessage = (err) => {
   if (canUseLocalAccountWithPassword) return "Modo local ativo. Use admin e a senha configurada no servidor.";
   if (canUseLocalAccount) return "Modo local: configure LOCAL_ADMIN_PASSWORD no .env para habilitar o acesso.";
   if (!window.supabase) return "Biblioteca do Supabase não carregou. Recarregue a página para atualizar os arquivos do app.";

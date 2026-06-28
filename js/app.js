@@ -2,13 +2,14 @@ import {
   $, state, hasSupabase, db, currentUserId, setCurrentUserId, config,
   todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, localId,
   canUseLocalAccountWithPassword, supabaseUnavailableMessage,
+  selectedMedicationCowId, setSelectedMedicationCowId,
 } from "./state.js";
 import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme } from "./ui.js";
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
 import { findMedication, getMedicationInfo, calculateDosage, BOVINE_MEDICATIONS } from "./medication-catalog.js";
-import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval } from "./alerts.js";
+import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval, updateAlertsBadge } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary, renderLoginSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
@@ -95,7 +96,6 @@ const loadData = async () => {
 
 // ─── Init app ───────────────────────────────────────────────────────────────
 let appInitialized = false;
-let selectedMedicationCowId = null;
 
 const initApp = () => {
   if (appInitialized) { loadData(); return; }
@@ -112,8 +112,28 @@ const initApp = () => {
       if (panel) panel.classList.add("active");
       if (el.appShell) el.appShell.dataset.activeTab = tabId;
       window.scrollTo({ top: el.appShell?.offsetTop || 0, behavior: "smooth" });
+      // Fechar submenu ao selecionar item
+      const submenu = document.getElementById("navSubmenu");
+      if (submenu) submenu.classList.add("hidden");
     };
     document.addEventListener("click", (e) => { const btn = e.target.closest("[data-tab]"); if (btn) activateTab(btn.dataset.tab); });
+    
+    // Submenu "Mais" toggle
+    const navMoreBtn = document.getElementById("navMoreBtn");
+    const navSubmenu = document.getElementById("navSubmenu");
+    if (navMoreBtn && navSubmenu) {
+      navMoreBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        navSubmenu.classList.toggle("hidden");
+      });
+      // Fechar submenu ao clicar fora
+      document.addEventListener("click", (e) => {
+        if (!navSubmenu.contains(e.target) && e.target !== navMoreBtn) {
+          navSubmenu.classList.add("hidden");
+        }
+      });
+    }
+    
     if (el.appShell && !el.appShell.dataset.activeTab) {
       const initial = document.querySelector(".panel.active");
       el.appShell.dataset.activeTab = initial ? initial.id : "milk";
@@ -151,9 +171,9 @@ const initApp = () => {
           populateCowSelects(); render(); showToast("Registro atualizado com sucesso!");
         }
         if (action === "delete") { if (!findRecord(type, id)) return; if (!window.confirm("Deseja excluir este registro?")) return; await deleteRecord(type, id); populateCowSelects(); render(); }
-        if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); }
-        if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); }
-        if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); }
+        if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); updateAlertsBadge(); }
+        if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
+        if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
       } catch (err) { error(err); showToast("Não foi possível concluir a ação.", "error"); }
     });
   }
@@ -164,7 +184,7 @@ const initApp = () => {
     document.addEventListener("click", (event) => {
       const tab = event.target.closest("[data-medical-cow-id]");
       if (!tab) return;
-      selectedMedicationCowId = tab.dataset.medicalCowId;
+      setSelectedMedicationCowId(tab.dataset.medicalCowId);
       const sel = $("#medCowId");
       if (sel) sel.value = selectedMedicationCowId;
       renderMedication(selectedMedicationCowId);
@@ -222,7 +242,7 @@ const initApp = () => {
   if (medCowInput && !medCowInput._listenerAttached) {
     medCowInput._listenerAttached = true;
     medCowInput.addEventListener("change", () => {
-      selectedMedicationCowId = medCowInput.value;
+      setSelectedMedicationCowId(medCowInput.value);
       renderMedication(selectedMedicationCowId);
       // Auto-suggest dosage based on cow weight
       updateDosageSuggestion();
@@ -415,7 +435,7 @@ const initApp = () => {
       if (!medName || medName.length > 100) throw new Error("Medicamento deve ter 1-100 caracteres");
       if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
       if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
-      selectedMedicationCowId = medCowId;
+      setSelectedMedicationCowId(medCowId);
       const reapplyDays = $("#medReapplyInterval")?.value ? validateNumber($("#medReapplyInterval").value, 1, 365) : null;
       await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate, reapply_interval_days: reapplyDays });
       el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; render(); showToast("Medicação registrada!");
@@ -521,12 +541,6 @@ const initApp = () => {
       const newTheme = toggleTheme();
       updateThemeToggleIcon(newTheme);
     });
-  }
-
-  // ─── Export button ─────────────────────────────────────────────────────
-  if (el.exportDataButton && !el.exportDataButton._listenerAttached) {
-    el.exportDataButton._listenerAttached = true;
-    el.exportDataButton.addEventListener("click", exportDataBackup);
   }
 
   // ─── Install prompt ───────────────────────────────────────────────────

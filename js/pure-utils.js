@@ -161,6 +161,33 @@ const updateThemeToggleIcon = (theme) => {
 // No browser, este arquivo é carregado via <script> e as funções acima ficam
 // no escopo global, exatamente como antes. No Node (testes), module.exports
 // expõe as mesmas funções para `require`.
+// ─── Count-up animation ────────────────────────────────────────────────────
+const countUp = (element, targetValue, options = {}) => {
+  if (!element) return;
+  const { duration = 600, prefix = "", suffix = "", decimals = 0 } = options;
+  const startTime = performance.now();
+  const startValue = 0;
+  
+  const animate = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const currentValue = startValue + (targetValue - startValue) * easeOut;
+    
+    if (decimals > 0) {
+      element.textContent = `${prefix}${currentValue.toFixed(decimals)}${suffix}`;
+    } else {
+      element.textContent = `${prefix}${Math.round(currentValue)}${suffix}`;
+    }
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  };
+  
+  requestAnimationFrame(animate);
+};
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     parseIsoDate,
@@ -189,5 +216,6 @@ if (typeof module !== "undefined" && module.exports) {
     persistTheme,
     toggleTheme,
     updateThemeToggleIcon,
+    countUp,
   };
 }

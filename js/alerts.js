@@ -57,7 +57,7 @@ export const alertStatus = (dueDate, done = false) => {
 export const alertStatusLabel = (dueDate, done = false) => {
   const status = alertStatus(dueDate, done);
   const days = daysFromToday(dueDate);
-  if (status === "done") return "Concluido";
+  if (status === "done") return "Concluído";
   if (status === "overdue" && days !== null && days < -7) return `🔴 ${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"} atrasado (CRÍTICO)`;
   if (status === "overdue") return `${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"} atrasado`;
   if (status === "today") return "Hoje";
@@ -237,7 +237,7 @@ const buildAbortifacientAlerts = () => {
         title: `⚠️ ALERTA: ${m.medication_name} em vaca gestante (${animalName})`,
         due_date: m.administration_date,
         category: "Segurança",
-        notes: `${animalName} está com prenhez registrada (parto previsto: ${formatDate(activePregnancy.expected_calving_date)}). ${m.medication_name} pode causaraborto! Verifique com o veterinário.`,
+        notes: `${animalName} está com prenhez registrada (parto previsto: ${formatDate(activePregnancy.expected_calving_date)}). ${m.medication_name} pode causar aborto! Verifique com o veterinário.`,
         urgency: "critical",
       }));
     }
@@ -374,4 +374,21 @@ export const toggleReminder = async (id) => {
   const done = !reminder.done;
   await updateRecord("reminder", id, { done, completed_at: done ? new Date().toISOString() : null });
   showToast(done ? "Lembrete concluido." : "Lembrete reaberto.");
+};
+
+// ─── Badge de notificação ──────────────────────────────────────────────────
+export const updateAlertsBadge = () => {
+  const alerts = buildAlerts();
+  const pendingCount = alerts.filter((a) => !a.done).length;
+  const badgeQuick = document.getElementById("alertsBadgeQuick");
+  const badgeNav = document.getElementById("alertsBadgeNav");
+  
+  if (badgeQuick) {
+    badgeQuick.textContent = pendingCount;
+    badgeQuick.classList.toggle("hidden", pendingCount === 0);
+  }
+  if (badgeNav) {
+    badgeNav.textContent = pendingCount;
+    badgeNav.classList.toggle("hidden", pendingCount === 0);
+  }
 };

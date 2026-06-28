@@ -1,6 +1,9 @@
-// ─── Imports and Re-exports from pure-utils.js ──────────────────────────────
-// Importa funções puras de pure-utils.js para uso local E re-exporta para manter compatibilidade.
-// NOTA: re-export alone (export { X } from) NÃO cria binding local — usar import separado.
+// ─── Re-exports de pure-utils.js ────────────────────────────────────────────
+// Re-exporta funções puras para manter compatibilidade com módulos que importam de ui.js.
+// NOTA: import separado é necessário para funções usadas localmente neste arquivo,
+// porque `export { X } from` NÃO cria binding local.
+
+// Funções usadas localmente neste arquivo (imports necessários):
 import {
   escapeHtml,
   cleanText,
@@ -10,6 +13,7 @@ import {
   isNotFutureDate,
 } from "./pure-utils.js";
 
+// Re-exports para outros módulos:
 export {
   formatLiters,
   formatMoney,
@@ -28,6 +32,7 @@ export {
   toggleTheme,
   updateThemeToggleIcon,
   getPreferredTheme,
+  countUp,
 } from "./pure-utils.js";
 
 // ─── Toast ──────────────────────────────────────────────────────────────────

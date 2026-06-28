@@ -1,12 +1,40 @@
 import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays } from "./state.js";
-import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge } from "./ui.js";
+import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge, countUp } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
-import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays } from "./alerts.js";
+import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays, updateAlertsBadge } from "./alerts.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
 import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getFinancialAnalysis, getFarmScore, forecastProduction } from "./analytics.js";
 import { generateRecommendations, getRecommendationsSummary } from "./recommendations.js";
 import { forecastStock, forecastMedication, forecastLactation } from "./predictions.js";
+
+// ─── Sparkline helper ──────────────────────────────────────────────────────
+const generateSparkline = (data, width = 80, height = 28) => {
+  if (!data.length || data.every((v) => v === 0)) return "";
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const step = width / (data.length - 1 || 1);
+  
+  const points = data.map((v, i) => {
+    const x = i * step;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(" ");
+  
+  const lastY = height - ((data[data.length - 1] - min) / range) * (height - 4) - 2;
+  const areaPoints = `0,${height} ${points} ${width},${height}`;
+  
+  const trend = data[data.length - 1] >= data[0];
+  const color = trend ? "#10b981" : "#ef4444";
+  const colorLight = trend ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
+  
+  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+    <polygon points="${areaPoints}" fill="${colorLight}" />
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="${width}" cy="${lastY}" r="2" fill="${color}" />
+  </svg>`;
+};
 
 // ─── DOM Elements ───────────────────────────────────────────────────────────
 export const el = {
@@ -272,8 +300,26 @@ export const renderSummary = () => {
   // Today
   const todayRecords = state.milk.filter((r) => r.date === today);
   const todayLiters = todayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
-  if (el.todayTotal) el.todayTotal.textContent = formatLiters(todayLiters);
+  if (el.todayTotal) {
+    const currentVal = parseFloat(el.todayTotal.textContent) || 0;
+    if (currentVal !== todayLiters) {
+      countUp(el.todayTotal, todayLiters, { duration: 500, suffix: " L" });
+    }
+  }
   if (el.todayValue) el.todayValue.textContent = formatMoney(todayLiters * price);
+
+  // Sparkline - últimos 7 dias
+  const sparklineContainer = document.getElementById("sparklineContainer");
+  if (sparklineContainer) {
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = addDaysIso(today, -i);
+      const dayRecords = state.milk.filter((r) => r.date === date);
+      const dayLiters = dayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+      last7Days.push(dayLiters);
+    }
+    sparklineContainer.innerHTML = generateSparkline(last7Days);
+  }
 
   // Fortnight
   const fortnightRecords = state.milk.filter((r) => r.date && r.date >= fortnightStart && r.date <= today);
@@ -1469,6 +1515,7 @@ const _doRender = () => {
   renderMedicationForecast();
   renderLactationForecast();
   renderAlerts();
+  updateAlertsBadge();
   renderRecommendations();
   renderReports();
   renderProductionForecast();

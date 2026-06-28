@@ -76,7 +76,7 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["flunixina", "flunixin", "banamine"], reapplyDays: 3, dosage: "1,1-2,2 mg/kg", route: "IV", category: "ANTI_INFLAMATORIO", notes: "AINE potente. Cólica, inflamações. CUIDADO: não usar em desidratados. Carência leite: 36h." },
   { patterns: ["ketoprofeno", "ketoprofen"], reapplyDays: 3, dosage: "2,2 mg/kg", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "AINE. Anti-inflamatório e antipirético. Carência leite: 48h." },
   { patterns: ["meloxicam", "meloxicam"], reapplyDays: 3, dosage: "0,5 mg/kg", route: "IV ou SC", category: "ANTI_INFLAMATORIO", notes: "AINE seletivo COX-2. Menor impacto gastrintestinal." },
-  { patterns: ["dexametasona", "dexamethasone"], reapplyDays: 5, dosage: "5-20 mg/animal", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide. Anti-inflamatório potente. CUIDADO: causaraborto em gestantes." },
+  { patterns: ["dexametasona", "dexamethasone"], reapplyDays: 5, dosage: "5-20 mg/animal", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide. Anti-inflamatório potente. CUIDADO: causar aborto em gestantes." },
   { patterns: ["prednisolona", "prednisolone"], reapplyDays: 5, dosage: "0,5-1 mg/kg/dia", route: "IM ou PO", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide. Reduz progressivamente a dose." },
   { patterns: ["dipirona", "metamizole", "novalgina"], reapplyDays: 1, dosage: "25 mg/kg", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "Antipirético e analgésico. Uso clínico geral." },
 
@@ -145,7 +145,7 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["misoprostol", "misoprostol"], reapplyDays: 1, dosage: "400-800 mcg", route: "PO", category: "OUTROS", notes: "Análogo de PGE1. Proteção gástrica com AINEs." },
   { patterns: ["ranitidina", "ranitidine"], reapplyDays: 1, dosage: "300-600 mg/animal", route: "PO", category: "OUTROS", notes: "Antiulceroso. Gastrite por estresse." },
   { patterns: ["diuron", "diurona"], reapplyDays: 14, dosage: "4 ml/100 kg", route: "TÓPICA (banho)", category: "ECTOPARASITICIDA", notes: "Inseticida para mosca dos chifres (Haematobia irritans)." },
-  { patterns: ["dexametasona longa", "dexamethasone long acting", "dexasone"], reapplyDays: 7, dosage: "20-40 mg/animal", route: "IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide de depósito. Anti-inflamatório prolongado. CUIDADO: causaraborto em gestantes." },
+  { patterns: ["dexametasona longa", "dexamethasone long acting", "dexasone"], reapplyDays: 7, dosage: "20-40 mg/animal", route: "IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide de depósito. Anti-inflamatório prolongado. CUIDADO: causar aborto em gestantes." },
 ];
 
 /**

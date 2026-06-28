@@ -101,40 +101,47 @@
   </div>
   <section class="summary-grid" aria-label="Resumo">
     <article class="summary primary">
-      <span>Produção de hoje</span>
+      <div class="summary-header">
+        <i data-lucide="milk" class="summary-icon"></i>
+        <span>Produção de hoje</span>
+      </div>
       <strong id="todayTotal">0 L</strong>
       <small id="todayValue">R$ 0,00</small>
+      <div class="sparkline-container" id="sparklineContainer"></div>
     </article>
     <article class="summary">
-      <span>Quinzena atual</span>
+      <div class="summary-header">
+        <i data-lucide="calendar" class="summary-icon"></i>
+        <span>Quinzena atual</span>
+      </div>
       <strong id="fortnightTotal">0 L</strong>
       <small id="fortnightValue">R$ 0,00</small>
     </article>
     <article class="summary">
-      <span>Mês atual</span>
+      <div class="summary-header">
+        <i data-lucide="calendar-days" class="summary-icon"></i>
+        <span>Mês atual</span>
+      </div>
       <strong id="monthTotal">0 L</strong>
       <small id="monthValue">R$ 0,00</small>
     </article>
     <article class="summary">
-      <span>Cotação do leite</span>
+      <div class="summary-header">
+        <i data-lucide="coins" class="summary-icon"></i>
+        <span>Cotação do leite</span>
+      </div>
       <strong id="priceQuoteDisplay">R$ 0,00/L</strong>
       <small>Altere em Configurações</small>
     </article>
     <article class="summary">
-      <span>Animais</span>
+      <div class="summary-header">
+        <i data-lucide="cow" class="summary-icon"></i>
+        <span>Animais</span>
+      </div>
       <strong id="animalTotal">0</strong>
       <small id="lactatingTotal">0 em lactação</small>
     </article>
   </section>
-
-  <!-- Mantidos ocultos para compatibilidade com código existente que lê estes elementos -->
-  <div class="hidden" aria-hidden="true">
-    <span id="todayTotal"></span><span id="todayValue"></span>
-    <span id="monthTotal"></span><span id="monthValue"></span>
-    <span id="fortnightTotal"></span><span id="fortnightValue"></span>
-    <span id="priceQuoteDisplay"></span>
-    <span id="animalTotal"></span><span id="lactatingTotal"></span>
-  </div>
 
   <!-- DASHBOARD INTELIGENTE -->
   <div id="smartDashboard" class="smart-dashboard-container"></div>
@@ -160,6 +167,7 @@
     </button>
     <button class="quick-action" type="button" data-tab="alerts">
       <i data-lucide="bell"></i> Alertas
+      <span class="notification-badge hidden" id="alertsBadgeQuick">0</span>
     </button>
   </section>
 
@@ -487,35 +495,44 @@
     <i class="nav-icon" data-lucide="tag"></i>
     <span>Animais</span>
   </button>
-  <button class="nav-item" type="button" data-tab="breeding">
-    <i class="nav-icon" data-lucide="calendar-heart"></i>
-    <span>Gestação</span>
-  </button>
   <button class="nav-item" type="button" data-tab="medication">
     <i class="nav-icon" data-lucide="syringe"></i>
     <span>Saúde</span>
   </button>
-  <button class="nav-item" type="button" data-tab="crops">
-    <i class="nav-icon" data-lucide="sprout"></i>
-    <span>Lavoura</span>
-  </button>
-  <button class="nav-item" type="button" data-tab="stock">
-    <i class="nav-icon" data-lucide="package"></i>
-    <span>Estoque</span>
-  </button>
   <button class="nav-item" type="button" data-tab="alerts">
     <i class="nav-icon" data-lucide="bell"></i>
     <span>Alertas</span>
-  </button>
-  <button class="nav-item" type="button" data-tab="reports">
-    <i class="nav-icon" data-lucide="bar-chart"></i>
-    <span>Relatórios</span>
+    <span class="notification-badge hidden" id="alertsBadgeNav">0</span>
   </button>
   <button class="nav-item" type="button" data-tab="settings">
     <i class="nav-icon" data-lucide="settings"></i>
     <span>Config</span>
   </button>
+  <button class="nav-item nav-more" type="button" id="navMoreBtn">
+    <i class="nav-icon" data-lucide="more-horizontal"></i>
+    <span>Mais</span>
+  </button>
 </nav>
+
+<!-- ===== SUBMENU "MAIS" ===== -->
+<div class="nav-submenu hidden" id="navSubmenu">
+  <button class="submenu-item" type="button" data-tab="breeding">
+    <i data-lucide="calendar-heart"></i>
+    <span>Gestação</span>
+  </button>
+  <button class="submenu-item" type="button" data-tab="crops">
+    <i data-lucide="sprout"></i>
+    <span>Lavoura</span>
+  </button>
+  <button class="submenu-item" type="button" data-tab="stock">
+    <i data-lucide="package"></i>
+    <span>Estoque</span>
+  </button>
+  <button class="submenu-item" type="button" data-tab="reports">
+    <i data-lucide="bar-chart"></i>
+    <span>Relatórios</span>
+  </button>
+</div>
 
 <!-- ===== ANIMAL PROFILE MODAL ===== -->
 <div id="animalProfileModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="animalProfileTitle">
