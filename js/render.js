@@ -879,6 +879,8 @@ export const renderAlerts = () => {
 };
 
 // ─── Weather ────────────────────────────────────────────────────────────────
+const WEATHER_CACHE_KEY = "last_weather_forecast";
+
 export const renderWeatherForecast = (data) => {
   if (!el.weatherForecast) return;
   const locationParts = [data.location?.name, data.location?.region, data.location?.country].filter(Boolean);
@@ -890,6 +892,29 @@ export const renderWeatherForecast = (data) => {
 
 export const loadWeatherForecast = async (city) => {
   if (!el.weatherForecast) return;
+
+  // Try to load cached forecast first
+  const cached = localStorage.getItem(WEATHER_CACHE_KEY);
+  if (cached) {
+    try {
+      const cacheData = JSON.parse(cached);
+      if (cacheData.city === city && cacheData.data && cacheData.timestamp) {
+        renderWeatherForecast(cacheData.data);
+        // Show "last updated" indicator
+        const updated = new Date(cacheData.timestamp);
+        const timeStr = updated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const dateStr = updated.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        if (el.weatherForecast) {
+          const header = el.weatherForecast.querySelector(".weather-header small");
+          if (header) header.textContent = `${escapeHtml(cacheData.data.source || "Open-Meteo")} (Atualizado: ${dateStr} ${timeStr})`;
+        }
+        // If offline, don't attempt fetch — just show cached data
+        if (!navigator.onLine) return;
+      }
+    } catch { /* invalid cache — ignore */ }
+  }
+
+  // Show skeleton while loading
   el.weatherForecast.innerHTML = `
     <div class="weather-header skeleton skeleton-card">
       <span>Previsão do tempo</span>
@@ -898,11 +923,28 @@ export const loadWeatherForecast = async (city) => {
     <div class="weather-grid">
       ${[1,2,3].map(() => '<article class="weather-day skeleton skeleton-card"><span>&nbsp;</span><strong>&nbsp;</strong><small>&nbsp;</small></article>').join('')}
     </div>`;
-  const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
-  localStorage.setItem(userStorageKey("weather_city"), city);
-  renderWeatherForecast(data);
+
+  try {
+    const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
+    // Cache the successful response
+    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ city, data, timestamp: Date.now() }));
+    localStorage.setItem(userStorageKey("weather_city"), city);
+    renderWeatherForecast(data);
+  } catch (err) {
+    // If fetch failed but we have cached data, show it (don't re-render skeleton)
+    if (cached) {
+      try {
+        const cacheData = JSON.parse(cached);
+        if (cacheData.city === city && cacheData.data) {
+          renderWeatherForecast(cacheData.data);
+          return;
+        }
+      } catch { /* ignore */ }
+    }
+    throw err;
+  }
 };
 
 // ─── Reports ────────────────────────────────────────────────────────────────

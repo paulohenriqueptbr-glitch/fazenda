@@ -9,6 +9,50 @@ import {
 import { showToast } from "./ui.js";
 import { error } from "./logger.js";
 
+// ─── Local Auth Helpers ───────────────────────────────────────────────────
+const LOCAL_ADMIN_HASH_KEY = "local-admin-hash";
+const LOCAL_ADMIN_EMAIL_KEY = "local-admin-email";
+const DEFAULT_LOCAL_PASSWORD = "admin123";
+
+/**
+ * Hash a password using SHA-256 via Web Crypto API.
+ * @param {string} password
+ * @returns {Promise<string>} hex-encoded hash
+ */
+const hashPassword = async (password) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+/**
+ * Local login without fetch — verifies password against stored hash in localStorage.
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<{email: string}>}
+ */
+const loginLocal = async (email, password) => {
+  const storedHash = localStorage.getItem(LOCAL_ADMIN_HASH_KEY);
+
+  // If no hash stored yet, create one with default password
+  if (!storedHash) {
+    const defaultHash = await hashPassword(DEFAULT_LOCAL_PASSWORD);
+    localStorage.setItem(LOCAL_ADMIN_HASH_KEY, defaultHash);
+    if (password !== DEFAULT_LOCAL_PASSWORD) {
+      throw new Error("Senha inválida");
+    }
+  } else {
+    const inputHash = await hashPassword(password);
+    if (inputHash !== storedHash) {
+      throw new Error("Senha inválida");
+    }
+  }
+
+  localStorage.setItem(LOCAL_ADMIN_EMAIL_KEY, email);
+  return { email };
+};
+
 // ─── Elementos DOM ──────────────────────────────────────────────────────────
 const loginScreen = $("#loginScreen");
 const appShell = $("#appShell");
@@ -121,6 +165,18 @@ export const isMissingOptionalTable = (error, table) =>
 // ─── Check session ──────────────────────────────────────────────────────────
 export const checkSession = async (initAppFn) => {
   if (!hasSupabase || !db) {
+    // No Supabase — try local mode
+    const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
+    if (canUseLocalAccountWithPassword || canUseLocalAccount) {
+      if (savedEmail) {
+        // Allow offline use with local data
+        setCurrentUserId("local-admin");
+        showApp(savedEmail);
+        initAppFn();
+        if (!navigator.onLine) showToast("Offline - dados locais", "error");
+        return;
+      }
+    }
     showLogin();
     showLoginError(supabaseUnavailableMessage(), canUseLocalAccountWithPassword ? "success" : "error");
     return;
@@ -132,11 +188,35 @@ export const checkSession = async (initAppFn) => {
       showApp(session.user.email);
       initAppFn();
     } else {
+      // No Supabase session — check if offline with saved local email
+      if (!navigator.onLine) {
+        const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
+        if (savedEmail) {
+          setCurrentUserId("local-admin");
+          showApp(savedEmail);
+          initAppFn();
+          showToast("Offline - dados locais", "error");
+          return;
+        }
+        showLogin();
+        showLoginError("Sem internet. Conecte-se uma vez online para usar o app.");
+        return;
+      }
       showLogin();
-      if (!navigator.onLine) showLoginError("Sem internet. Entre uma vez online antes de usar offline.");
     }
   } catch (err) {
     error("Session check error:", err);
+    // Offline fallback — check for saved local email
+    if (!navigator.onLine) {
+      const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
+      if (savedEmail) {
+        setCurrentUserId("local-admin");
+        showApp(savedEmail);
+        initAppFn();
+        showToast("Offline - dados locais", "error");
+        return;
+      }
+    }
     showLogin();
   }
 };
@@ -169,25 +249,19 @@ export const setupAuthListeners = (initAppFn) => {
 
     if (canUseLocalAccountWithPassword && email.toLowerCase() === "admin") {
       try {
-        const res = await fetch("/api/local-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: email.toLowerCase(), password }),
-        });
-        const json = await res.json();
-        if (json.ok) {
-          resetFailedLoginAttempts();
-          setCurrentUserId("local-admin");
-          if ($("#rememberLoginEmail")?.checked) saveLoginEmail(email);
-          showApp("admin local");
-          initAppFn();
-          showToast("Modo local ativo.");
-          return;
-        }
-        incrementFailedLoginAttempts();
-        showLoginError(json.message || "Usuário ou senha incorretos.");
+        const result = await loginLocal(email.toLowerCase(), password);
+        resetFailedLoginAttempts();
+        setCurrentUserId("local-admin");
+        if ($("#rememberLoginEmail")?.checked) saveLoginEmail(email);
+        showApp(result.email || "admin local");
+        initAppFn();
+        showToast("Modo local ativo.");
         return;
-      } catch { showLoginError("Erro ao verificar credenciais locais."); return; }
+      } catch (err) {
+        incrementFailedLoginAttempts();
+        showLoginError(err.message || "Usuário ou senha incorretos.");
+        return;
+      }
     }
 
     if (failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
