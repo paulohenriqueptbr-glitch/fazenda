@@ -90,6 +90,11 @@
   --field: #162032;
   --danger-light: #2d1215;
 
+  /* ── Brand Colors (dark) ── */
+  --green-soft: #0f2e23;
+  --green-light: #1a3d32;
+  --green-dark: #34d399;
+
   /* ── Elevation ── */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
@@ -432,6 +437,32 @@
 [data-theme="dark"] .hero-copy h1,
 [data-theme="dark"] .pricing-section h2 {
   color: var(--ink);
+}
+
+/* ── Buttons dark mode ── */
+[data-theme="dark"] .btn-logout {
+  background: var(--panel);
+  color: #fca5a5;
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .btn-logout:hover {
+  background: var(--panel-elevated);
+  border-color: #fca5a5;
+}
+
+/* ── Legal page dark mode ── */
+[data-theme="dark"] .legal-page {
+  background: var(--panel);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .medical-history-item:hover {
+  background: var(--green-soft) !important;
+}
+
+[data-theme="dark"] .medical-cow-tab:hover {
+  background: var(--green-soft) !important;
 }
 
 /* ===== CORREÇÃO GLOBAL iOS/Safari — text-fill e autofill no modo claro ===== */
