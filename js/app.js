@@ -9,7 +9,7 @@ import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, sh
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
 import { findMedication, getMedicationInfo, calculateDosage, BOVINE_MEDICATIONS } from "./medication-catalog.js";
-import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval, updateAlertsBadge } from "./alerts.js";
+import { dismissAutoAlert, confirmAutoAlert, dismissPermanentMedAlert, toggleReminder, getMedicationInterval, updateAlertsBadge } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary, renderLoginSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
@@ -106,7 +106,7 @@ const initApp = () => {
     document.body._tabListenersAttached = true;
     const activateTab = (tabId) => {
       if (!tabId) return;
-      document.querySelectorAll(".nav-item, .quick-action, .panel").forEach((e) => e.classList.remove("active"));
+      document.querySelectorAll(".nav-item, .panel").forEach((e) => e.classList.remove("active"));
       document.querySelectorAll(`[data-tab="${tabId}"]`).forEach((e) => e.classList.add("active"));
       const panel = $(`#${tabId}`);
       if (panel) panel.classList.add("active");
@@ -136,7 +136,7 @@ const initApp = () => {
     
     if (el.appShell && !el.appShell.dataset.activeTab) {
       const initial = document.querySelector(".panel.active");
-      el.appShell.dataset.activeTab = initial ? initial.id : "milk";
+      el.appShell.dataset.activeTab = initial ? initial.id : "animals";
     }
   }
 
@@ -174,6 +174,7 @@ const initApp = () => {
         if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
+        if (action === "dismiss-permanent-med-alert") { const medRecordId = button.dataset.medRecordId; if (medRecordId && window.confirm("Dispensar permanentemente? Este alerta de medicação não aparecerá mais.")) { dismissPermanentMedAlert(medRecordId); renderAlerts(); updateAlertsBadge(); } }
       } catch (err) { error(err); showToast("Não foi possível concluir a ação.", "error"); }
     });
   }
@@ -298,27 +299,52 @@ const initApp = () => {
     }
   };
 
-  // ─── Form submissions ─────────────────────────────────────────────────────
-  el.milkForm.addEventListener("submit", withButtonLoading(el.milkForm, async (event) => {
-    event.preventDefault();
-    try {
-      const dateValue = $("#milkDate").value;
-      const litersValue = Number.parseFloat($("#liters").value || "0");
-      if (!isValidDate(dateValue)) throw new Error("Data inválida");
-      if (!isNotFutureDate(dateValue)) throw new Error("Não pode registrar produção futura");
-      const liters = validateNumber(litersValue, 0, 1000);
-      if (liters === null) throw new Error("Litros inválido (0-1000)");
-      const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
-      const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
-      const ps = getProductionStatus(liters, monthAverage);
-      await upsertMilk({ date: dateValue, liters, user_id: currentUserId });
-      el.milkForm.reset(); el.milkDate.value = todayIso();
-      if (ps.status === "Crítico") showToast(`Produção crítica! ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "error");
-      else if (ps.status === "Baixo") showToast(`Produção baixa. ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "sync");
-      else showToast("Produção salva com sucesso!", "success");
-      render();
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar produção", "error"); }
-  }, "Salvando..."));
+  // ─── Milk FAB + Modal ────────────────────────────────────────────────────
+  const fabMilk = $("#fabMilk");
+  const milkModal = $("#milkModal");
+  const milkModalClose = $("#milkModalClose");
+  const milkFormModal = $("#milkFormModal");
+
+  const openMilkModal = () => {
+    if (!milkModal) return;
+    milkModal.classList.remove("hidden");
+    const dateInput = $("#milkDateModal");
+    if (dateInput && !dateInput.value) dateInput.value = todayIso();
+    const litersInput = $("#litersModal");
+    if (litersInput) litersInput.focus();
+    renderMilk();
+  };
+
+  const closeMilkModal = () => {
+    if (milkModal) milkModal.classList.add("hidden");
+  };
+
+  if (fabMilk) fabMilk.addEventListener("click", openMilkModal);
+  if (milkModalClose) milkModalClose.addEventListener("click", closeMilkModal);
+  if (milkModal) milkModal.addEventListener("click", (e) => { if (e.target === milkModal) closeMilkModal(); });
+
+  if (milkFormModal) {
+    milkFormModal.addEventListener("submit", withButtonLoading(milkFormModal, async (event) => {
+      event.preventDefault();
+      try {
+        const dateValue = $("#milkDateModal").value;
+        const litersValue = Number.parseFloat($("#litersModal").value || "0");
+        if (!isValidDate(dateValue)) throw new Error("Data inválida");
+        if (!isNotFutureDate(dateValue)) throw new Error("Não pode registrar produção futura");
+        const liters = validateNumber(litersValue, 0, 1000);
+        if (liters === null) throw new Error("Litros inválido (0-1000)");
+        const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
+        const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
+        const ps = getProductionStatus(liters, monthAverage);
+        await upsertMilk({ date: dateValue, liters, user_id: currentUserId });
+        milkFormModal.reset(); $("#milkDateModal").value = todayIso();
+        if (ps.status === "Crítico") showToast(`Produção crítica! ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "error");
+        else if (ps.status === "Baixo") showToast(`Produção baixa. ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "sync");
+        else showToast("Produção salva com sucesso!", "success");
+        render();
+      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar produção", "error"); }
+    }, "Salvando..."));
+  }
 
   // ─── Animal form modal ────────────────────────────────────────────────────
   const openAnimalFormBtn = $("#openAnimalFormBtn");
@@ -538,7 +564,6 @@ const initApp = () => {
   if (!el.refreshButton._listenerAttached) { el.refreshButton._listenerAttached = true; el.refreshButton.addEventListener("click", loadData); }
   if (el.exportDataButton && !el.exportDataButton._listenerAttached) { el.exportDataButton._listenerAttached = true; el.exportDataButton.addEventListener("click", exportDataBackup); }
 
-  el.milkDate.value = todayIso();
   if ($("#cropDate")) $("#cropDate").value = todayIso();
   if (el.reminderDate) el.reminderDate.value = todayIso();
   if (el.weatherCity) el.weatherCity.value = localStorage.getItem(userStorageKey("weather_city")) || "";
@@ -570,8 +595,8 @@ const initApp = () => {
 
 // ─── Setup inline validations ───────────────────────────────────────────────
 const setupInlineValidations = () => {
-  addInlineValidation($("#liters"), (v) => { const n = Number.parseFloat(v); if (v === "" || v === null) return "Informe os litros"; if (isNaN(n) || n < 0 || n > 1000) return "Valor deve ser entre 0 e 1000"; return null; });
-  addInlineValidation($("#milkDate"), (v) => { if (!isValidDate(v)) return "Data inválida"; if (!isNotFutureDate(v)) return "Não pode ser data futura"; return null; });
+  addInlineValidation($("#litersModal"), (v) => { const n = Number.parseFloat(v); if (v === "" || v === null) return "Informe os litros"; if (isNaN(n) || n < 0 || n > 1000) return "Valor deve ser entre 0 e 1000"; return null; });
+  addInlineValidation($("#milkDateModal"), (v) => { if (!isValidDate(v)) return "Data inválida"; if (!isNotFutureDate(v)) return "Não pode ser data futura"; return null; });
   addInlineValidation($("#animalModalName"), (v) => { if (!v?.trim()) return "Informe o identificador do animal"; if (v.trim().length > 100) return "Máximo 100 caracteres"; return null; });
   addInlineValidation($("#lactStart"), (v) => (!isValidDate(v) ? "Data inválida" : null));
   addInlineValidation($("#lactLiters"), (v) => { const n = Number.parseFloat(v); if (isNaN(n) || n < 0 || n > 500) return "Valor deve ser entre 0 e 500"; return null; });

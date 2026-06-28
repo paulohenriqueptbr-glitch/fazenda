@@ -270,19 +270,6 @@
   background: rgba(30, 41, 59, 0.95);
 }
 
-[data-theme="dark"] .quick-action {
-  border-color: var(--line);
-  background-color: var(--panel);
-  color: var(--ink-secondary);
-}
-
-[data-theme="dark"] .quick-action:hover,
-[data-theme="dark"] .quick-action.active {
-  background-color: var(--field);
-  border-color: var(--green);
-  color: var(--green);
-}
-
 [data-theme="dark"] .summary,
 [data-theme="dark"] .panel-head {
   border-color: var(--line);
@@ -1418,10 +1405,6 @@ h2 {
   height: 100%;
 }
 
-.quick-action {
-  position: relative;
-}
-
 .nav-item {
   position: relative;
 }
@@ -1710,6 +1693,43 @@ button:disabled::after {
 @keyframes fieldErrorFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== FAB: Registrar Leite ===== */
+.fab-milk {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d9668 0%, #10b981 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab-milk:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+}
+.fab-milk:active {
+  transform: scale(0.95);
+}
+.fab-milk i {
+  width: 26px;
+  height: 26px;
+}
+
+/* ===== MODAL: Registrar Leite ===== */
+.milk-modal-card {
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 /* ===== TOAST NOTIFICATIONS ===== */
@@ -2121,7 +2141,6 @@ button[type="submit"]:active,
 }
 
 .medical-cow-tab,
-.quick-action,
 .filter-btn,
 .category-btn,
 .animal-tab {
@@ -2159,7 +2178,6 @@ button[type="submit"]:active,
 }
 
 .medical-cow-tab.active,
-.quick-action.active,
 .filter-btn.active,
 .category-btn.active,
 .animal-tab.active {
@@ -2859,47 +2877,6 @@ button[type="submit"]:active,
   max-width: 640px;
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.quick-action {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  border: 1px solid rgba(20, 32, 29, 0.08);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--ink-secondary);
-  font-size: 0.84rem;
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-fast);
-  backdrop-filter: blur(8px);
-}
-
-.quick-action:hover,
-.quick-action.active {
-  border-color: rgba(13, 150, 104, 0.25);
-  background: var(--green-soft);
-  color: var(--green-dark);
-  box-shadow: var(--shadow-sm);
-}
-
-.quick-action:active {
-  transform: translateY(1px);
-}
-
-.quick-action i {
-  width: 18px;
-  height: 18px;
-}
-
 .summary:hover,
 .form-grid:hover,
 .item:hover {
@@ -3473,9 +3450,7 @@ button[type="submit"]:active,
 /* =========================================================
    CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
    ========================================================= */
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid,
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) .quick-actions,
-.app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
+.app-shell[data-active-tab]:not([data-active-tab="animals"]) .summary-grid {
   display: none !important;
 }
 
@@ -3689,23 +3664,6 @@ button {
 
   .summary strong {
     margin: 8px 0 3px;
-  }
-
-  .quick-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .quick-action {
-    min-height: 44px;
-    padding: 0 8px;
-    font-size: 0.8rem;
-  }
-
-  .quick-action i {
-    width: 17px;
-    height: 17px;
   }
 
   .panel {

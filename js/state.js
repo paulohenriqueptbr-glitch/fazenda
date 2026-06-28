@@ -26,6 +26,7 @@ export const state = {
   subscription: null,
   dismissedAutoAlerts: new Set(),
   confirmedAutoAlerts: new Set(),
+  dismissedMedAlerts: new Set(),
 };
 
 // ─── Configuração do Supabase ───────────────────────────────────────────────
@@ -148,6 +149,7 @@ export const writeLocal = () => {
       ...state,
       dismissedAutoAlerts: [...(state.dismissedAutoAlerts || [])],
       confirmedAutoAlerts: [...(state.confirmedAutoAlerts || [])],
+      dismissedMedAlerts: [...(state.dismissedMedAlerts || [])],
     };
     localStorage.setItem(userStorageKey(LOCAL_KEY), JSON.stringify(toSave));
     return true;
@@ -172,6 +174,7 @@ export const loadLocal = () => {
   state.subscription = normalizeSubscription(data.subscription || data.clientProfile);
   state.dismissedAutoAlerts = new Set(asArray(data.dismissedAutoAlerts));
   state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
+  state.dismissedMedAlerts = new Set(asArray(data.dismissedMedAlerts));
 };
 
 // Inicializa defaults

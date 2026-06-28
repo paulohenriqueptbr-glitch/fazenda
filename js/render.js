@@ -419,7 +419,9 @@ export const renderMilk = () => {
   const records = [...state.milk].sort((a, b) => b.date.localeCompare(a.date));
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
   const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
-  el.historyList.innerHTML = records.length
+  const target = $("#milkHistoryList") || el.historyList;
+  if (!target) return;
+  target.innerHTML = records.length
     ? records.map((r) => {
       const ps = getProductionStatus(Number(r.liters || 0), monthAverage);
       return `<article class="item" data-milk-id="${escapeHtml(r.id)}"><div><div class="item-title-row"><span>${escapeHtml(formatDate(r.date))}</span>${createStatusBadge(ps)}</div><small>${escapeHtml(formatMoney(price))} por litro</small></div><strong>${escapeHtml(formatLiters(r.liters))} | ${escapeHtml(formatMoney(Number(r.liters) * price))}</strong>${recordActions("milk", r)}</article>`;
@@ -903,7 +905,7 @@ export const renderStockItems = () => {
 // ─── Alerts ─────────────────────────────────────────────────────────────────
 export const renderAlertItem = (alert) => {
   const isManual = alert.type === "manual";
-  const autoActions = !isManual && !alert.done ? `<div class="item-actions"><button type="button" data-action="confirm-auto-alert" data-id="${escapeHtml(alert.id)}">Confirmar</button><button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button></div>` : "";
+  const autoActions = !isManual && !alert.done ? `<div class="item-actions"><button type="button" data-action="confirm-auto-alert" data-id="${escapeHtml(alert.id)}">Confirmar</button><button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button>${alert.medRecordId ? `<button type="button" class="ghost" data-action="dismiss-permanent-med-alert" data-med-record-id="${escapeHtml(alert.medRecordId)}">Dispensar p/ sempre</button>` : ""}</div>` : "";
   return `<article class="item alert-item ${escapeHtml(alert.status)}"><div><div class="item-title-row"><span>${escapeHtml(alert.title)}</span><span class="alert-pill ${escapeHtml(alert.status)}">${escapeHtml(alertStatusLabel(alert.due_date, alert.done))}</span></div><small>${escapeHtml(alert.category)} | ${escapeHtml(formatDate(alert.due_date))}</small>${alert.notes ? `<small>${escapeHtml(alert.notes)}</small>` : ""}</div><strong>${escapeHtml(isManual ? "Lembrete" : "Automatico")}</strong>${isManual ? reminderActions(findRecord("reminder", alert.id) || alert) : autoActions}</article>`;
 };
 
