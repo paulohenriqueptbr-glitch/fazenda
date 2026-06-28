@@ -79,30 +79,30 @@
   color: #f1f5f9;
 
   /* ── Semantic Colors ── */
-  --ink: #f1f5f9;
-  --ink-secondary: #e2e8f0;
-  --muted: #94a3b8;
-  --muted-light: #64748b;
-  --line: #27272a;
-  --line-light: #1f1f23;
-  --panel: #18181b;
-  --panel-elevated: #1f1f23;
-  --field: #111113;
-  --danger-light: #1c1010;
+  --ink: #f8fafc;
+  --ink-secondary: #f1f5f9;
+  --muted: #cbd5e1;
+  --muted-light: #94a3b8;
+  --line: #334155;
+  --line-light: #1e293b;
+  --panel: #1e293b;
+  --panel-elevated: #273548;
+  --field: #162032;
+  --danger-light: #2d1215;
 
   /* ── Elevation ── */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.55), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
 
   /* ── Auth specific ── */
-  --auth-border: #27272a;
-  --auth-muted-surface: #18181b;
-  --input-bg: #18181b;
-  --input-bg-focus: #27272a;
+  --auth-border: #334155;
+  --auth-muted-surface: #1e293b;
+  --input-bg: #1e293b;
+  --input-bg-focus: #334155;
 }
 
 [data-theme="dark"] html { background: #09090b; }
@@ -129,9 +129,9 @@
 }
 
 [data-theme="dark"] .login-card .login-icon {
-  background: linear-gradient(135deg, #1a2e2a 0%, #0f3d35 100%);
-  border-color: rgba(13, 150, 104, 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #1a3a32 0%, #0f4a3f 100%);
+  border-color: rgba(13, 150, 104, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="dark"] .auth-tabs {
@@ -161,7 +161,7 @@
 /* select NÃO usa background shorthand (preserva a seta SVG) */
 [data-theme="dark"] select {
   background-color: var(--input-bg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cbd5e1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   color: var(--ink);
@@ -172,7 +172,7 @@
 
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
-  color: var(--muted-light);
+  color: var(--muted);
 }
 
 [data-theme="dark"] input:focus,
@@ -195,11 +195,11 @@
 [data-theme="dark"] select:-webkit-autofill,
 [data-theme="dark"] select:-webkit-autofill:hover,
 [data-theme="dark"] select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #1a1a1a inset !important;
-  -webkit-text-fill-color: #f0f9ff !important;
-  caret-color: #f0f9ff;
-  border-color: #333333 !important;
-  background-color: #1a1a1a !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  border-color: var(--line) !important;
+  background-color: var(--input-bg) !important;
 }
 
 /* ── Login form inputs ── */
@@ -222,16 +222,18 @@
 [data-theme="dark"] .item {
   background-color: var(--panel);
   border-color: var(--line);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .item:hover {
-  border-color: var(--line);
+  border-color: var(--green);
   box-shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] .form-grid {
   background-color: var(--panel);
   border-color: var(--line);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .ghost {
@@ -241,8 +243,9 @@
 }
 
 [data-theme="dark"] .ghost:hover {
-  background-color: var(--field);
+  background-color: var(--panel-elevated);
   color: var(--ink);
+  border-color: var(--muted);
 }
 
 /* ── Modal de edição no dark mode ── */
@@ -250,6 +253,7 @@
   background-color: var(--panel);
   color: var(--ink);
   border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
 }
 
 [data-theme="dark"] .edit-modal-card h2 {
@@ -258,12 +262,12 @@
 
 /* ── App header no dark mode ── */
 [data-theme="dark"] .app-header {
-  border-bottom-color: rgba(148, 163, 184, 0.12);
-  background: rgba(9, 9, 11, 0.9);
+  border-bottom-color: var(--line);
+  background: rgba(30, 41, 59, 0.95);
 }
 
 [data-theme="dark"] .quick-action {
-  border-color: rgba(148, 163, 184, 0.15);
+  border-color: var(--line);
   background-color: var(--panel);
   color: var(--ink-secondary);
 }
@@ -286,7 +290,7 @@
 
 /* ── Bottom nav dark mode ── */
 [data-theme="dark"] .bottom-nav {
-  background: rgba(15, 15, 15, 0.92);
+  background: rgba(30, 41, 59, 0.98);
   border-top-color: var(--line);
 }
 
@@ -305,24 +309,29 @@
 /* ── Toast dark mode ── */
 [data-theme="dark"] .toast {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .toast.success {
-  background: linear-gradient(135deg, rgba(13, 150, 104, 0.88) 0%, rgba(5, 150, 105, 0.88) 100%);
+  background: linear-gradient(135deg, rgba(13, 150, 104, 0.92) 0%, rgba(5, 150, 105, 0.92) 100%);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .toast.error {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.88) 0%, rgba(185, 28, 28, 0.88) 100%);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.92) 0%, rgba(185, 28, 28, 0.92) 100%);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .toast.sync {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.88) 0%, rgba(37, 99, 235, 0.88) 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.92) 0%, rgba(37, 99, 235, 0.92) 100%);
+  color: #ffffff;
 }
 
 /* ── Empty state dark mode ── */
 [data-theme="dark"] .empty {
   background-color: var(--field);
   border-color: var(--line);
+  color: var(--ink-secondary);
 }
 
 /* ── Item actions dark mode ── */
@@ -333,14 +342,96 @@
 }
 
 [data-theme="dark"] .item-actions button:hover {
-  background-color: var(--panel);
-  border-color: var(--line);
+  background-color: var(--panel-elevated);
+  border-color: var(--muted);
+  color: var(--ink);
 }
 
 [data-theme="dark"] .item-actions button[data-action="delete"]:hover {
-  background-color: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.25);
+  background-color: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.3);
   color: #fca5a5;
+}
+
+/* ── Hardcoded colors dark mode overrides ── */
+[data-theme="dark"] .feature-list span {
+  color: var(--muted);
+  background: var(--field);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .login-card .login-subtitle {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .product-summary {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .login-footer {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .login-card .login-icon {
+  background: linear-gradient(135deg, #1a3a32 0%, #0f4a3f 100%);
+  color: var(--green);
+}
+
+[data-theme="dark"] .checkbox-row {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .auth-tab.active {
+  color: var(--green);
+}
+
+[data-theme="dark"] .summary {
+  color: var(--ink);
+}
+
+/* ── Badges e status dark mode ── */
+[data-theme="dark"] .production-badge.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .production-badge.critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="dark"] .alert-summary-item {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .empty-state-icon {
+  color: var(--green);
+}
+
+[data-theme="dark"] .calendar-day.has-alert {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .calendar-day.overdue {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .calendar-day.today {
+  color: #fbbf24;
+}
+
+/* ── Landing page dark mode ── */
+[data-theme="dark"] .hero-copy p,
+[data-theme="dark"] .product-preview p,
+[data-theme="dark"] .pricing-section p {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .hero-copy h1,
+[data-theme="dark"] .pricing-section h2 {
+  color: var(--ink);
 }
 
 /* ===== CORREÇÃO GLOBAL iOS/Safari — text-fill e autofill no modo claro ===== */
