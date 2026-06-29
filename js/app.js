@@ -569,22 +569,11 @@ const initApp = () => {
     
     // Default: expanded
     toggle.setAttribute("aria-expanded", "true");
-    content.classList.add("expanded");
-    content.style.maxHeight = content.scrollHeight + "px";
     
     const handler = () => {
       const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-      if (isExpanded) {
-        toggle.setAttribute("aria-expanded", "false");
-        content.classList.remove("expanded");
-        content.classList.add("collapsed");
-        content.style.maxHeight = "0px";
-      } else {
-        toggle.setAttribute("aria-expanded", "true");
-        content.classList.remove("collapsed");
-        content.classList.add("expanded");
-        content.style.maxHeight = content.scrollHeight + "px";
-      }
+      toggle.setAttribute("aria-expanded", String(!isExpanded));
+      content.classList.toggle("collapsed", isExpanded);
     };
     
     toggle.addEventListener("click", handler);

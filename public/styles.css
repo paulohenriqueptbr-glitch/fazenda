@@ -5524,8 +5524,7 @@ button {
   color: var(--green);
 }
 
-.accordion-toggle[aria-expanded="false"] .accordion-arrow,
-.accordion-toggle:not([aria-expanded="true"]) .accordion-arrow {
+.accordion-toggle[aria-expanded="false"] .accordion-arrow {
   transform: rotate(-90deg);
 }
 
@@ -5533,19 +5532,7 @@ button {
   transform: rotate(0deg);
 }
 
-.accordion-content {
-  overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.25s ease;
-}
-
 .accordion-content.collapsed {
-  max-height: 0 !important;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.accordion-content.expanded {
-  opacity: 1;
-  pointer-events: auto;
+  display: none;
 }
 
