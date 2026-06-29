@@ -5475,3 +5475,28 @@ button {
   box-shadow: 0 0 0 2px rgba(16, 169, 129, 0.2);
 }
 
+/* ── Milk Filter Summary ── */
+.milk-filter-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--green-soft);
+  border: 1px solid rgba(16, 169, 129, 0.2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  font-size: 0.85rem;
+}
+
+.milk-filter-label {
+  font-weight: 600;
+  color: var(--green-dark);
+}
+
+.milk-filter-stats {
+  color: var(--ink-secondary);
+  font-weight: 500;
+}
+

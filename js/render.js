@@ -422,28 +422,44 @@ export const renderMilk = () => {
   const today = todayIso();
   
   let filteredRecords = [...state.milk];
+  let periodLabel = "";
   
   if (milkFilter.period === "today") {
     filteredRecords = filteredRecords.filter((r) => r.date === today);
+    periodLabel = `Hoje (${formatDate(today)})`;
   } else if (milkFilter.period === "week") {
     const weekStart = addDaysIso(today, -6);
     filteredRecords = filteredRecords.filter((r) => r.date >= weekStart && r.date <= today);
+    periodLabel = `Semana (${formatDate(weekStart)} a ${formatDate(today)})`;
   } else if (milkFilter.period === "month") {
     const monthStart = today.slice(0, 7) + "-01";
     filteredRecords = filteredRecords.filter((r) => r.date >= monthStart && r.date <= today);
+    periodLabel = `Mês (${formatDate(monthStart)} a ${formatDate(today)})`;
   } else if (milkFilter.period === "custom" && milkFilter.startDate && milkFilter.endDate) {
     filteredRecords = filteredRecords.filter((r) => r.date >= milkFilter.startDate && r.date <= milkFilter.endDate);
+    periodLabel = `Personalizado (${formatDate(milkFilter.startDate)} a ${formatDate(milkFilter.endDate)})`;
   }
   
   const records = filteredRecords.sort((a, b) => b.date.localeCompare(a.date));
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
   const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
-  el.historyList.innerHTML = records.length
+  
+  // ─── Cálculos do resumo do filtro ────────────────────────────────────────
+  const totalLiters = records.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const totalValue = totalLiters * price;
+  
+  // ─── Resumo do período filtrado ──────────────────────────────────────────
+  const summaryHtml = `<div class="milk-filter-summary">
+    <span class="milk-filter-label">${escapeHtml(periodLabel)}</span>
+    <span class="milk-filter-stats">${records.length} registro${records.length !== 1 ? "s" : ""} | ${escapeHtml(formatLiters(totalLiters))} | ${escapeHtml(formatMoney(totalValue))}</span>
+  </div>`;
+  
+  el.historyList.innerHTML = summaryHtml + (records.length
     ? records.map((r) => {
       const ps = getProductionStatus(Number(r.liters || 0), monthAverage);
       return `<article class="item" data-milk-id="${escapeHtml(r.id)}"><div><div class="item-title-row"><span>${escapeHtml(formatDate(r.date))}</span>${createStatusBadge(ps)}</div><small>${escapeHtml(formatMoney(price))} por litro</small></div><strong>${escapeHtml(formatLiters(r.liters))} | ${escapeHtml(formatMoney(Number(r.liters) * price))}</strong>${recordActions("milk", r)}</article>`;
     }).join("")
-    : empty("Nenhuma produção registrada", "milk");
+    : empty("Nenhuma produção registrada para este período", "milk"));
 };
 
 export const renderAnimals = () => {
