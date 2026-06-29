@@ -162,7 +162,7 @@ const buildAutomaticAlerts = () => {
       urgency = "upcoming";
     }
     alerts.push(makeAlert({
-      id: `auto-med-reapply-${m.id || `${m.cow_id}-${m.administration_date}`}-${nextDate}`,
+      id: `auto-med-reapply-${m.id || `${m.cow_id}-${m.administration_date}`}`,
       title,
       due_date: nextDate,
       category: "Medicação",

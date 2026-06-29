@@ -659,24 +659,25 @@ export const renderUpcomingReapplications = () => {
     const reapply = getNextReapplyDate(m);
     if (!reapply) return;
     const { nextDate, daysUntil, interval } = reapply;
-    if (daysUntil === null || daysUntil < -7 || daysUntil > 7) return;
+    // Mostra apenas reaplicações futuras ou de hoje (não mostra atrasados)
+    if (daysUntil === null || daysUntil < 0 || daysUntil > 14) return;
     
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
     const animalName = animal?.identification || m.cow_id || "";
     
     let urgencyClass = "upcoming";
     let dueLabel = "";
-    if (daysUntil < 0) {
-      urgencyClass = "overdue";
-      dueLabel = `${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"} atrasado`;
-    } else if (daysUntil === 0) {
+    if (daysUntil === 0) {
       urgencyClass = "today";
-      dueLabel = "Hoje!";
-    } else if (daysUntil <= 2) {
+      dueLabel = "Reaplicar hoje";
+    } else if (daysUntil === 1) {
       urgencyClass = "soon";
-      dueLabel = daysUntil === 1 ? "Amanhã" : `Em ${daysUntil} dias`;
+      dueLabel = "Reaplicar amanhã";
+    } else if (daysUntil <= 3) {
+      urgencyClass = "soon";
+      dueLabel = `Reaplicar em ${daysUntil} dias`;
     } else {
-      dueLabel = `Em ${daysUntil} dias`;
+      dueLabel = `Reaplicar em ${daysUntil} dias`;
     }
     
     upcoming.push({
