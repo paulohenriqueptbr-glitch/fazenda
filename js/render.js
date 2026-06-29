@@ -488,15 +488,18 @@ export const openAnimalProfile = (animalId) => {
     if (healthRecords.length === 0) {
       healthListEl.innerHTML = '<div class="empty-profile-section">Nenhum registro de saúde</div>';
     } else {
-      healthListEl.innerHTML = healthRecords.map((r) => `
+      healthListEl.innerHTML = healthRecords.map((r) => {
+        const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : "";
+        const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "Sem dosagem";
+        return `
         <article class="item compact-profile-item">
           <div>
-            <span>${escapeHtml(r.medication_name)}</span>
+            <span>${escapeHtml(medName)}</span>
             <small>${escapeHtml(formatDate(r.administration_date))}</small>
           </div>
-          <strong>${escapeHtml(r.dosage || "Sem dosagem")}</strong>
-        </article>
-      `).join("");
+          <strong>${escapeHtml(dosageDisplay)}</strong>
+        </article>`;
+      }).join("");
     }
   }
 
@@ -603,7 +606,7 @@ const renderMedicalCowRecord = (profile) => {
         <span><small>Última aplicação</small><strong>${escapeHtml(last ? formatDate(last.administration_date) : "-")}</strong></span>
         <span><small>Último medicamento</small><strong>${escapeHtml(last?.medication_name || "-")}</strong></span>
       </div>
-      <div class="medical-history">${records.length ? records.map((r, i) => `<article class="item medical-history-item"><div><span>${escapeHtml(r.medication_name)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(r.dosage ? r.dosage + " ml" : "Sem dosagem")}</strong>${recordActions("medication", r)}</article>`).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
+      <div class="medical-history">${records.length ? records.map((r, i) => { const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : ""; const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "Sem dosagem"; return `<article class="item medical-history-item"><div><span>${escapeHtml(medName)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(dosageDisplay)}</strong>${recordActions("medication", r)}</article>`; }).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
     </article>`;
 };
 
