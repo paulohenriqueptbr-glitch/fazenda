@@ -424,13 +424,15 @@ export const renderMilk = () => {
   let filteredRecords = [...state.milk];
   let periodLabel = "";
   
+  const dayOfMonth = new Date().getDate();
+  
   if (milkFilter.period === "today") {
     filteredRecords = filteredRecords.filter((r) => r.date === today);
     periodLabel = `Hoje (${formatDate(today)})`;
-  } else if (milkFilter.period === "week") {
-    const weekStart = addDaysIso(today, -6);
-    filteredRecords = filteredRecords.filter((r) => r.date >= weekStart && r.date <= today);
-    periodLabel = `Semana (${formatDate(weekStart)} a ${formatDate(today)})`;
+  } else if (milkFilter.period === "fortnight") {
+    const fortnightStart = dayOfMonth <= 15 ? `${monthKey()}-01` : `${monthKey()}-16`;
+    filteredRecords = filteredRecords.filter((r) => r.date >= fortnightStart && r.date <= today);
+    periodLabel = `Quinzena (${formatDate(fortnightStart)} a ${formatDate(today)})`;
   } else if (milkFilter.period === "month") {
     const monthStart = today.slice(0, 7) + "-01";
     filteredRecords = filteredRecords.filter((r) => r.date >= monthStart && r.date <= today);
