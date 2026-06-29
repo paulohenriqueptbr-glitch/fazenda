@@ -1975,6 +1975,8 @@ button[type="submit"]:active,
   gap: 6px;
 }
 
+.section-title h2 svg,
+.panel-head span svg,
 .section-title h2 i,
 .panel-head span i {
   width: 16px;
