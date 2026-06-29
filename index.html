@@ -209,31 +209,39 @@
     <div class="panel-head">
       <div>
         <span>Sanidade</span>
-        <h2>Fichas médicas</h2>
+        <h2>&#129657; Fichas médicas</h2>
       </div>
-      <p>Escolha uma vaca para abrir todo o histórico de medicamentos em um só lugar.</p>
+      <p>Controle medicamentos, reaplicações e histórico de cada vaca.</p>
     </div>
-    <div id="upcomingReapply" class="upcoming-reapply-panel"></div>
-    <div id="chronicTreatments" class="chronic-treatment-container"></div>
-    <div id="medicationForecastPanel"></div>
-    <form id="medicationForm" class="form-grid">
-      <label for="medCowId">Vaca</label>
-      <select id="medCowId"></select>
-      <label for="medName">Medicamento</label>
-      <input id="medName" type="text" placeholder="Ex.: Vitamina A" list="medNameOptions" required>
-      <datalist id="medNameOptions"></datalist>
-      <div id="medInfoBadge" class="med-info-badge" style="display:none;"></div>
-      <label for="medDosage">Dosagem</label>
-      <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
-      <div id="dosageSuggestion" class="dosage-suggestion" style="display:none;"></div>
-      <label for="medReapplyInterval">Reaplicar em (dias, opcional)</label>
-      <input id="medReapplyInterval" type="number" placeholder="Automático (catálogo)" min="1" max="365" step="1">
-      <label for="medDate">Data de aplicação</label>
-      <input id="medDate" type="date" required>
-      <button type="submit">Registrar medicação</button>
-    </form>
-    <div class="section-title"><h2>Ficha médica das vacas</h2></div>
-    <div id="medicationList" class="list"></div>
+    <button type="button" class="accordion-toggle" data-target="medFormWrap" style="width:100%;text-align:left;">
+      &#10133; Registrar medicação <span class="accordion-arrow">&#9660;</span>
+    </button>
+    <div id="medFormWrap" class="accordion-content collapsed">
+      <form id="medicationForm" class="form-grid">
+        <label for="medCowId">Vaca</label>
+        <select id="medCowId"></select>
+        <label for="medName">Medicamento</label>
+        <input id="medName" type="text" placeholder="Ex.: Vitamina A" list="medNameOptions" required>
+        <datalist id="medNameOptions"></datalist>
+        <div id="medInfoBadge" class="med-info-badge" style="display:none;"></div>
+        <label for="medDosage">Dosagem</label>
+        <input id="medDosage" type="text" placeholder="Ex.: 5ml" required>
+        <div id="dosageSuggestion" class="dosage-suggestion" style="display:none;"></div>
+        <label for="medReapplyInterval">Reaplicar em (dias, opcional)</label>
+        <input id="medReapplyInterval" type="number" placeholder="Automático (catálogo)" min="1" max="365" step="1">
+        <label for="medDate">Data de aplicação</label>
+        <input id="medDate" type="date" required>
+        <button type="submit">Registrar medicação</button>
+      </form>
+    </div>
+    <div class="section-title accordion-toggle" data-target="upcomingReapply" role="button" tabindex="0"><h2>&#9200; Próximas reaplicações <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="upcomingReapply" class="accordion-content"></div>
+    <div class="section-title accordion-toggle" data-target="chronicTreatments" role="button" tabindex="0"><h2>&#9888;&#65039; Tratamentos crônicos <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="chronicTreatments" class="accordion-content"></div>
+    <div class="section-title accordion-toggle" data-target="medicationForecastPanel" role="button" tabindex="0"><h2>&#128202; Previsão de medicamentos <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="medicationForecastPanel" class="accordion-content"></div>
+    <div class="section-title accordion-toggle" data-target="medicationList" role="button" tabindex="0"><h2>&#129657; Fichas médicas das vacas <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="medicationList" class="list accordion-content"></div>
   </section>
 
   <section id="crops" class="panel">
