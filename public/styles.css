@@ -924,6 +924,9 @@ textarea:disabled {
   width: 18px;
   min-height: 18px;
   margin-top: 1px;
+  -webkit-appearance: auto;
+  appearance: auto;
+  accent-color: var(--green-vivid);
 }
 
 .checkbox-row a,
