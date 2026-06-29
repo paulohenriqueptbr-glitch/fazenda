@@ -145,6 +145,7 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Floating Bottom Nav (Estilo App Nativo) ── */
 .bottom-nav {
+  position: fixed !important;
   bottom: 16px !important;
   left: 16px !important;
   right: 16px !important;
