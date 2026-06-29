@@ -145,6 +145,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Floating Bottom Nav (Estilo App Nativo) ── */
 .bottom-nav {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-around !important;
+  align-items: center !important;
   position: fixed !important;
   bottom: 16px !important;
   left: 16px !important;
@@ -169,10 +173,28 @@ input:focus, select:focus, textarea:focus {
 }
 
 .nav-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 1 1 0px !important;
   border-radius: var(--radius-md);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   padding: 8px 4px !important;
   margin: 0 2px;
+  background: transparent;
+  border: none;
+}
+
+.nav-item span {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  margin-top: 4px !important;
+}
+
+.nav-item i {
+  width: 24px;
+  height: 24px;
 }
 
 .nav-item:hover {
