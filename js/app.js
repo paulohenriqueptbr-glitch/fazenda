@@ -1,6 +1,6 @@
 import {
   $, state, hasSupabase, db, currentUserId, setCurrentUserId, config,
-  todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, localId,
+  todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, loadLocalAlerts, localId,
   canUseLocalAccountWithPassword, supabaseUnavailableMessage,
   selectedMedicationCowId, setSelectedMedicationCowId,
   milkFilter, setMilkFilter,
@@ -81,6 +81,7 @@ const loadData = async () => {
   try {
     await processSyncQueue({ refresh: false });
     await loadSupabase(loadAppSettings);
+    loadLocalAlerts();
   } catch (err) {
     error("Supabase load error:", err);
     loadLocal();

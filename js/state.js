@@ -178,6 +178,17 @@ export const loadLocal = () => {
   state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
 };
 
+/**
+ * Loads only alert state (confirmed/dismissed) from localStorage.
+ * Called after loadSupabase() to restore alert confirmations that
+ * are not synced to Supabase.
+ */
+export const loadLocalAlerts = () => {
+  const data = readLocal();
+  state.dismissedAutoAlerts = new Set(asArray(data.dismissedAutoAlerts));
+  state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
+};
+
 // Inicializa defaults
 state.clientProfile = defaultClientProfile();
 state.subscription = defaultSubscription();
