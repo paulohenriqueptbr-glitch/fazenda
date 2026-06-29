@@ -5503,3 +5503,49 @@ button {
   font-weight: 500;
 }
 
+/* ── Accordion Sections ── */
+.accordion-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+  border-radius: var(--radius);
+}
+
+.accordion-toggle:hover {
+  background: var(--green-soft);
+}
+
+.accordion-arrow {
+  display: inline-block;
+  font-size: 0.65em;
+  margin-left: 6px;
+  transition: transform 0.25s ease;
+  vertical-align: middle;
+  color: var(--green);
+}
+
+.accordion-toggle[aria-expanded="false"] .accordion-arrow,
+.accordion-toggle:not([aria-expanded="true"]) .accordion-arrow {
+  transform: rotate(-90deg);
+}
+
+.accordion-toggle[aria-expanded="true"] .accordion-arrow {
+  transform: rotate(0deg);
+}
+
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+}
+
+.accordion-content.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accordion-content.expanded {
+  opacity: 1;
+  pointer-events: auto;
+}
+

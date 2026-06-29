@@ -560,6 +560,38 @@ const initApp = () => {
   setupInlineValidations();
   setupPeriodFilter();
   setupMilkFilter();
+  
+  // ─── Accordion sections ─────────────────────────────────────────────────
+  document.querySelectorAll(".accordion-toggle").forEach((toggle) => {
+    const targetId = toggle.dataset.target;
+    const content = document.getElementById(targetId);
+    if (!content) return;
+    
+    // Default: expanded
+    toggle.setAttribute("aria-expanded", "true");
+    content.classList.add("expanded");
+    content.style.maxHeight = content.scrollHeight + "px";
+    
+    const handler = () => {
+      const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+      if (isExpanded) {
+        toggle.setAttribute("aria-expanded", "false");
+        content.classList.remove("expanded");
+        content.classList.add("collapsed");
+        content.style.maxHeight = "0px";
+      } else {
+        toggle.setAttribute("aria-expanded", "true");
+        content.classList.remove("collapsed");
+        content.classList.add("expanded");
+        content.style.maxHeight = content.scrollHeight + "px";
+      }
+    };
+    
+    toggle.addEventListener("click", handler);
+    toggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); }
+    });
+  });
 
   // ─── Dark mode toggle ───────────────────────────────────────────────────
   const themeToggleBtn = $("#themeToggle");

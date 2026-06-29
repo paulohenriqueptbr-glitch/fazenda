@@ -276,10 +276,10 @@
       <textarea id="cropNotes" rows="3" placeholder="Detalhes do manejo"></textarea>
       <button type="submit">Salvar manejo</button>
     </form>
-    <div class="section-title"><h2>&#127793; Lavouras</h2></div>
-    <div id="cropGroupList" class="list crop-group-list"></div>
-    <div class="section-title"><h2>&#127793; Manejos</h2></div>
-    <div id="cropEventList" class="list"></div>
+    <div class="section-title accordion-toggle" data-target="cropGroupList" role="button" tabindex="0"><h2>&#127793; Lavouras <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="cropGroupList" class="list crop-group-list accordion-content"></div>
+    <div class="section-title accordion-toggle" data-target="cropEventList" role="button" tabindex="0"><h2>&#127793; Manejos <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="cropEventList" class="list accordion-content"></div>
   </section>
 
   <section id="stock" class="panel">
