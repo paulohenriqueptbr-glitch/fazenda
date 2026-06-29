@@ -489,7 +489,7 @@
 <!-- ===== ANIMAL PROFILE MODAL ===== -->
 <div id="animalProfileModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="animalProfileTitle">
   <div class="edit-modal-card animal-profile-card">
-    <button class="modal-close" type="button" onclick="document.getElementById('animalProfileModal').classList.add('hidden')">×</button>
+    <button class="modal-close" type="button" data-close-modal="animalProfileModal">×</button>
     <div class="profile-header">
       <h2 id="animalProfileTitle">Ficha do Animal</h2>
       <span id="animalProfileStatus" class="status-badge"></span>
@@ -502,7 +502,7 @@
       <div id="profileHealthList" class="list compact-list"></div>
     </div>
     <div class="modal-actions">
-      <button class="ghost" type="button" onclick="document.getElementById('animalProfileModal').classList.add('hidden')">Fechar</button>
+      <button class="ghost" type="button" data-close-modal="animalProfileModal">Fechar</button>
     </div>
   </div>
 </div>
@@ -510,7 +510,7 @@
 <!-- ===== ANIMAL FORM MODAL ===== -->
 <div id="animalFormModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="animalFormTitle">
   <div class="edit-modal-card">
-    <button class="modal-close" type="button" onclick="document.getElementById('animalFormModal').classList.add('hidden')">×</button>
+    <button class="modal-close" type="button" data-close-modal="animalFormModal">×</button>
     <h2 id="animalFormTitle">Cadastrar Animal</h2>
     <form id="animalFormModalForm" class="edit-modal-form">
       <label for="animalModalName">Identificação</label>
@@ -533,7 +533,7 @@
       <label for="animalModalWeight">Peso atual (kg)</label>
       <input id="animalModalWeight" type="number" min="0" max="2000" step="0.1" inputmode="decimal" placeholder="Ex.: 450">
       <div class="edit-modal-actions">
-        <button type="button" class="ghost" onclick="document.getElementById('animalFormModal').classList.add('hidden')">Cancelar</button>
+        <button type="button" class="ghost" data-close-modal="animalFormModal">Cancelar</button>
         <button type="submit">Cadastrar animal</button>
       </div>
     </form>
@@ -571,7 +571,7 @@
       
       <div class="modal-actions" style="margin-top: 1rem;">
         <button type="submit">Começar a Usar</button>
-        <button type="button" class="ghost" onclick="completeOnboarding(true)">Pular por enquanto</button>
+        <button type="button" class="ghost" id="skipOnboardingButton">Pular por enquanto</button>
       </div>
     </form>
   </div>

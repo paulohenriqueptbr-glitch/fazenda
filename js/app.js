@@ -535,6 +535,18 @@ const initApp = () => {
   if (el.printReportButton && !el.printReportButton._listenerAttached) { el.printReportButton._listenerAttached = true; el.printReportButton.addEventListener("click", () => { renderReports(); document.body.classList.add("printing-report"); window.print(); setTimeout(() => document.body.classList.remove("printing-report"), 400); }); }
   if (el.onboardingForm && !el.onboardingForm._listenerAttached) { el.onboardingForm._listenerAttached = true; el.onboardingForm.addEventListener("submit", async (e) => { e.preventDefault(); try { await completeOnboarding(false); } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao concluir configuração", "error"); } }); }
   if (el.skipOnboardingButton && !el.skipOnboardingButton._listenerAttached) { el.skipOnboardingButton._listenerAttached = true; el.skipOnboardingButton.addEventListener("click", async () => { try { await completeOnboarding(true); } catch (err) { showToast(err.message || "Não foi possível pular agora", "error"); } }); }
+  
+  // ─── Close modal buttons (data-close-modal) ──────────────────────────────
+  document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+    if (btn._closeModalAttached) return;
+    btn._closeModalAttached = true;
+    btn.addEventListener("click", () => {
+      const modalId = btn.dataset.closeModal;
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.add("hidden");
+    });
+  });
+  
   if (!el.refreshButton._listenerAttached) { el.refreshButton._listenerAttached = true; el.refreshButton.addEventListener("click", loadData); }
   if (el.exportDataButton && !el.exportDataButton._listenerAttached) { el.exportDataButton._listenerAttached = true; el.exportDataButton.addEventListener("click", exportDataBackup); }
 
