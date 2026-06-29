@@ -1503,8 +1503,6 @@ const _doRender = () => {
   renderRecommendations();
   renderReports();
   renderProductionForecast();
-  // Re-process lucide icons for dynamically rendered content
-  if (window.lucide) window.lucide.createIcons();
 };
 
 export const render = (selectedMedicationCowId) => {

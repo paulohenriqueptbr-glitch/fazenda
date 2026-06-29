@@ -1,4 +1,4 @@
-const CACHE_NAME = "terrasyn-v38";
+const CACHE_NAME = "terrasyn-v39";
 const APP_FILES = [
   "./",
   "./index.html",

@@ -1970,19 +1970,6 @@ button[type="submit"]:active,
   color: var(--ink);
   font-size: 0.95rem;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.section-title h2 svg,
-.panel-head span svg,
-.section-title h2 i,
-.panel-head span i {
-  width: 16px;
-  height: 16px;
-  color: var(--green);
-  flex-shrink: 0;
 }
 
 .list {
