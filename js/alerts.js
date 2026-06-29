@@ -7,6 +7,12 @@ import { writeLocal } from "./state.js";
 import { getMedicationInfo } from "./medication-catalog.js";
 
 // ─── Date helpers ───────────────────────────────────────────────────────────
+/**
+ * Calculates the number of days between two ISO date strings.
+ * @param {string} fromIso - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} toIso - End date in ISO format (YYYY-MM-DD)
+ * @returns {number|null} Day difference (positive if toIso is after fromIso), or null if dates are invalid
+ */
 export const diffDays = (fromIso, toIso) => {
   const from = parseIsoDate(fromIso);
   const to = parseIsoDate(toIso);
@@ -16,6 +22,11 @@ export const diffDays = (fromIso, toIso) => {
   return Math.round((to - from) / (24 * 60 * 60 * 1000));
 };
 
+/**
+ * Calculates the number of days from today until a given ISO date.
+ * @param {string} isoDate - Target date in ISO format (YYYY-MM-DD)
+ * @returns {number|null} Days until the date (negative if past), or null if invalid
+ */
 export const daysFromToday = (isoDate) => diffDays(todayIso(), isoDate);
 
 // ─── Medication reapplication (catalog-based) ────────────────────────────────
@@ -44,6 +55,12 @@ export const getNextReapplyDate = (record) => {
 };
 
 // ─── Alert status ───────────────────────────────────────────────────────────
+/**
+ * Determines the alert status based on a due date and completion flag.
+ * @param {string} dueDate - Due date in ISO format
+ * @param {boolean} [done=false] - Whether the alert is completed
+ * @returns {"done"|"overdue"|"today"|"week"|"upcoming"} Alert status string
+ */
 export const alertStatus = (dueDate, done = false) => {
   if (done) return "done";
   const days = daysFromToday(dueDate);
@@ -54,6 +71,12 @@ export const alertStatus = (dueDate, done = false) => {
   return "upcoming";
 };
 
+/**
+ * Returns a human-readable label for the alert status, including overdue severity.
+ * @param {string} dueDate - Due date in ISO format
+ * @param {boolean} [done=false] - Whether the alert is completed
+ * @returns {string} Localized status label with optional urgency indicator
+ */
 export const alertStatusLabel = (dueDate, done = false) => {
   const status = alertStatus(dueDate, done);
   const days = daysFromToday(dueDate);
@@ -318,6 +341,11 @@ const buildWeatherCropAlerts = () => {
   return alerts;
 };
 
+/**
+ * Builds and returns all alerts (automatic + manual reminders), sorted by
+ * status urgency and due date. Filters out dismissed alerts and marks confirmed ones.
+ * @returns {Array<{ id: string, title: string, due_date: string, category: string, notes: string, type: string, done: boolean, status: string, urgency: string }>}
+ */
 export const buildAlerts = () => {
   const dismissed = state.dismissedAutoAlerts || new Set();
   const confirmed = state.confirmedAutoAlerts || new Set();
@@ -353,6 +381,11 @@ export const countMedicationAlerts = () => {
 };
 
 // ─── Alert actions ──────────────────────────────────────────────────────────
+/**
+ * Dismisses an automatic alert by adding it to the dismissed set and persisting.
+ * @param {string} alertId - ID of the alert to dismiss
+ * @returns {void}
+ */
 export const dismissAutoAlert = (alertId) => {
   if (!state.dismissedAutoAlerts) state.dismissedAutoAlerts = new Set();
   state.dismissedAutoAlerts.add(alertId);
@@ -360,6 +393,12 @@ export const dismissAutoAlert = (alertId) => {
   showToast("Alerta dispensado.");
 };
 
+/**
+ * Confirms an automatic alert by adding it to the confirmed set, removing
+ * it from dismissed if present, and persisting.
+ * @param {string} alertId - ID of the alert to confirm
+ * @returns {void}
+ */
 export const confirmAutoAlert = (alertId) => {
   if (!state.confirmedAutoAlerts) state.confirmedAutoAlerts = new Set();
   state.confirmedAutoAlerts.add(alertId);
@@ -368,6 +407,11 @@ export const confirmAutoAlert = (alertId) => {
   showToast("Alerta confirmado.");
 };
 
+/**
+ * Toggles the completion status of a reminder record.
+ * @param {string|number} id - Reminder record ID
+ * @returns {Promise<void>}
+ */
 export const toggleReminder = async (id) => {
   const reminder = findRecord("reminder", id);
   if (!reminder) return;
@@ -377,6 +421,11 @@ export const toggleReminder = async (id) => {
 };
 
 // ─── Badge de notificação ──────────────────────────────────────────────────
+/**
+ * Updates the alerts badge count in both quick-access and nav elements,
+ * hiding badges when count is zero.
+ * @returns {void}
+ */
 export const updateAlertsBadge = () => {
   const alerts = buildAlerts();
   const pendingCount = alerts.filter((a) => !a.done).length;

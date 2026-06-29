@@ -926,6 +926,7 @@ export const renderAlerts = () => {
 
 // ─── Weather ────────────────────────────────────────────────────────────────
 const WEATHER_CACHE_KEY = "last_weather_forecast";
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export const renderWeatherForecast = (data) => {
   if (!el.weatherForecast) return;
@@ -945,17 +946,22 @@ export const loadWeatherForecast = async (city) => {
     try {
       const cacheData = JSON.parse(cached);
       if (cacheData.city === city && cacheData.data && cacheData.timestamp) {
-        renderWeatherForecast(cacheData.data);
-        // Show "last updated" indicator
-        const updated = new Date(cacheData.timestamp);
-        const timeStr = updated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        const dateStr = updated.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-        if (el.weatherForecast) {
-          const header = el.weatherForecast.querySelector(".weather-header small");
-          if (header) header.textContent = `${escapeHtml(cacheData.data.source || "Open-Meteo")} (Atualizado: ${dateStr} ${timeStr})`;
+        const isCacheFresh = (Date.now() - cacheData.timestamp) < CACHE_TTL_MS;
+        // Show cached data when offline (even if expired) or when cache is still fresh
+        if (!navigator.onLine || isCacheFresh) {
+          renderWeatherForecast(cacheData.data);
+          // Show "last updated" indicator
+          const updated = new Date(cacheData.timestamp);
+          const timeStr = updated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          const dateStr = updated.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+          if (el.weatherForecast) {
+            const header = el.weatherForecast.querySelector(".weather-header small");
+            if (header) header.textContent = `${escapeHtml(cacheData.data.source || "Open-Meteo")} (Atualizado: ${dateStr} ${timeStr})`;
+          }
+          // If offline, don't attempt fetch — just show cached data
+          if (!navigator.onLine) return;
         }
-        // If offline, don't attempt fetch — just show cached data
-        if (!navigator.onLine) return;
+        // If cache is expired and online, treat as cache miss — fall through to fetch
       }
     } catch { /* invalid cache — ignore */ }
   }
@@ -971,7 +977,10 @@ export const loadWeatherForecast = async (city) => {
     </div>`;
 
   try {
-    const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
     // Cache the successful response
@@ -979,6 +988,9 @@ export const loadWeatherForecast = async (city) => {
     localStorage.setItem(userStorageKey("weather_city"), city);
     renderWeatherForecast(data);
   } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("Tempo limite excedido. Verifique sua conexão.");
+    }
     // If fetch failed but we have cached data, show it (don't re-render skeleton)
     if (cached) {
       try {
@@ -1067,75 +1079,6 @@ const debounce = (fn, ms = 16) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
-};
-
-/**
- * Renders a contextual summary banner on login showing urgent items.
- */
-export const renderLoginSummary = () => {
-  const container = $("#loginSummary");
-  if (!container) return;
-  
-  const today = todayIso();
-  const items = [];
-  
-  // Overdue medications
-  state.medication.forEach((m) => {
-    if (!m.administration_date) return;
-    const reapply = getNextReapplyDate(m);
-    if (!reapply) return;
-    if (reapply.daysUntil < 0) {
-      const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
-      const name = animal?.identification || m.cow_id || "";
-      items.push({ type: "overdue", text: `${m.medication_name} — ${name} (${Math.abs(reapply.daysUntil)} dia${Math.abs(reapply.daysUntil) === 1 ? "" : "s"} atrasado)`, icon: "🔴" });
-    }
-  });
-  
-  // Today's calvings
-  state.breeding.forEach((b) => {
-    if (b.expected_calving_date === today) {
-      const animal = state.animals.find((a) => a.id === b.cow_id);
-      items.push({ type: "today", text: `Parto previsto hoje: ${animal?.identification || b.cow_id}`, icon: "🐄" });
-    }
-  });
-  
-  // Low stock
-  state.stockItems.forEach((item) => {
-    const qty = Number(item.quantity || 0);
-    const minQty = item.min_quantity === null || item.min_quantity === undefined ? null : Number(item.min_quantity);
-    if (minQty !== null && qty <= minQty) {
-      items.push({ type: "stock", text: `Estoque baixo: ${item.item_name} (${qty} restante${qty === 1 ? "" : "s"})`, icon: "📦" });
-    }
-  });
-  
-  // No milk registered today (after 8am)
-  const hour = new Date().getHours();
-  if (hour >= 8 && !state.milk.some((r) => r.date === today)) {
-    items.push({ type: "milk", text: "Produção de leite de hoje não registrada", icon: "🥛" });
-  }
-  
-  if (items.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-  
-  container.innerHTML = `
-    <div class="login-summary-banner">
-      <div class="login-summary-header">
-        <span class="login-summary-icon">📋</span>
-        <strong>Resumo do dia</strong>
-        <span class="login-summary-count">${items.length}</span>
-      </div>
-      <div class="login-summary-list">
-        ${items.map((item) => `
-          <div class="login-summary-item ${item.type}">
-            <span>${item.icon}</span>
-            <span>${escapeHtml(item.text)}</span>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
