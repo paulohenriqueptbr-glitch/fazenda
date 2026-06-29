@@ -66,8 +66,8 @@ export const alertStatusLabel = (dueDate, done = false) => {
 };
 
 // ─── Build alerts ───────────────────────────────────────────────────────────
-const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false, urgency = "normal", medRecordId = null }) => ({
-  id, title, due_date, category, notes, type, done, status: alertStatus(due_date, done), urgency, medRecordId,
+const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false, urgency = "normal" }) => ({
+  id, title, due_date, category, notes, type, done, status: alertStatus(due_date, done), urgency,
 });
 
 const cropFollowUpRules = [
@@ -145,7 +145,6 @@ const buildAutomaticAlerts = () => {
       category: "Medicação",
       notes: `Intervalo: ${interval.days} dias (${interval.label}). Última aplicação: ${formatDate(m.administration_date)}.`,
       urgency,
-      medRecordId: m.id || `${m.cow_id}-${m.administration_date}`,
     }));
   });
 
@@ -322,7 +321,6 @@ const buildWeatherCropAlerts = () => {
 export const buildAlerts = () => {
   const dismissed = state.dismissedAutoAlerts || new Set();
   const confirmed = state.confirmedAutoAlerts || new Set();
-  const dismissedMed = state.dismissedMedAlerts || new Set();
   const manual = state.reminders.map((r) => makeAlert({ id: r.id, title: r.title, due_date: r.due_date, category: r.category || "Geral", notes: r.notes || "", type: "manual", done: Boolean(r.done) }));
   const withdrawalAlerts = buildMilkWithdrawalAlerts();
   const abortifacientAlerts = buildAbortifacientAlerts();
@@ -330,7 +328,6 @@ export const buildAlerts = () => {
   const weatherCropAlerts = buildWeatherCropAlerts();
   const autoAlerts = [...buildAutomaticAlerts(), ...withdrawalAlerts, ...abortifacientAlerts, ...stockAlerts, ...weatherCropAlerts]
     .filter((a) => !dismissed.has(a.id))
-    .filter((a) => !dismissedMed.has(a.medRecordId))
     .map((a) => { const done = confirmed.has(a.id); return done ? { ...a, done, status: alertStatus(a.due_date, done) } : a; });
   return [...autoAlerts, ...manual].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
@@ -363,14 +360,6 @@ export const dismissAutoAlert = (alertId) => {
   showToast("Alerta dispensado.");
 };
 
-export const dismissPermanentMedAlert = (medRecordId) => {
-  if (!medRecordId) return;
-  if (!state.dismissedMedAlerts) state.dismissedMedAlerts = new Set();
-  state.dismissedMedAlerts.add(medRecordId);
-  writeLocal();
-  showToast("Alerta de medicação dispensado permanentemente.");
-};
-
 export const confirmAutoAlert = (alertId) => {
   if (!state.confirmedAutoAlerts) state.confirmedAutoAlerts = new Set();
   state.confirmedAutoAlerts.add(alertId);
@@ -391,8 +380,13 @@ export const toggleReminder = async (id) => {
 export const updateAlertsBadge = () => {
   const alerts = buildAlerts();
   const pendingCount = alerts.filter((a) => !a.done).length;
+  const badgeQuick = document.getElementById("alertsBadgeQuick");
   const badgeNav = document.getElementById("alertsBadgeNav");
   
+  if (badgeQuick) {
+    badgeQuick.textContent = pendingCount;
+    badgeQuick.classList.toggle("hidden", pendingCount === 0);
+  }
   if (badgeNav) {
     badgeNav.textContent = pendingCount;
     badgeNav.classList.toggle("hidden", pendingCount === 0);

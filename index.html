@@ -11,7 +11,11 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <script>!function(){try{var e=localStorage.getItem("terrasyn-theme");if(!e){e=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",e)}catch(err){document.documentElement.setAttribute("data-theme","light")}}()</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=29">
+<link rel="stylesheet" href="theme-modern.css?v=1">
 
 <!--
   SEGURANÇA: SRI (Subresource Integrity)
@@ -101,7 +105,58 @@
   </div>
 
 
-  <section id="animals" class="panel active">
+  <section class="quick-actions" aria-label="Ações rápidas">
+    <button class="quick-action" type="button" data-tab="milk">
+      <i data-lucide="milk"></i> Registrar Leite
+    </button>
+    <button class="quick-action" type="button" data-tab="animals">
+      <i data-lucide="tag"></i> Animais
+    </button>
+    <button class="quick-action" type="button" data-tab="breeding">
+      <i data-lucide="calendar-heart"></i> Reprodução
+    </button>
+    <button class="quick-action" type="button" data-tab="medication">
+      <i data-lucide="syringe"></i> Medicação
+    </button>
+    <button class="quick-action" type="button" data-tab="crops">
+      <i data-lucide="sprout"></i> Lavoura
+    </button>
+    <button class="quick-action" type="button" data-tab="stock">
+      <i data-lucide="package"></i> Estoque
+    </button>
+    <button class="quick-action" type="button" data-tab="alerts">
+      <i data-lucide="bell"></i> Alertas
+      <span class="notification-badge hidden" id="alertsBadgeQuick">0</span>
+    </button>
+  </section>
+
+  <section id="milk" class="panel active">
+    <div class="panel-head">
+      <div>
+        <span>Produção diária</span>
+        <h2>Leite</h2>
+      </div>
+      <p>Registre litros do dia e acompanhe o histórico recente.</p>
+    </div>
+    <form id="milkForm" class="form-grid compact-form">
+      <div class="field">
+        <label for="milkDate">Data</label>
+        <input id="milkDate" type="date" required>
+      </div>
+      <div class="field">
+        <label for="liters">Litros</label>
+        <input id="liters" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
+      </div>
+      <button type="submit">Salvar produção</button>
+    </form>
+    <div class="section-title">
+      <h2>Histórico</h2>
+      <button id="refreshButton" class="ghost" type="button">Atualizar</button>
+    </div>
+    <div id="historyList" class="list"></div>
+  </section>
+
+  <section id="animals" class="panel">
     <div class="panel-head">
       <div>
         <span>Cadastro do rebanho</span>
@@ -372,7 +427,11 @@
 
 <!-- ===== BOTTOM NAVIGATION ===== -->
 <nav class="bottom-nav" aria-label="Navegação">
-  <button class="nav-item active" type="button" data-tab="animals">
+  <button class="nav-item active" type="button" data-tab="milk">
+    <i class="nav-icon" data-lucide="milk"></i>
+    <span>Leite</span>
+  </button>
+  <button class="nav-item" type="button" data-tab="animals">
     <i class="nav-icon" data-lucide="tag"></i>
     <span>Animais</span>
   </button>
@@ -508,34 +567,6 @@
 
 <!-- ===== TOAST CONTAINER ===== -->
 <div id="toastContainer" class="toast-container"></div>
-
-<!-- ===== FAB: Registrar Leite ===== -->
-<button id="fabMilk" class="fab-milk" type="button" title="Registrar leite">
-  <i data-lucide="milk"></i>
-</button>
-
-<!-- ===== MODAL: Registrar Leite ===== -->
-<div id="milkModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="milkModalTitle">
-  <div class="edit-modal-card milk-modal-card">
-    <button class="modal-close" type="button" id="milkModalClose">×</button>
-    <h2 id="milkModalTitle">Registrar Produção</h2>
-    <form id="milkFormModal" class="form-grid compact-form">
-      <div class="field">
-        <label for="milkDateModal">Data</label>
-        <input id="milkDateModal" type="date" required>
-      </div>
-      <div class="field">
-        <label for="litersModal">Litros</label>
-        <input id="litersModal" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ex.: 28" required>
-      </div>
-      <button type="submit">Salvar</button>
-    </form>
-    <div class="section-title" style="margin-top:1rem;">
-      <h2>Histórico recente</h2>
-    </div>
-    <div id="milkHistoryList" class="list"></div>
-  </div>
-</div>
 
 <div id="installPromptModal" class="install-prompt-modal hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
   <div class="install-prompt-card">
