@@ -5536,3 +5536,20 @@ button {
   display: none;
 }
 
+button.accordion-toggle {
+  background: none;
+  border: 1px dashed var(--green);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--green);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin: 8px 0;
+  transition: background var(--transition-fast);
+}
+
+button.accordion-toggle:hover {
+  background: var(--green-soft);
+}
+

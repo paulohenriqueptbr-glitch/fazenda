@@ -567,8 +567,9 @@ const initApp = () => {
     const content = document.getElementById(targetId);
     if (!content) return;
     
-    // Default: expanded
-    toggle.setAttribute("aria-expanded", "true");
+    // Respect initial state from HTML
+    const startsCollapsed = content.classList.contains("collapsed");
+    toggle.setAttribute("aria-expanded", String(!startsCollapsed));
     
     const handler = () => {
       const isExpanded = toggle.getAttribute("aria-expanded") === "true";
