@@ -59,6 +59,10 @@ export const setSelectedMedicationCowId = (id) => { selectedMedicationCowId = id
 export const incrementFailedLoginAttempts = () => { failedLoginAttempts += 1; };
 export const resetFailedLoginAttempts = () => { failedLoginAttempts = 0; };
 
+// ─── Filtro de produção de leite ─────────────────────────────────────────────
+export const milkFilter = { period: "today", startDate: null, endDate: null };
+export const setMilkFilter = (updates) => { Object.assign(milkFilter, updates); };
+
 // ─── Helpers básicos ────────────────────────────────────────────────────────
 export const $ = (selector) => document.querySelector(selector);
 

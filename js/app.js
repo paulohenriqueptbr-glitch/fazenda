@@ -3,6 +3,7 @@ import {
   todayIso, addDaysIso, monthKey, userStorageKey, writeLocal, loadLocal, localId,
   canUseLocalAccountWithPassword, supabaseUnavailableMessage,
   selectedMedicationCowId, setSelectedMedicationCowId,
+  milkFilter, setMilkFilter,
 } from "./state.js";
 import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme } from "./ui.js";
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
@@ -545,6 +546,7 @@ const initApp = () => {
   initPushNotifications();
   setupInlineValidations();
   setupPeriodFilter();
+  setupMilkFilter();
 
   // ─── Dark mode toggle ───────────────────────────────────────────────────
   const themeToggleBtn = $("#themeToggle");
@@ -565,6 +567,41 @@ const initApp = () => {
   setupInstallListeners();
 
   loadData();
+};
+
+// ─── Setup milk date filter ──────────────────────────────────────────────────
+const setupMilkFilter = () => {
+  const filterButtons = document.querySelectorAll("[data-milk-period]");
+  filterButtons.forEach((btn) => {
+    if (btn._milkFilterAttached) return;
+    btn._milkFilterAttached = true;
+    btn.addEventListener("click", () => {
+      filterButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const period = btn.dataset.milkPeriod;
+      setMilkFilter({ period });
+      if (el.milkCustomPeriod) el.milkCustomPeriod.classList.toggle("hidden", period !== "custom");
+      if (period === "custom") {
+        if (el.milkDateStart && !el.milkDateStart.value) el.milkDateStart.value = todayIso();
+        if (el.milkDateEnd && !el.milkDateEnd.value) el.milkDateEnd.value = todayIso();
+      }
+      renderMilk();
+    });
+  });
+  if (el.milkDateStart && !el.milkDateStart._milkFilterAttached) {
+    el.milkDateStart._milkFilterAttached = true;
+    el.milkDateStart.addEventListener("change", () => {
+      setMilkFilter({ startDate: el.milkDateStart.value || null });
+      renderMilk();
+    });
+  }
+  if (el.milkDateEnd && !el.milkDateEnd._milkFilterAttached) {
+    el.milkDateEnd._milkFilterAttached = true;
+    el.milkDateEnd.addEventListener("change", () => {
+      setMilkFilter({ endDate: el.milkDateEnd.value || null });
+      renderMilk();
+    });
+  }
 };
 
 // ─── Setup inline validations ───────────────────────────────────────────────

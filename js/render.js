@@ -1,4 +1,4 @@
-import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays } from "./state.js";
+import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays, milkFilter, setMilkFilter } from "./state.js";
 import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge, countUp } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
 import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays, updateAlertsBadge } from "./alerts.js";
@@ -62,6 +62,9 @@ export const el = {
   alertList: $("#alertList"),
   milkForm: $("#milkForm"),
   milkDate: $("#milkDate"),
+  milkCustomPeriod: $("#milkCustomPeriod"),
+  milkDateStart: $("#milkDateStart"),
+  milkDateEnd: $("#milkDateEnd"),
   animalForm: null,
   lactationForm: $("#lactationForm"),
   breedingForm: $("#breedingForm"),
@@ -416,7 +419,23 @@ export const setupPeriodFilter = () => {
 // ─── Render lists ───────────────────────────────────────────────────────────
 export const renderMilk = () => {
   const price = Number(state.priceQuote || 0);
-  const records = [...state.milk].sort((a, b) => b.date.localeCompare(a.date));
+  const today = todayIso();
+  
+  let filteredRecords = [...state.milk];
+  
+  if (milkFilter.period === "today") {
+    filteredRecords = filteredRecords.filter((r) => r.date === today);
+  } else if (milkFilter.period === "week") {
+    const weekStart = addDaysIso(today, -6);
+    filteredRecords = filteredRecords.filter((r) => r.date >= weekStart && r.date <= today);
+  } else if (milkFilter.period === "month") {
+    const monthStart = today.slice(0, 7) + "-01";
+    filteredRecords = filteredRecords.filter((r) => r.date >= monthStart && r.date <= today);
+  } else if (milkFilter.period === "custom" && milkFilter.startDate && milkFilter.endDate) {
+    filteredRecords = filteredRecords.filter((r) => r.date >= milkFilter.startDate && r.date <= milkFilter.endDate);
+  }
+  
+  const records = filteredRecords.sort((a, b) => b.date.localeCompare(a.date));
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
   const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
   el.historyList.innerHTML = records.length

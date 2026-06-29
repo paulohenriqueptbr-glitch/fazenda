@@ -5408,3 +5408,70 @@ button {
   content: "⚖️ ";
 }
 
+/* ── Milk Date Filter ── */
+.milk-date-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-4);
+}
+
+.milk-date-filter .filter-group {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.milk-date-filter .filter-btn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--ink-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.milk-date-filter .filter-btn:hover {
+  background: var(--green-soft);
+  border-color: var(--green-vivid);
+}
+
+.milk-date-filter .filter-btn.active {
+  background: var(--green-soft);
+  border-color: var(--green-vivid);
+  color: var(--green-dark);
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(16, 169, 129, 0.15);
+}
+
+.milk-date-filter .custom-period-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.milk-date-filter .custom-period-inputs span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.milk-date-filter .date-input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.milk-date-filter .date-input:focus {
+  outline: none;
+  border-color: var(--green-vivid);
+  box-shadow: 0 0 0 2px rgba(16, 169, 129, 0.2);
+}
+

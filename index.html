@@ -148,6 +148,19 @@
       </div>
       <button type="submit">Salvar produção</button>
     </form>
+    <div class="milk-date-filter">
+      <div class="filter-group">
+        <button type="button" class="filter-btn active" data-milk-period="today">Hoje</button>
+        <button type="button" class="filter-btn" data-milk-period="week">Semana</button>
+        <button type="button" class="filter-btn" data-milk-period="month">Mês</button>
+        <button type="button" class="filter-btn" data-milk-period="custom">Personalizado</button>
+      </div>
+      <div id="milkCustomPeriod" class="custom-period-inputs hidden">
+        <input type="date" id="milkDateStart" class="date-input">
+        <span>até</span>
+        <input type="date" id="milkDateEnd" class="date-input">
+      </div>
+    </div>
     <div class="section-title">
       <h2>Histórico</h2>
       <button id="refreshButton" class="ghost" type="button">Atualizar</button>
