@@ -1,16 +1,8 @@
-// ─── Motor de Recomendações ───────────────────────────────────────────────────
-// Gera sugestões automáticas baseadas em dados e regras de negócio.
-// Tudo roda localmente — nenhum dado sai do dispositivo.
-
 import { state, todayIso, addDaysIso, monthKey, parseIsoDate } from "./state.js";
 import { diffDays } from "./alerts.js";
 import { mean } from "./analytics.js";
 import { getProductionAnalysis, getHerdAnalysis, getFinancialAnalysis } from "./analytics.js";
 import { getMedicationInfo } from "./medication-catalog.js";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TIPOS DE RECOMENDAÇÃO
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const RECOMMENDATION_TYPES = {
   PRODUCTION: "production",
@@ -28,37 +20,17 @@ export const RECOMMENDATION_PRIORITY = {
   LOW: "low",
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MOTOR DE RECOMENDAÇÕES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Gera todas as recomendações baseadas no estado atual.
- * @returns {Array} Recomendações ordenadas por prioridade
- */
 export const generateRecommendations = () => {
   const today = todayIso();
   const recommendations = [];
 
-  // 1. Recomendações de produção
   recommendations.push(...getProductionRecommendations());
-
-  // 2. Recomendações de saúde
   recommendations.push(...getHealthRecommendations());
-
-  // 3. Recomendações de reprodução
   recommendations.push(...getReproductionRecommendations());
-
-  // 4. Recomendações de estoque
   recommendations.push(...getStockRecommendations());
-
-  // 5. Recomendações de lavoura
   recommendations.push(...getCropRecommendations());
-
-  // 6. Recomendações financeiras
   recommendations.push(...getFinancialRecommendations());
 
-  // Ordenar por prioridade
   const priorityOrder = {
     [RECOMMENDATION_PRIORITY.CRITICAL]: 0,
     [RECOMMENDATION_PRIORITY.HIGH]: 1,
@@ -69,17 +41,12 @@ export const generateRecommendations = () => {
   return recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE PRODUÇÃO
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const getProductionRecommendations = () => {
   const recommendations = [];
   const analysis = getProductionAnalysis(14);
 
   if (!analysis.hasData) return recommendations;
 
-  // Produção em queda
   if (analysis.trendDirection === "down" && analysis.trendPercent < -10) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.PRODUCTION,
@@ -91,7 +58,6 @@ const getProductionRecommendations = () => {
     });
   }
 
-  // Produção inconsistente
   if (analysis.consistency < 60) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.PRODUCTION,
@@ -103,7 +69,6 @@ const getProductionRecommendations = () => {
     });
   }
 
-  // Produção acima da média
   if (analysis.trendDirection === "up" && analysis.trendPercent > 10) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.PRODUCTION,
@@ -118,16 +83,11 @@ const getProductionRecommendations = () => {
   return recommendations;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE SAÚDE
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const getHealthRecommendations = () => {
   const recommendations = [];
   const today = todayIso();
   const herd = getHerdAnalysis();
 
-  // Lactações muito longas
   const longLactations = (state.lactations || []).filter((l) => {
     if (l.end_date) return false;
     const days = diffDays(l.start_date, today);
@@ -146,7 +106,6 @@ const getHealthRecommendations = () => {
     });
   }
 
-  // Muitas medicações recentes
   if (herd.recentMedications > 5) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.HEALTH,
@@ -158,7 +117,6 @@ const getHealthRecommendations = () => {
     });
   }
 
-  // Saúde do rebanho baixa
   if (herd.healthScore < 70) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.HEALTH,
@@ -173,16 +131,11 @@ const getHealthRecommendations = () => {
   return recommendations;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE REPRODUÇÃO
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const getReproductionRecommendations = () => {
   const recommendations = [];
   const today = todayIso();
   const herd = getHerdAnalysis();
 
-  // Partos próximos
   if (herd.calvings30d > 0) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.REPRODUCTION,
@@ -194,7 +147,6 @@ const getReproductionRecommendations = () => {
     });
   }
 
-  // Baixa eficiência reprodutiva
   if (herd.reproductiveEfficiency < 50 && herd.total > 5) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.REPRODUCTION,
@@ -206,7 +158,6 @@ const getReproductionRecommendations = () => {
     });
   }
 
-  // Vacas secas sem gestação
   const dryNotPregnant = state.animals.filter((a) =>
     a.status === "Seca" &&
     !(state.breeding || []).some((b) =>
@@ -229,10 +180,6 @@ const getReproductionRecommendations = () => {
 
   return recommendations;
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE ESTOQUE
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const getStockRecommendations = () => {
   const recommendations = [];
@@ -267,10 +214,6 @@ const getStockRecommendations = () => {
   return recommendations;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE LAVOURA
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const getCropRecommendations = () => {
   const recommendations = [];
   const today = todayIso();
@@ -283,7 +226,6 @@ const getCropRecommendations = () => {
 
     if (daysSince === null) return;
 
-    // Plantio: verificar germinação
     if (eventType.includes("plantio") && daysSince >= 7 && daysSince <= 14) {
       recommendations.push({
         type: RECOMMENDATION_TYPES.LAVORUA,
@@ -295,7 +237,6 @@ const getCropRecommendations = () => {
       });
     }
 
-    // Pulverização: verificar eficácia
     if (eventType.includes("pulver") && daysSince >= 7 && daysSince <= 10) {
       recommendations.push({
         type: RECOMMENDATION_TYPES.LAVORUA,
@@ -311,15 +252,10 @@ const getCropRecommendations = () => {
   return recommendations;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES FINANCEIRAS
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const getFinancialRecommendations = () => {
   const recommendations = [];
   const financial = getFinancialAnalysis();
 
-  // Receita por animal muito baixa
   if (financial.revenuePerCow < 50 && financial.lactating > 0) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.FINANCIAL,
@@ -331,7 +267,6 @@ const getFinancialRecommendations = () => {
     });
   }
 
-  // Previsão de receita vs produção atual
   if (financial.projectedMonthValue < financial.monthValue * 0.9) {
     recommendations.push({
       type: RECOMMENDATION_TYPES.FINANCIAL,
@@ -346,13 +281,6 @@ const getFinancialRecommendations = () => {
   return recommendations;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SCORE DE RECOMENDAÇÕES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Resumo das recomendações para exibição no dashboard.
- */
 export const getRecommendationsSummary = () => {
   const all = generateRecommendations();
   return {

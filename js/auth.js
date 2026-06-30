@@ -9,16 +9,10 @@ import {
 import { showToast } from "./ui.js";
 import { error } from "./logger.js";
 
-// ─── Local Auth Helpers ───────────────────────────────────────────────────
 const LOCAL_ADMIN_HASH_KEY = "local-admin-hash";
 const LOCAL_ADMIN_EMAIL_KEY = "local-admin-email";
 const DEFAULT_LOCAL_PASSWORD = "admin123";
 
-/**
- * Hash a password using SHA-256 via Web Crypto API.
- * @param {string} password
- * @returns {Promise<string>} hex-encoded hash
- */
 const hashPassword = async (password) => {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
@@ -26,16 +20,9 @@ const hashPassword = async (password) => {
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
-/**
- * Local login without fetch — verifies password against stored hash in localStorage.
- * @param {string} email
- * @param {string} password
- * @returns {Promise<{email: string}>}
- */
 const loginLocal = async (email, password) => {
   const storedHash = localStorage.getItem(LOCAL_ADMIN_HASH_KEY);
 
-  // If no hash stored yet, create one with default password
   if (!storedHash) {
     const defaultHash = await hashPassword(DEFAULT_LOCAL_PASSWORD);
     localStorage.setItem(LOCAL_ADMIN_HASH_KEY, defaultHash);
@@ -53,7 +40,6 @@ const loginLocal = async (email, password) => {
   return { email };
 };
 
-// ─── Elementos DOM ──────────────────────────────────────────────────────────
 const loginScreen = $("#loginScreen");
 const appShell = $("#appShell");
 const loginForm = $("#loginForm");
@@ -66,7 +52,6 @@ const authFooter = $("#authFooter");
 const showLoginButton = $("#showLoginButton");
 const showSignupButton = $("#showSignupButton");
 
-// ─── UI de autenticação ─────────────────────────────────────────────────────
 export const showApp = (email) => {
   loginScreen.classList.add("hidden");
   appShell.classList.add("visible");
@@ -97,11 +82,10 @@ const setAuthMode = (mode) => {
   loginError.classList.remove("visible", "success");
 };
 
-// ─── Email salvo ────────────────────────────────────────────────────────────
 export const saveLoginEmail = (email) => {
   const value = String(email || "").trim();
   if (!value) return;
-  try { localStorage.setItem(SAVED_LOGIN_EMAIL_KEY, value); } catch { /* noop */ }
+  try { localStorage.setItem(SAVED_LOGIN_EMAIL_KEY, value); } catch {}
 };
 
 const restoreLoginEmail = () => {
@@ -109,13 +93,11 @@ const restoreLoginEmail = () => {
   if (!input || input.value) return;
   const checkbox = $("#rememberLoginEmail");
   if (checkbox && !checkbox.checked) {
-    // If checkbox not checked, don't restore (but still allow manual entry)
     return;
   }
-  try { input.value = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || ""; } catch { /* noop */ }
+  try { input.value = localStorage.getItem(SAVED_LOGIN_EMAIL_KEY) || ""; } catch {}
 };
 
-// ─── Erros ──────────────────────────────────────────────────────────────────
 export const supabaseErrorMessage = (error) => {
   const raw = String(error?.message || error?.code || error || "").toLowerCase();
   if (raw.includes("jwt") || raw.includes("session")) return "Sua sessão expirou. Faça login novamente.";
@@ -142,7 +124,6 @@ export const handleSupabaseError = (err, context = "") => {
   return message;
 };
 
-// ─── Sessão ─────────────────────────────────────────────────────────────────
 export const requireSession = async () => {
   if (!hasSupabase || !db) return null;
   const { data: { session }, error } = await db.auth.getSession();
@@ -158,14 +139,11 @@ export const requireSession = async () => {
   return session;
 };
 
-// ─── Check session ──────────────────────────────────────────────────────────
 export const checkSession = async (initAppFn) => {
   if (!hasSupabase || !db) {
-    // No Supabase — try local mode
     const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
     if (canUseLocalAccountWithPassword || canUseLocalAccount) {
       if (savedEmail) {
-        // Allow offline use with local data
         setCurrentUserId("local-admin");
         showApp(savedEmail);
         initAppFn();
@@ -184,7 +162,6 @@ export const checkSession = async (initAppFn) => {
       showApp(session.user.email);
       initAppFn();
     } else {
-      // No Supabase session — check if offline with saved local email
       if (!navigator.onLine) {
         const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
         if (savedEmail) {
@@ -202,7 +179,6 @@ export const checkSession = async (initAppFn) => {
     }
   } catch (err) {
     error("Session check error:", err);
-    // Offline fallback — check for saved local email
     if (!navigator.onLine) {
       const savedEmail = localStorage.getItem(LOCAL_ADMIN_EMAIL_KEY) || localStorage.getItem(SAVED_LOGIN_EMAIL_KEY);
       if (savedEmail) {
@@ -217,7 +193,6 @@ export const checkSession = async (initAppFn) => {
   }
 };
 
-// ─── Auth state change ──────────────────────────────────────────────────────
 export const setupAuthStateListener = (initAppFn) => {
   if (!hasSupabase || !db) return;
   db.auth.onAuthStateChange((event, session) => {
@@ -232,7 +207,6 @@ export const setupAuthStateListener = (initAppFn) => {
   });
 };
 
-// ─── Event listeners de login/signup/logout ─────────────────────────────────
 export const setupAuthListeners = (initAppFn) => {
   showLoginButton.addEventListener("click", () => setAuthMode("login"));
   showSignupButton.addEventListener("click", () => setAuthMode("signup"));
@@ -322,7 +296,6 @@ export const setupAuthListeners = (initAppFn) => {
         return;
       }
       setAuthMode("login");
-      // Always save email on signup for convenience
       saveLoginEmail(email);
       restoreLoginEmail();
       showLoginError("Conta criada. Confira seu e-mail para confirmar o cadastro.", "success");

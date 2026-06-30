@@ -10,42 +10,19 @@ import { requireSession, handleSupabaseError } from "./auth.js";
 import { collections, enqueueMutation, loadSupabase, loadAppSettings, setStatus } from "./sync.js";
 import { warn } from "./logger.js";
 
-// ─── Find record ────────────────────────────────────────────────────────────
-/**
- * Finds a single record in the local state by collection type and ID.
- * @param {string} type - Collection key (e.g. "milk", "animal", "lactation")
- * @param {string|number} id - Record ID to search for
- * @returns {Object|null} The matching record, or null if not found
- */
 export const findRecord = (type, id) => {
   const col = collections[type];
   if (!col) return null;
   return state[col.stateKey].find((record) => String(record.id) === String(id));
 };
 
-// ─── Animal helpers ─────────────────────────────────────────────────────────
-/**
- * Returns the identification label for an animal, or the cowId fallback.
- * @param {string|number} cowId - Animal ID or identification string
- * @returns {string} The animal's identification label, or the cowId itself
- */
 export const animalLabel = (cowId) => {
   const animal = state.animals.find((item) => String(item.id) === String(cowId) || String(item.identification) === String(cowId));
   return animal?.identification || cowId || "-";
 };
 
-/**
- * Converts a cow ID to a stable string key for lookups.
- * @param {string|number|null|undefined} cowId - Animal ID
- * @returns {string} String key, empty string if falsy
- */
 export const cowIdKey = (cowId) => String(cowId || "");
 
-/**
- * Normalizes an animal label to a lowercase, trimmed string key for profile matching.
- * @param {string|null|undefined} label - Animal identification label
- * @returns {string} Normalized lowercase key
- */
 export const cowProfileKey = (label) => String(label || "").trim().toLocaleLowerCase("pt-BR");
 
 const animalReferenceIds = (animal) => new Set([animal?.id, animal?.identification].filter(Boolean).map(String));
@@ -58,13 +35,6 @@ const removeLocalAnimalRelations = (animal) => {
   state.medication = state.medication.filter((r) => !ids.has(String(r.cow_id)));
 };
 
-// ─── CRUD operations ────────────────────────────────────────────────────────
-/**
- * Inserts or updates a milk production record for the current user.
- * @param {{ date: string, liters: number }} record - Milk record with date and liters
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const upsertMilk = async (record) => {
   if (hasSupabase) {
     try {
@@ -85,12 +55,6 @@ export const upsertMilk = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new animal record.
- * @param {{ identification: string, type: string, status: string, weight?: number }} animal - Animal data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertAnimal = async (animal) => {
   const newId = localId();
   if (hasSupabase) {
@@ -111,12 +75,6 @@ export const insertAnimal = async (animal) => {
   writeLocal();
 };
 
-/**
- * Inserts a new lactation record for an animal.
- * @param {{ cow_id: string|number, start_date: string, end_date?: string|null, daily_liters?: number }} record - Lactation data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertLactation = async (record) => {
   const newId = localId();
   const payload = { cow_id: record.cow_id, start_date: record.start_date, end_date: record.end_date || null, daily_liters: record.daily_liters };
@@ -138,12 +96,6 @@ export const insertLactation = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new breeding (insemination) record.
- * @param {{ cow_id: string|number, insemination_date: string, expected_calving_date: string }} record - Breeding data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertBreeding = async (record) => {
   const newId = localId();
   const payload = { cow_id: record.cow_id, insemination_date: record.insemination_date, expected_calving_date: record.expected_calving_date };
@@ -165,12 +117,6 @@ export const insertBreeding = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new medication record for an animal.
- * @param {{ cow_id: string|number, medication_name: string, dosage?: string, administration_date: string, reapply_interval_days?: number|null }} record - Medication data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertMedication = async (record) => {
   const newId = localId();
   const payload = { cow_id: record.cow_id, medication_name: record.medication_name, dosage: record.dosage, administration_date: record.administration_date, reapply_interval_days: record.reapply_interval_days ?? null };
@@ -192,12 +138,6 @@ export const insertMedication = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new crop event (manejo) record.
- * @param {{ plot_name: string, crop_name: string, event_type: string, event_date: string, product?: string, dosage?: string, area_tasks?: number, notes?: string }} record - Crop event data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertCropEvent = async (record) => {
   const newId = localId();
   const payload = normalizeCropEventInput(record);
@@ -219,12 +159,6 @@ export const insertCropEvent = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new stock item (insumo) record.
- * @param {{ item_name: string, category?: string, quantity: number, unit: string, min_quantity?: number, notes?: string }} record - Stock item data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertStockItem = async (record) => {
   const newId = localId();
   const payload = normalizeStockItemInput(record);
@@ -246,12 +180,6 @@ export const insertStockItem = async (record) => {
   writeLocal();
 };
 
-/**
- * Inserts a new reminder record.
- * @param {{ title: string, category?: string, due_date: string, notes?: string }} record - Reminder data
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const insertReminder = async (record) => {
   const newId = localId();
   const payload = normalizeReminderInput(record);
@@ -273,15 +201,6 @@ export const insertReminder = async (record) => {
   writeLocal();
 };
 
-// ─── Update / Delete ────────────────────────────────────────────────────────
-/**
- * Updates an existing record by type and ID with the given changes.
- * @param {string} type - Collection key (e.g. "milk", "animal", "crop")
- * @param {string|number} id - Record ID to update
- * @param {Object} changes - Key-value pairs of fields to update
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const updateRecord = async (type, id, changes) => {
   const col = collections[type];
   if (!col || !id) return;
@@ -303,14 +222,6 @@ export const updateRecord = async (type, id, changes) => {
   writeLocal();
 };
 
-/**
- * Deletes a record by type and ID. For animals, also removes related lactation,
- * breeding, and medication records.
- * @param {string} type - Collection key (e.g. "animal", "milk", "crop")
- * @param {string|number} id - Record ID to delete
- * @returns {Promise<void>}
- * @throws {Object} Auth-required error if session is invalid
- */
 export const deleteRecord = async (type, id) => {
   const col = collections[type];
   if (!col || !id) return;
@@ -349,12 +260,6 @@ export const deleteRecord = async (type, id) => {
   writeLocal();
 };
 
-// ─── Price quote & client profile ───────────────────────────────────────────
-/**
- * Saves the milk price quote to state and syncs to Supabase.
- * @param {number|string} value - Price quote value
- * @returns {Promise<void>}
- */
 export const savePriceQuote = async (value) => {
   state.priceQuote = Number(value || 0);
   if (!hasSupabase) { writeLocal(); return; }
@@ -373,11 +278,6 @@ export const savePriceQuote = async (value) => {
   }
 };
 
-/**
- * Saves the client profile to state and syncs to Supabase.
- * @param {Object} profile - Client profile object
- * @returns {Promise<void>}
- */
 export const saveClientProfile = async (profile) => {
   state.clientProfile = profile;
   if (!hasSupabase) { writeLocal(); return; }
@@ -396,14 +296,6 @@ export const saveClientProfile = async (profile) => {
   }
 };
 
-// ─── Edit modal ─────────────────────────────────────────────────────────────
-
-/**
- * Displays a modal dialog for editing a record and returns the user's input.
- * @param {string} type - Record type (e.g. "milk", "animal", "lactation", "breeding", "medication", "crop", "stock", "reminder")
- * @param {Object} record - The current record data to populate the form
- * @returns {Promise<Object|null>} Form data as key-value pairs, or null if cancelled
- */
 export const showEditModal = (type, record) => {
   return new Promise((resolve) => {
     const modal = document.createElement("div");

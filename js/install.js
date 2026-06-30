@@ -1,6 +1,3 @@
-// ─── Install Prompt Module ──────────────────────────────────────────────────
-// Lógica de instalação PWA e prompt de instalação
-
 import { $ } from "./state.js";
 import { showToast } from "./ui.js";
 
@@ -92,7 +89,6 @@ export const setupInstallListeners = () => {
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
-    // Mostra prompt após 30 segundos se ainda não instalou
     setTimeout(() => {
       if (deferredInstallPrompt && !isStandalonePwa()) {
         showInstallPrompt();

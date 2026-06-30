@@ -1,12 +1,3 @@
-// js/pure-utils.js
-//
-// Funções puras (sem dependência de DOM, window, Supabase) usadas tanto
-// pelo app no browser quanto pelos testes automatizados (app.test.js).
-// Isso garante que os testes validam o mesmo código que roda em produção.
-//
-// IMPORTANTE: ao alterar uma função aqui, o comportamento muda tanto no
-// app real quanto nos testes — não há mais cópia duplicada para sincronizar.
-
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const parseIsoDate = (isoDate) => {
@@ -96,14 +87,12 @@ const escapeHtml = (value) =>
     return entities[character];
   });
 
-// Thresholds para status de produção
 const PRODUCTION_THRESHOLDS = {
-  critical: 0.5, // Menos de 50% da média = CRÍTICO
-  warning: 0.75, // Menos de 75% da média = BAIXO
-  good: 1.0,     // >= média = BOM
+  critical: 0.5,
+  warning: 0.75,
+  good: 1.0,
 };
 
-// Calcular status de produção (Bom/Baixo/Crítico)
 const getProductionStatus = (liters, monthAverage) => {
   const ratio = monthAverage > 0 ? liters / monthAverage : 1;
   if (ratio >= PRODUCTION_THRESHOLDS.good) return { status: "Bom", kind: "good" };
@@ -111,13 +100,11 @@ const getProductionStatus = (liters, monthAverage) => {
   return { status: "Crítico", kind: "critical" };
 };
 
-// Criar badge de status HTML
 const createStatusBadge = (status) => {
   const safeKind = ["good", "warning", "critical"].includes(status.kind) ? status.kind : "good";
   return `<span class="production-badge ${safeKind}">${escapeHtml(status.status)}</span>`;
 };
 
-// ─── Tema (modo escuro) ──────────────────────────────────────────────────────
 const THEME_STORAGE_KEY = "terrasyn-theme";
 
 const getStoredTheme = () => localStorage.getItem(THEME_STORAGE_KEY);
@@ -157,11 +144,6 @@ const updateThemeToggleIcon = (theme) => {
   }
 };
 
-// ─── Exportação dupla: funciona no browser (<script>) e no Node (Jest) ───────
-// No browser, este arquivo é carregado via <script> e as funções acima ficam
-// no escopo global, exatamente como antes. No Node (testes), module.exports
-// expõe as mesmas funções para `require`.
-// ─── Count-up animation ────────────────────────────────────────────────────
 const countUp = (element, targetValue, options = {}) => {
   if (!element) return;
   const { duration = 600, prefix = "", suffix = "", decimals = 0 } = options;

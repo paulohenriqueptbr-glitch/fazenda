@@ -1,13 +1,10 @@
-// ─── Backup Module ──────────────────────────────────────────────────────────
-// Lógica de backup automático e manual
-
 import { state, todayIso, userStorageKey } from "./state.js";
 import { getSyncQueue } from "./sync.js";
 import { showToast } from "./ui.js";
 import { warn } from "./logger.js";
 
 const AUTO_BACKUP_KEY = "terrasyn_last_auto_backup";
-const BACKUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+const BACKUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const maybeAutoBackup = () => {
   try {
