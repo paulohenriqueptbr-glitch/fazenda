@@ -17,21 +17,12 @@ const LOCAL_ADMIN_LOCKOUT_KEY = "local-admin-lockout";
 const DEFAULT_LOCAL_PASSWORD = "admin123";
 const PBKDF2_ITERATIONS = 100000;
 
-<<<<<<< HEAD
-/**
- * Hash a password using SHA-256 via Web Crypto API.
- * @param {string} password
- * @returns {Promise<string>} hex-encoded hash
- */
-const hashPassword = async (password) => {
-=======
 const generateSalt = () => {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   return Array.from(salt).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 const hashPassword = async (password, salt) => {
->>>>>>> e73643bf (Atualizar projeto)
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     "raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]
@@ -44,19 +35,10 @@ const hashPassword = async (password, salt) => {
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
-<<<<<<< HEAD
-/**
- * Local login without fetch — verifies password against stored hash in localStorage.
- * @param {string} email
- * @param {string} password
- * @returns {Promise<{email: string}>}
- */
-=======
 const getStoredAttempts = () => {
   try {
     const data = JSON.parse(localStorage.getItem(LOCAL_ADMIN_ATTEMPTS_KEY) || "{}");
     const lockout = parseInt(localStorage.getItem(LOCAL_ADMIN_LOCKOUT_KEY) || "0", 10);
-    // Reset if lockout expired (15 min)
     if (lockout && Date.now() > lockout) {
       localStorage.removeItem(LOCAL_ADMIN_ATTEMPTS_KEY);
       localStorage.removeItem(LOCAL_ADMIN_LOCKOUT_KEY);
@@ -71,7 +53,6 @@ const recordFailedAttempt = () => {
   const newCount = count + 1;
   localStorage.setItem(LOCAL_ADMIN_ATTEMPTS_KEY, JSON.stringify({ count: newCount }));
   if (newCount >= MAX_LOGIN_ATTEMPTS) {
-    // Lockout for 15 minutes
     localStorage.setItem(LOCAL_ADMIN_LOCKOUT_KEY, String(Date.now() + 15 * 60 * 1000));
   }
 };
@@ -81,7 +62,6 @@ const clearAttempts = () => {
   localStorage.removeItem(LOCAL_ADMIN_LOCKOUT_KEY);
 };
 
->>>>>>> e73643bf (Atualizar projeto)
 const loginLocal = async (email, password) => {
   const storedHash = localStorage.getItem(LOCAL_ADMIN_HASH_KEY);
   const storedSalt = localStorage.getItem(LOCAL_ADMIN_SALT_KEY);
