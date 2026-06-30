@@ -17,6 +17,7 @@ module.exports = function handler(request, response) {
   const supportEmail = pickEnv("SUPPORT_EMAIL");
   const trialDays = pickEnv("TRIAL_DAYS", "PLAN_TRIAL_DAYS") || "14";
   const planPrice = pickEnv("PLAN_PRICE", "MONTHLY_PLAN_PRICE") || "39";
+  // Em produção (Vercel) o modo local nunca fica ativo — sempre usa Supabase.
   const localModeEnabled = false;
 
   response.setHeader("Content-Type", "application/javascript; charset=utf-8");

@@ -1,3 +1,9 @@
+// ─── Re-exports de pure-utils.js ────────────────────────────────────────────
+// Re-exporta funções puras para manter compatibilidade com módulos que importam de ui.js.
+// NOTA: import separado é necessário para funções usadas localmente neste arquivo,
+// porque `export { X } from` NÃO cria binding local.
+
+// Funções usadas localmente neste arquivo (imports necessários):
 import {
   escapeHtml,
   cleanText,
@@ -7,6 +13,7 @@ import {
   isNotFutureDate,
 } from "./pure-utils.js";
 
+// Re-exports para outros módulos:
 export {
   formatLiters,
   formatMoney,
@@ -28,6 +35,7 @@ export {
   countUp,
 } from "./pure-utils.js";
 
+// ─── Toast ──────────────────────────────────────────────────────────────────
 export const showToast = (message, type = "success") => {
   const container = document.getElementById("toastContainer");
   if (!container) return;
@@ -41,6 +49,7 @@ export const showToast = (message, type = "success") => {
   }, 3000);
 };
 
+// ─── Loading em botões ──────────────────────────────────────────────────────
 export const withButtonLoading = (form, asyncFn, loadingText = "Salvando...") => {
   return async (...args) => {
     const btn = form?.querySelector('button[type="submit"]');
@@ -50,6 +59,7 @@ export const withButtonLoading = (form, asyncFn, loadingText = "Salvando...") =>
   };
 };
 
+// ─── Validação inline ───────────────────────────────────────────────────────
 export const addInlineValidation = (inputEl, validateFn) => {
   if (!inputEl || inputEl._inlineValidation) return;
   inputEl._inlineValidation = true;
@@ -68,6 +78,7 @@ export const addInlineValidation = (inputEl, validateFn) => {
   inputEl.addEventListener("input", () => { if (inputEl.classList.contains("input-error")) validate(); });
 };
 
+// ─── Empty states ilustrados ────────────────────────────────────────────────
 const emptyIcons = {
   milk: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l2 6H6l2-6z"/><path d="M6 8v10a2 2 0 002 2h8a2 2 0 002-2V8"/></svg>`,
   animal: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.172C10 3.782 8.883 2.3 7.5 2.3S5 3.782 5 5.172c0 1.39 2.5 3.828 2.5 3.828S10 6.562 10 5.172z"/><path d="M19 5.172C19 3.782 17.883 2.3 16.5 2.3S14 3.782 14 5.172c0 1.39 2.5 3.828 2.5 3.828S19 6.562 19 5.172z"/><path d="M12 22c-4 0-7-2-7-5 0-2 1-3 2-4l1-1c1-1 2-2 4-2s3 1 4 2l1 1c1 1 2 2 2 4 0 3-3 5-7 5z"/></svg>`,
@@ -88,6 +99,7 @@ export const empty = (text, type = "default") => {
   </div>`;
 };
 
+// ─── Normalização de inputs ─────────────────────────────────────────────────
 export const normalizeCropEventInput = (data) => {
   const plotName = cleanText(data.plot_name ?? data.plotName, 100);
   const cropName = cleanText(data.crop_name ?? data.cropName, 100);
@@ -101,12 +113,8 @@ export const normalizeCropEventInput = (data) => {
   if (!isValidDate(eventDate)) throw new Error("Data invalida");
   if (!isNotFutureDate(eventDate)) throw new Error("Nao pode registrar manejo futuro");
   if (areaTasks === null && areaRaw !== "" && areaRaw !== null && areaRaw !== undefined) throw new Error("Area em tarefas invalida");
-  const allowedGroups = ["Milho/Sorgo", "Palma Forrageira", "Outra"];
-  const cropGroupRaw = cleanText(data.crop_group ?? data.cropGroup, 40);
-  const cropGroup = allowedGroups.includes(cropGroupRaw) ? cropGroupRaw : "Milho/Sorgo";
   return {
     plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate,
-    crop_group: cropGroup,
     product: optionalText(data.product, 120), dosage: optionalText(data.dosage, 80),
     area_tasks: areaTasks, notes: optionalText(data.notes, 500),
   };

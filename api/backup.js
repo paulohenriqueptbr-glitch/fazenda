@@ -48,6 +48,7 @@ module.exports = async function handler(request, response) {
     return;
   }
 
+  // Validação de env vars
   if (!validateEnvOrError(request, response, ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"])) {
     return;
   }

@@ -8,7 +8,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  
+  /* ── Brand Palette ── */
   --green: #0d9668;
   --green-light: #d1fae5;
   --green-dark: #065f46;
@@ -21,7 +21,7 @@
   --brand-earth: #92400e;
   --brand-ink: #0f2f2b;
 
-  
+  /* ── Semantic Colors ── */
   --ink: #0f172a;
   --ink-secondary: #334155;
   --muted: #64748b;
@@ -34,7 +34,7 @@
   --danger: #dc2626;
   --danger-light: #fef2f2;
 
-  
+  /* ── Elevation System ── */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
@@ -42,14 +42,14 @@
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
   --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.18);
 
-  
+  /* ── Transitions ── */
   --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  
+  /* ── Spacing Scale (4px base) ── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -58,7 +58,7 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  
+  /* ── Border Radius ── */
   --radius-sm: 6px;
   --radius: 8px;
   --radius-md: 10px;
@@ -66,7 +66,7 @@
   --radius-xl: 16px;
   --radius-full: 999px;
 
-  
+  /* ── Auth specific ── */
   --auth-border: #e2e8f0;
   --auth-muted-surface: #f8fafc;
   --input-bg: #f8fafc;
@@ -78,7 +78,7 @@
   background: #09090b;
   color: #f1f5f9;
 
-  
+  /* ── Semantic Colors ── */
   --ink: #f8fafc;
   --ink-secondary: #f1f5f9;
   --muted: #cbd5e1;
@@ -90,7 +90,7 @@
   --field: #162032;
   --danger-light: #2d1215;
 
-  
+  /* ── Brand Colors (dark) ── */
   --green-soft: #0f2e23;
   --green-light: #1a3d32;
   --green-dark: #34d399;
@@ -99,7 +99,7 @@
   --blue-light: #1e3a5f;
   --amber-light: #2d2006;
 
-  
+  /* ── Elevation ── */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.55), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
@@ -107,7 +107,7 @@
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
 
-  
+  /* ── Auth specific ── */
   --auth-border: #334155;
   --auth-muted-surface: #1e293b;
   --input-bg: #1e293b;
@@ -152,6 +152,7 @@
   color: var(--green);
 }
 
+/* ── Inputs globais no dark mode ── */
 [data-theme="dark"] input,
 [data-theme="dark"] textarea {
   background-color: var(--input-bg);
@@ -161,6 +162,7 @@
   color-scheme: dark;
 }
 
+/* select NÃO usa background shorthand (preserva a seta SVG) */
 [data-theme="dark"] select {
   background-color: var(--input-bg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cbd5e1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
@@ -186,6 +188,7 @@
   -webkit-text-fill-color: var(--ink);
 }
 
+/* ── Autofill do browser (iOS Safari pinta de branco por padrão) ── */
 [data-theme="dark"] input:-webkit-autofill,
 [data-theme="dark"] input:-webkit-autofill:hover,
 [data-theme="dark"] input:-webkit-autofill:focus,
@@ -203,6 +206,7 @@
   background-color: var(--input-bg) !important;
 }
 
+/* ── Login form inputs ── */
 [data-theme="dark"] .login-form input {
   background-color: var(--input-bg);
   color: var(--ink);
@@ -248,6 +252,7 @@
   border-color: var(--muted);
 }
 
+/* ── Modal de edição no dark mode ── */
 [data-theme="dark"] .edit-modal-card {
   background-color: var(--panel);
   color: var(--ink);
@@ -259,6 +264,7 @@
   color: var(--ink);
 }
 
+/* ── App header no dark mode ── */
 [data-theme="dark"] .app-header {
   border-bottom-color: var(--line);
   background: rgba(30, 41, 59, 0.95);
@@ -286,6 +292,7 @@
   background: linear-gradient(145deg, #0d4f49 0%, #0a5c52 50%, #084e45 100%);
 }
 
+/* ── Bottom nav dark mode ── */
 [data-theme="dark"] .bottom-nav {
   background: rgba(30, 41, 59, 0.98);
   border-top-color: var(--line);
@@ -303,6 +310,7 @@
   color: var(--green);
 }
 
+/* ── Toast dark mode ── */
 [data-theme="dark"] .toast {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   color: var(--ink);
@@ -323,12 +331,14 @@
   color: #ffffff;
 }
 
+/* ── Empty state dark mode ── */
 [data-theme="dark"] .empty {
   background-color: var(--field);
   border-color: var(--line);
   color: var(--ink-secondary);
 }
 
+/* ── Item actions dark mode ── */
 [data-theme="dark"] .item-actions button {
   background-color: var(--field);
   border-color: var(--line);
@@ -347,6 +357,7 @@
   color: #fca5a5;
 }
 
+/* ── Hardcoded colors dark mode overrides ── */
 [data-theme="dark"] .feature-list span {
   color: var(--muted);
   background: var(--field);
@@ -382,6 +393,7 @@
   color: var(--ink);
 }
 
+/* ── Badges e status dark mode ── */
 [data-theme="dark"] .production-badge.warning {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
@@ -414,6 +426,7 @@
   color: #fbbf24;
 }
 
+/* ── Landing page dark mode ── */
 [data-theme="dark"] .hero-copy p,
 [data-theme="dark"] .product-preview p,
 [data-theme="dark"] .pricing-section p {
@@ -425,6 +438,7 @@
   color: var(--ink);
 }
 
+/* ── Buttons dark mode ── */
 [data-theme="dark"] .btn-logout {
   background: var(--panel);
   color: #fca5a5;
@@ -436,6 +450,7 @@
   border-color: #fca5a5;
 }
 
+/* ── Legal page dark mode ── */
 [data-theme="dark"] .legal-page {
   background: var(--panel);
   color: var(--ink);
@@ -449,6 +464,11 @@
   background: var(--green-soft) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES — CORREÇÕES DE CONTRASTE
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── A1: Support button (branco em verde claro → verde vibrante) ── */
 [data-theme="dark"] .support-button {
   background: var(--green);
   color: #ffffff;
@@ -459,6 +479,7 @@
   box-shadow: 0 2px 12px rgba(13, 150, 104, 0.35);
 }
 
+/* ── A2: Status badges (fundos translúcidos claros) ── */
 [data-theme="dark"] .status[data-kind="online"] {
   background: rgba(13, 150, 104, 0.15);
   color: #34d399;
@@ -477,6 +498,7 @@
   border-color: rgba(220, 38, 38, 0.3);
 }
 
+/* ── A3: Chronic header (marrom escuro → âmbar) ── */
 [data-theme="dark"] .chronic-header {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
   border-bottom-color: rgba(245, 158, 11, 0.3);
@@ -491,22 +513,26 @@
   color: #fbbf24;
 }
 
+/* ── A4: Install prompt icon (gradiente claro → escuro) ── */
 [data-theme="dark"] .install-prompt-icon {
   background: linear-gradient(135deg, #0f2e23 0%, #1a3d32 100%);
   color: #34d399;
 }
 
+/* ── A5: Weather panel (gradiente quase-opaco) ── */
 [data-theme="dark"] .weather-panel {
   background: linear-gradient(135deg, rgba(15, 46, 35, 0.3), var(--panel));
   border-color: var(--line);
 }
 
+/* ── A6: Commercial/Admin pages (fundo claro hardcoded) ── */
 [data-theme="dark"] .commercial-page,
 [data-theme="dark"] .admin-page {
   background: #09090b;
   color: var(--ink);
 }
 
+/* ── A7: Admin/Customer buttons (rosa-salmão em verde) ── */
 [data-theme="dark"] .admin-token-row button,
 [data-theme="dark"] .customer-actions button {
   background: var(--green);
@@ -518,6 +544,7 @@
   background: var(--green-vivid);
 }
 
+/* ── M1: Empty state icons (8 gradientes claros) ── */
 [data-theme="dark"] .empty-state[data-type="milk"] .empty-state-icon {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
   color: #60a5fa;
@@ -551,6 +578,7 @@
   color: #c084fc;
 }
 
+/* ── M3: Alert pill critical (vermelho vibrante → suavizado) ── */
 [data-theme="dark"] .alert-pill.critical {
   background: rgba(220, 38, 38, 0.2);
   color: #fca5a5;
@@ -561,11 +589,13 @@
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%);
 }
 
+/* ── B3: Admin button color fix (rosa-salmão → branco) ── */
 [data-theme="dark"] .admin-token-row button,
 [data-theme="dark"] .customer-actions button {
   color: #ffffff;
 }
 
+/* ===== CORREÇÃO GLOBAL iOS/Safari — text-fill e autofill no modo claro ===== */
 input,
 select,
 textarea {
@@ -589,6 +619,7 @@ select:-webkit-autofill:focus {
   border-color: var(--line) !important;
 }
 
+/* Input type=date no iOS: força cor do texto */
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"],
@@ -674,6 +705,7 @@ textarea:disabled {
   font-weight: 900;
 }
 
+/* ===== LOGIN SCREEN ===== */
 .login-screen {
   display: flex;
   align-items: center;
@@ -1098,12 +1130,14 @@ textarea:disabled {
   line-height: 1.5;
 }
 
+/* Hide app when not logged in */
 .app-shell { display: none; }
 .app-shell.visible { display: block; }
 .login-screen.hidden { display: none; }
 .bottom-nav { display: none !important; }
 .app-shell.visible ~ .bottom-nav { display: flex !important; }
 
+/* ===== APP SHELL ===== */
 .app-shell {
   width: min(100%, 980px);
   margin: 0 auto;
@@ -1209,10 +1243,12 @@ h2 {
   color: var(--danger);
 }
 
+/* ===== UTILITÁRIO GENÉRICO ===== */
 .hidden {
   display: none !important;
 }
 
+/* ===== SUMMARY CARDS ===== */
 .summary-grid {
   display: grid;
   align-items: stretch;
@@ -1331,6 +1367,7 @@ h2 {
   font-weight: 600;
 }
 
+/* Summary header with icon */
 .summary-header {
   display: flex;
   align-items: center;
@@ -1348,6 +1385,7 @@ h2 {
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* Notification badge */
 .notification-badge {
   position: absolute;
   top: -4px;
@@ -1371,6 +1409,7 @@ h2 {
   50% { transform: scale(1.1); }
 }
 
+/* Sparkline */
 .sparkline-container {
   margin-top: 8px;
   height: 28px;
@@ -1390,6 +1429,7 @@ h2 {
   position: relative;
 }
 
+/* ===== BOTTOM NAVIGATION ===== */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1473,6 +1513,7 @@ h2 {
   transform: scale(0.9);
 }
 
+/* Nav More button */
 .nav-more {
   background: rgba(13, 150, 104, 0.08);
   border-radius: var(--radius);
@@ -1486,6 +1527,7 @@ h2 {
   background: rgba(13, 150, 104, 0.12);
 }
 
+/* Submenu */
 .nav-submenu {
   position: fixed;
   bottom: calc(72px + env(safe-area-inset-bottom));
@@ -1540,6 +1582,7 @@ h2 {
   height: 20px;
 }
 
+/* ===== SYNC PENDING BADGE ===== */
 .sync-pending-badge {
   display: inline-flex;
   align-items: center;
@@ -1566,6 +1609,7 @@ h2 {
   to   { transform: scale(1);   opacity: 1; }
 }
 
+/* ===== SW UPDATE BANNER ===== */
 .sw-update-banner {
   position: fixed;
   bottom: 0;
@@ -1626,6 +1670,7 @@ h2 {
   to   { transform: translateY(0);    opacity: 1; }
 }
 
+/* ===== VALIDAÇÃO INLINE & LOADING ===== */
 .field-error {
   display: block;
   color: var(--danger, #ef4444);
@@ -1670,6 +1715,7 @@ button:disabled::after {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== TOAST NOTIFICATIONS ===== */
 .toast-container {
   position: fixed;
   bottom: 84px;
@@ -1738,6 +1784,7 @@ button:disabled::after {
   display: block;
 }
 
+/* ===== FORMS ===== */
 .form-grid {
   display: grid;
   gap: var(--space-3);
@@ -1764,6 +1811,7 @@ button:disabled::after {
   gap: var(--space-1);
 }
 
+/* Floating label styles */
 .field:has(input:focus) label,
 .field:has(input:not(:placeholder-shown)) label,
 .field:has(select:focus) label,
@@ -1784,6 +1832,7 @@ button:disabled::after {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* When input has value, keep label floated */
 .field:has(input) label,
 .field:has(select) label,
 .field:has(textarea) label {
@@ -1906,6 +1955,7 @@ button[type="submit"]:active,
   color: var(--ink);
 }
 
+/* ===== LISTS ===== */
 .section-title {
   display: flex;
   align-items: center;
@@ -2044,11 +2094,16 @@ button[type="submit"]:active,
   text-align: center;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   FICHA MÉDICA — Redesign
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .medical-workspace {
   display: grid;
   gap: var(--space-5);
 }
 
+/* ── Cow Tabs (Horizontal scroll) ── */
 .medical-cow-tabs {
   display: flex;
   gap: var(--space-3);
@@ -2140,6 +2195,7 @@ button[type="submit"]:active,
   margin-top: 2px;
 }
 
+/* ── Medical Record Card ── */
 .medical-record-card {
   display: grid;
   gap: var(--space-4);
@@ -2192,6 +2248,7 @@ button[type="submit"]:active,
   white-space: nowrap;
 }
 
+/* ── Summary Cards ── */
 .medical-record-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2226,6 +2283,7 @@ button[type="submit"]:active,
   font-weight: 700;
 }
 
+/* ── Medical History (Timeline) ── */
 .medical-history {
   display: grid;
   gap: 0;
@@ -2310,6 +2368,7 @@ button[type="submit"]:active,
   white-space: nowrap;
 }
 
+/* ── Medical History Actions ── */
 .medical-history-item .item-actions {
   opacity: 0.5;
   transition: opacity var(--transition-fast);
@@ -2610,6 +2669,7 @@ button[type="submit"]:active,
   opacity: 0.6;
 }
 
+/* Critical alert styling */
 .alert-item.critical {
   border-left: 3px solid #dc2626;
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.06) 0%, transparent 100%);
@@ -2761,6 +2821,7 @@ button[type="submit"]:active,
   line-height: 1.25;
 }
 
+/* ===== APP INTERFACE REFRESH ===== */
 .app-shell {
   width: min(100%, 1120px);
 }
@@ -2908,6 +2969,7 @@ button[type="submit"]:active,
   gap: 10px;
 }
 
+/* ===== MODALS ===== */
 .edit-modal-overlay {
   position: fixed;
   inset: 0;
@@ -3006,6 +3068,7 @@ button[type="submit"]:active,
   margin-top: 18px;
 }
 
+/* ===== LEGAL PAGE ===== */
 .legal-page {
   background: #ffffff;
 }
@@ -3051,6 +3114,7 @@ button[type="submit"]:active,
   color: var(--muted);
 }
 
+/* ===== COMMERCIAL PAGE ===== */
 .commercial-page,
 .admin-page {
   background: #f7faf8;
@@ -3260,6 +3324,7 @@ button[type="submit"]:active,
   border-top: 1px solid var(--line);
 }
 
+/* ===== ADMIN PAGE ===== */
 .admin-container {
   width: min(100%, 1080px);
   margin: 0 auto;
@@ -3394,6 +3459,7 @@ button[type="submit"]:active,
   min-width: 150px;
 }
 
+/* ===== RESPONSIVE ===== */
 @media (max-width: 620px) { 
   .client-summary, .payment-panel, .modal-actions { grid-template-columns: 1fr; } 
   .medical-record-head { align-items: flex-start; flex-direction: column; }
@@ -3407,6 +3473,9 @@ button[type="submit"]:active,
   .onboarding-card { padding: 22px 18px; } 
 }
 
+/* =========================================================
+   CORREÇÃO GLOBAL: ESCONDER DADOS DE LEITE EM OUTRAS ABAS (DESKTOP E MOBILE)
+   ========================================================= */
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .summary-grid,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) .quick-actions,
 .app-shell[data-active-tab]:not([data-active-tab="milk"]) #milk {
@@ -3553,8 +3622,10 @@ button[type="submit"]:active,
   }
 }
 
+
+/* -- Mobile Polish & New Components -- */
 button {
-  min-height: 48px; 
+  min-height: 48px; /* Touch target size */
 }
 
 .action-btn {
@@ -3574,6 +3645,9 @@ button {
   border: 1px solid var(--line);
 }
 
+/* Animal Profile Modal — original base styles moved to enhanced section below */
+
+/* ===== MOBILE EXPERIENCE PASS ===== */
 @media (max-width: 720px) {
   .app-shell {
     padding: 10px 12px calc(104px + env(safe-area-inset-bottom));
@@ -3813,6 +3887,7 @@ button {
   }
 }
 
+/* ===== DARK MODE TOGGLE ===== */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -3854,6 +3929,7 @@ button {
   display: none;
 }
 
+/* ===== SKELETON LOADERS ===== */
 .skeleton {
   position: relative;
   overflow: hidden;
@@ -3918,6 +3994,7 @@ button {
   margin-bottom: 6px;
 }
 
+/* ===== EMPTY STATES ILUSTRADOS ===== */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -3965,6 +4042,7 @@ button {
   max-width: 280px;
 }
 
+/* ===== LISTA STAGGER ANIMATION ===== */
 .list {
   --stagger-delay: 40ms;
 }
@@ -3995,6 +4073,7 @@ button {
   }
 }
 
+/* ===== EMPTY STATE POR TIPO ===== */
 .empty-state[data-type="milk"] .empty-state-icon { background: linear-gradient(135deg, #dbeafe 0%, rgba(37, 99, 235, 0.12) 100%); color: #2563eb; }
 .empty-state[data-type="animal"] .empty-state-icon { background: linear-gradient(135deg, #fef3c7 0%, rgba(217, 119, 6, 0.12) 100%); color: #d97706; }
 .empty-state[data-type="breeding"] .empty-state-icon { background: linear-gradient(135deg, #fce7f3 0%, rgba(219, 39, 119, 0.12) 100%); color: #db2777; }
@@ -4004,6 +4083,7 @@ button {
 .empty-state[data-type="alert"] .empty-state-icon { background: linear-gradient(135deg, #fff7ed 0%, rgba(249, 115, 22, 0.12) 100%); color: #f97316; }
 .empty-state[data-type="medical"] .empty-state-icon { background: linear-gradient(135deg, #f3e8ff 0%, rgba(168, 85, 247, 0.12) 100%); color: #a855f7; }
 
+/* ===== MOBILE ADJUSTMENTS ===== */
 @media (max-width: 720px) {
   .skeleton-card { min-height: 86px; padding: 12px; }
   .skeleton-item { min-height: 60px; padding: 12px; }
@@ -4011,6 +4091,7 @@ button {
   .empty-state-icon { width: 48px; height: 48px; font-size: 1.3rem; margin-bottom: 10px; }
 }
 
+/* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -4032,6 +4113,7 @@ button {
   }
 }
 
+/* ===== MEDICATION SMART BADGE ===== */
 .med-info-badge {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
@@ -4069,6 +4151,7 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== UPCOMING REAPPLICATIONS PANEL ===== */
 .upcoming-reapply-panel {
   margin-bottom: var(--space-4);
 }
@@ -4192,6 +4275,7 @@ button {
   font-size: 0.85rem;
 }
 
+/* ===== PRODUCTION TREND PANEL ===== */
 .production-trend-panel {
   background: var(--panel);
   border: 1px solid var(--line-light);
@@ -4248,6 +4332,7 @@ button {
 .trend-change.stable { color: var(--ink-secondary); }
 .trend-change.neutral { color: var(--ink-tertiary, #9ca3af); }
 
+/* ===== CHRONIC TREATMENT PANEL ===== */
 .chronic-treatment-container {
   margin-bottom: var(--space-4);
 }
@@ -4355,6 +4440,10 @@ button {
   font-style: italic;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SMART DASHBOARD - KPIs e Analytics
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 .smart-dashboard-container {
   padding: 0 var(--space-4);
   margin-bottom: var(--space-4);
@@ -4395,6 +4484,7 @@ button {
   color: var(--ink-secondary);
 }
 
+/* Score da Fazenda */
 .farm-score-card {
   text-align: center;
   background: linear-gradient(135deg, var(--green-soft) 0%, var(--panel) 100%);
@@ -4445,6 +4535,7 @@ button {
   margin-top: var(--space-1);
 }
 
+/* KPI Grid */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -4471,6 +4562,7 @@ button {
   color: var(--ink);
 }
 
+/* Trend Badge */
 .trend-badge {
   display: inline-flex;
   align-items: center;
@@ -4497,6 +4589,7 @@ button {
   color: var(--muted);
 }
 
+/* Health Badge */
 .health-badge {
   display: inline-flex;
   align-items: center;
@@ -4518,6 +4611,7 @@ button {
   color: #d97706;
 }
 
+/* Anomaly Card */
 .anomaly-card {
   border-color: var(--amber);
 }
@@ -4563,6 +4657,7 @@ button {
   font-size: 1rem;
 }
 
+/* Recommendations Card */
 .recommendations-card {
   border-color: var(--blue);
 }
@@ -4633,6 +4728,10 @@ button {
   color: var(--muted);
   line-height: 1.4;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RECOMMENDATIONS PANEL
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .recommendation-card {
   background: var(--panel);
@@ -4760,6 +4859,10 @@ button {
   font-size: 0.9rem;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FORECAST PANELS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 .forecast-panel,
 .stock-forecast-panel,
 .medication-forecast-panel,
@@ -4833,6 +4936,7 @@ button {
   color: var(--muted);
 }
 
+/* Stock Forecast */
 .stock-forecast-list,
 .medication-forecast-list,
 .lactation-forecast-list {
@@ -4915,6 +5019,10 @@ button {
   font-style: italic;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 640px) {
   .smart-dashboard {
     grid-template-columns: 1fr;
@@ -4932,6 +5040,10 @@ button {
     font-size: 2.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ANIMAL PROFILE MODAL — Enhanced Styles
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .animal-card {
   cursor: pointer;
@@ -5044,6 +5156,10 @@ button {
   font-weight: 600;
   color: var(--ink);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CROP GROUPS — Lavoura Individual com Dias de Vida
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .crop-group-list {
   gap: var(--space-3);
@@ -5191,6 +5307,7 @@ button {
   color: var(--green-dark);
 }
 
+/* ── Dark mode overrides for crop groups ── */
 [data-theme="dark"] .crop-group-card {
   background: var(--panel);
   border-color: var(--line);
@@ -5218,6 +5335,7 @@ button {
   background: var(--green-soft) !important;
 }
 
+/* ── Responsive for crop groups ── */
 @media (max-width: 480px) {
   .crop-group-header {
     flex-wrap: wrap;
@@ -5233,186 +5351,9 @@ button {
   }
 }
 
-.crop-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.crop-stat-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--panel);
-  border: 1px solid var(--line-light);
-  border-radius: var(--radius-md);
-}
-
-.crop-stat-card strong {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.1;
-}
-
-.crop-stat-card small {
-  font-size: 0.72rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.crop-stat-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-}
-
-.crop-stat-warn {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: var(--amber-light);
-}
-
-.crop-stat-warn strong {
-  color: #b45309;
-}
-
-.crop-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
-
-.crop-filter-tabs {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.crop-filter-tab {
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-light);
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.crop-filter-tab:hover {
-  border-color: var(--green);
-  color: var(--green-dark);
-}
-
-.crop-filter-tab.active {
-  background: var(--green);
-  border-color: var(--green);
-  color: #fff;
-}
-
-.crop-add-toggle {
-  width: auto;
-  white-space: nowrap;
-}
-
-.crop-form-conditional {
-  display: contents;
-}
-
-.crop-form-conditional.hidden {
-  display: none;
-}
-
-.crop-form-conditional.hidden label,
-.crop-form-conditional.hidden input,
-.crop-form-conditional.hidden select,
-.crop-form-conditional.hidden textarea {
-  display: none;
-}
-
-.crop-attention-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: var(--amber-light);
-  color: #b45309;
-  border-radius: var(--radius-full);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.crop-group-card-stale {
-  border-color: rgba(245, 158, 11, 0.4);
-}
-
-.crop-tag-milho {
-  background: var(--amber-light);
-  color: #92400e;
-}
-
-.crop-tag-palma {
-  background: var(--green-light);
-  color: var(--green-dark);
-}
-
-.crop-tag-outra {
-  background: var(--blue-light);
-  color: #1d4ed8;
-}
-
-[data-theme="dark"] .crop-stat-card {
-  background: var(--panel);
-  border-color: var(--line);
-}
-
-[data-theme="dark"] .crop-stat-warn {
-  background: rgba(245, 158, 11, 0.12);
-}
-
-[data-theme="dark"] .crop-filter-tab {
-  background: var(--panel);
-  border-color: var(--line);
-}
-
-[data-theme="dark"] .crop-attention-badge {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-[data-theme="dark"] .crop-tag-milho {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-[data-theme="dark"] .crop-tag-outra {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-}
-
-@media (max-width: 720px) {
-  .crop-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .crop-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .crop-add-toggle {
-    width: 100%;
-    text-align: left;
-  }
-}
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DOSAGE SUGGESTION - Auto-dose by weight
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .dosage-suggestion {
   display: flex;
@@ -5459,6 +5400,7 @@ button {
   font-size: 0.8rem;
 }
 
+/* Animal weight display */
 .animal-weight {
   font-size: 0.75rem;
   color: var(--muted);
@@ -5469,6 +5411,7 @@ button {
   content: "⚖️ ";
 }
 
+/* ── Milk Date Filter ── */
 .milk-date-filter {
   display: flex;
   flex-direction: column;
@@ -5535,6 +5478,7 @@ button {
   box-shadow: 0 0 0 2px rgba(16, 169, 129, 0.2);
 }
 
+/* ── Milk Filter Summary ── */
 .milk-filter-summary {
   display: flex;
   justify-content: space-between;
@@ -5559,6 +5503,7 @@ button {
   font-weight: 500;
 }
 
+/* ── Accordion Sections ── */
 .accordion-toggle {
   cursor: pointer;
   user-select: none;

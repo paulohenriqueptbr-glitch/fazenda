@@ -1,9 +1,19 @@
+// ─── Previsões Inteligentes ───────────────────────────────────────────────────
+// Algoritmos de previsão para estoque, medicação e custos.
 
 import { state, todayIso, addDaysIso, monthKey, parseIsoDate } from "./state.js";
 import { diffDays } from "./alerts.js";
 import { mean, linearRegression, weightedMovingAverage, cv } from "./analytics.js";
 import { getMedicationInfo } from "./medication-catalog.js";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREVISÃO DE ESTOQUE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Analisa itens de estoque e prevê quando vão acabar.
+ * @returns {Array} Itens com previsão de duração
+ */
 export const forecastStock = () => {
   const today = todayIso();
   const stockItems = state.stockItems || [];
@@ -14,6 +24,7 @@ export const forecastStock = () => {
       ? null
       : Number(item.min_quantity);
 
+    // Calcular consumo baseado em medicações e lavoura
     const consumption = calculateItemConsumption(item);
 
     let daysUntilEmpty = null;
@@ -27,6 +38,7 @@ export const forecastStock = () => {
       }
     }
 
+    // Recomendações
     if (qty === 0) {
       recommendation = { type: "critical", message: "Item em estoque zero — repor urgentemente" };
     } else if (daysUntilMinimum !== null && daysUntilMinimum <= 3) {
@@ -47,6 +59,7 @@ export const forecastStock = () => {
       recommendation,
     };
   }).sort((a, b) => {
+    // Priorizar itens com recomendação crítica
     if (a.recommendation?.type === "critical" && b.recommendation?.type !== "critical") return -1;
     if (b.recommendation?.type === "critical" && a.recommendation?.type !== "critical") return 1;
     if (a.daysUntilMinimum !== null && b.daysUntilMinimum !== null) return a.daysUntilMinimum - b.daysUntilMinimum;
@@ -55,14 +68,19 @@ export const forecastStock = () => {
   });
 };
 
+/**
+ * Calcula a taxa de consumo de um item baseado em dados históricos.
+ */
 const calculateItemConsumption = (item) => {
   const today = todayIso();
   const itemName = (item.item_name || "").toLowerCase();
   const category = (item.category || "").toLowerCase();
 
+  // Média de consumo baseada em medicações
   let totalUsed = 0;
   let periodDays = 0;
 
+  // Verificar medicações que usam este item
   if (category === "medicamento" || category.includes("medic")) {
     const meds = state.medication.filter((m) => {
       const medName = (m.medication_name || "").toLowerCase();
@@ -82,6 +100,7 @@ const calculateItemConsumption = (item) => {
     }
   }
 
+  // Base: 1 unidade a cada 30 dias se não houver dados
   if (totalUsed === 0) {
     totalUsed = 1;
     periodDays = 30;
@@ -98,6 +117,13 @@ const calculateItemConsumption = (item) => {
   };
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREVISÃO DE MEDICAÇÃO
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Prevê próximas necessidades de medicação baseado no catálogo e histórico.
+ */
 export const forecastMedication = () => {
   const today = todayIso();
   const medications = state.medication || [];
@@ -129,10 +155,18 @@ export const forecastMedication = () => {
   return forecast.sort((a, b) => a.daysUntil - b.daysUntil);
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREVISÃO DE CUSTOS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Estima custos mensais baseado no padrão de uso de insumos.
+ */
 export const forecastCosts = () => {
   const stockItems = state.stockItems || [];
   const monthKey_ = monthKey();
 
+  // Calcular custo estimado baseado no consumo mensal
   let estimatedMonthlyCost = 0;
   const itemCosts = [];
 
@@ -142,6 +176,7 @@ export const forecastCosts = () => {
     const monthlyUsage = consumption.monthlyRate;
 
     if (monthlyUsage > 0) {
+      // Estimar custo (sem preço unitário, usar estimativa genérica)
       estimatedMonthlyCost += monthlyUsage;
       itemCosts.push({
         name: item.item_name,
@@ -152,6 +187,7 @@ export const forecastCosts = () => {
     }
   });
 
+  // Receita estimada
   const price = Number(state.priceQuote || 0);
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey_));
   const monthLiters = monthRecords.reduce((s, r) => s + Number(r.liters || 0), 0);
@@ -165,6 +201,15 @@ export const forecastCosts = () => {
   };
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREVISÃO DE PRODUÇÃO FUTURA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Previsão avançada de produção com intervalos de confiança.
+ * @param {number} days - Dias para prever
+ * @returns {Array} Previsões com高低限
+ */
 export const forecastProductionAdvanced = (days = 30) => {
   const today = todayIso();
   const milkData = [...state.milk]
@@ -177,6 +222,7 @@ export const forecastProductionAdvanced = (days = 30) => {
   const regPoints = milkData.map((r, i) => [i, Number(r.liters || 0)]);
   const regression = linearRegression(regPoints);
 
+  // Estimar intervalo de confiança baseado no erro histórico
   const predictions = regression.predict;
   const errors = regPoints.map(([x, y]) => Math.abs(predictions(x) - y));
   const avgError = mean(errors);
@@ -189,7 +235,8 @@ export const forecastProductionAdvanced = (days = 30) => {
     const x = milkData.length + i - 1;
     const predicted = Math.max(0, regression.predict(x));
 
-    const uncertaintyFactor = 1 + (i / days) * 0.5;
+    // Intervalos de confiança (expansão gradual)
+    const uncertaintyFactor = 1 + (i / days) * 0.5; // Mais incerteza no futuro
 
     result.push({
       date: futureDate,
@@ -203,6 +250,13 @@ export const forecastProductionAdvanced = (days = 30) => {
   return result;
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREVISÃO DE LACTAÇÃO
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Analisa lactações ativas e prevê tendências.
+ */
 export const forecastLactation = () => {
   const today = todayIso();
   const lactations = state.lactations || [];
@@ -213,6 +267,8 @@ export const forecastLactation = () => {
     const daysActive = diffDays(l.start_date, today) || 0;
     const cow = state.animals.find((a) => String(a.id) === String(l.cow_id));
 
+    // Estimativa de produtividade baseada em dias de lactação
+    // Curva típica: pico em 30-60 dias, depois declínio gradual
     let productivityPhase = "established";
     let expectedTrend = "stable";
 
@@ -230,6 +286,7 @@ export const forecastLactation = () => {
       expectedTrend = "down";
     }
 
+    // Alerta se lactação muito longa (>300 dias)
     const isLongLactation = daysActive > 300;
 
     return {

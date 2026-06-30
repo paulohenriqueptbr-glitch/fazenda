@@ -14,25 +14,15 @@ import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterv
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
-  openAnimalProfile, renderCropGroups, setCropGroupFilter, updateHealthBadges,
+  openAnimalProfile,
 } from "./render.js";
 import { log, warn, error } from "./logger.js";
 import { initPushNotifications, checkPushAlerts } from "./push.js";
 import { maybeAutoBackup, exportDataBackup } from "./backup.js";
 import { setupInstallPrompt, setupInstallListeners } from "./install.js";
 
+// ─── Onboarding ─────────────────────────────────────────────────────────────
 const hideOnboarding = () => { if (el.onboardingModal) el.onboardingModal.classList.add("hidden"); };
-
-const syncCropConditionalFields = () => {
-  const select = $("#cropEventType");
-  if (!select) return;
-  const value = select.value;
-  document.querySelectorAll(".crop-form-conditional").forEach((block) => {
-    const allowed = (block.dataset.cropFields || "").split(",").map((s) => s.trim());
-    block.classList.toggle("hidden", !allowed.includes(value));
-  });
-};
-
 
 const maybeShowOnboarding = () => {
   if (!el.onboardingModal || !currentUserId) return;
@@ -80,6 +70,7 @@ const completeOnboarding = async (skip = false) => {
   showToast(skip ? "Onboarding pulado. Você pode configurar depois." : "Primeira configuração concluída!");
 };
 
+// ─── Load data ──────────────────────────────────────────────────────────────
 const loadData = async () => {
   if (!hasSupabase) {
     loadLocal();
@@ -104,12 +95,14 @@ const loadData = async () => {
   updateSyncBadge();
 };
 
+// ─── Init app ───────────────────────────────────────────────────────────────
 let appInitialized = false;
 
 const initApp = () => {
   if (appInitialized) { loadData(); return; }
   appInitialized = true;
 
+  // Tab listeners
   if (!document.body._tabListenersAttached) {
     document.body._tabListenersAttached = true;
     const activateTab = (tabId) => {
@@ -120,11 +113,13 @@ const initApp = () => {
       if (panel) panel.classList.add("active");
       if (el.appShell) el.appShell.dataset.activeTab = tabId;
       window.scrollTo({ top: el.appShell?.offsetTop || 0, behavior: "smooth" });
+      // Fechar submenu ao selecionar item
       const submenu = document.getElementById("navSubmenu");
       if (submenu) submenu.classList.add("hidden");
     };
     document.addEventListener("click", (e) => { const btn = e.target.closest("[data-tab]"); if (btn) activateTab(btn.dataset.tab); });
     
+    // Submenu "Mais" toggle
     const navMoreBtn = document.getElementById("navMoreBtn");
     const navSubmenu = document.getElementById("navSubmenu");
     if (navMoreBtn && navSubmenu) {
@@ -132,6 +127,7 @@ const initApp = () => {
         e.stopPropagation();
         navSubmenu.classList.toggle("hidden");
       });
+      // Fechar submenu ao clicar fora
       document.addEventListener("click", (e) => {
         if (!navSubmenu.contains(e.target) && e.target !== navMoreBtn) {
           navSubmenu.classList.add("hidden");
@@ -145,6 +141,7 @@ const initApp = () => {
     }
   }
 
+  // Record actions
   if (!document.body._recordActionsAttached) {
     document.body._recordActionsAttached = true;
     document.addEventListener("click", async (event) => {
@@ -157,6 +154,7 @@ const initApp = () => {
           if (!record) return;
           const data = await showEditModal(type, record);
           if (!data) return;
+          // validation per type
           if (type === "milk") { const liters = validateNumber(data.liters, 0, 1000); if (liters === null) throw new Error("Litros inválido"); await updateRecord(type, id, { liters }); }
           else if (type === "animal") {
             if (!data.type?.trim()) throw new Error("Tipo inválido");
@@ -168,7 +166,7 @@ const initApp = () => {
           else if (type === "lactation") { const dl = validateNumber(data.daily_liters, 0, 500); if (dl === null) throw new Error("Litros/dia inválido"); if (data.end_date && !isValidDateRange(record.start_date, data.end_date)) throw new Error("Data de fim inválida"); await updateRecord(type, id, { daily_liters: dl, end_date: data.end_date || null }); }
           else if (type === "breeding") { if (!isValidDate(data.expected_calving_date)) throw new Error("Data inválida"); await updateRecord(type, id, { expected_calving_date: data.expected_calving_date }); }
           else if (type === "medication") { if (!data.medication_name?.trim()) throw new Error("Medicamento inválido"); if (!isValidDate(data.administration_date)) throw new Error("Data inválida"); await updateRecord(type, id, { medication_name: data.medication_name.trim(), dosage: (data.dosage || "").trim(), administration_date: data.administration_date }); }
-          else if (type === "crop") { await updateRecord(type, id, { crop_group: (data.crop_group || "Milho/Sorgo").trim(), plot_name: (data.plot_name || "").trim(), crop_name: (data.crop_name || "").trim(), event_type: (data.event_type || "").trim(), event_date: data.event_date, product: (data.product || "").trim().substring(0, 120) || null, dosage: (data.dosage || "").trim().substring(0, 80) || null, area_tasks: data.area_tasks ? validateNumber(data.area_tasks, 0, 100000) : null, notes: (data.notes || "").trim().substring(0, 500) || null }); }
+          else if (type === "crop") { await updateRecord(type, id, { plot_name: (data.plot_name || "").trim(), crop_name: (data.crop_name || "").trim(), event_type: (data.event_type || "").trim(), event_date: data.event_date, product: (data.product || "").trim().substring(0, 120) || null, dosage: (data.dosage || "").trim().substring(0, 80) || null, area_tasks: data.area_tasks ? validateNumber(data.area_tasks, 0, 100000) : null, notes: (data.notes || "").trim().substring(0, 500) || null }); }
           else if (type === "stock") { await updateRecord(type, id, data); }
           else if (type === "reminder") { await updateRecord(type, id, { ...data, done: Boolean(record.done), completed_at: record.completed_at || null }); }
           populateCowSelects(); render(); showToast("Registro atualizado com sucesso!");
@@ -181,6 +179,7 @@ const initApp = () => {
     });
   }
 
+  // Medical cow tabs
   if (!document.body._medicalCowTabsAttached) {
     document.body._medicalCowTabsAttached = true;
     document.addEventListener("click", (event) => {
@@ -193,16 +192,19 @@ const initApp = () => {
     });
   }
 
+  // Animal card click → open profile modal
   if (!document.body._animalCardClickAttached) {
     document.body._animalCardClickAttached = true;
     document.addEventListener("click", (event) => {
       const card = event.target.closest(".animal-card[data-animal-id]");
       if (!card) return;
+      // Don't open profile if clicking action buttons
       if (event.target.closest(".item-actions")) return;
       openAnimalProfile(card.dataset.animalId);
     });
   }
 
+  // Crop group expand/collapse toggle
   if (!document.body._cropGroupToggleAttached) {
     document.body._cropGroupToggleAttached = true;
     document.addEventListener("click", (event) => {
@@ -218,6 +220,7 @@ const initApp = () => {
       const chevron = card.querySelector(".crop-group-chevron");
       if (chevron) chevron.style.transform = isHidden ? "rotate(180deg)" : "";
     });
+    // Also handle keyboard activation
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       const header = event.target.closest(".crop-group-header");
@@ -227,24 +230,7 @@ const initApp = () => {
     });
   }
 
-  if (el.cropGroupFilter && !el.cropGroupFilter._attached) {
-    el.cropGroupFilter._attached = true;
-    el.cropGroupFilter.addEventListener("click", (event) => {
-      const tab = event.target.closest(".crop-filter-tab");
-      if (!tab) return;
-      el.cropGroupFilter.querySelectorAll(".crop-filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
-      setCropGroupFilter(tab.dataset.cropFilter);
-      renderCropGroups();
-    });
-  }
-
-  const cropEventTypeSelect = $("#cropEventType");
-  if (cropEventTypeSelect && !cropEventTypeSelect._conditionalAttached) {
-    cropEventTypeSelect._conditionalAttached = true;
-    cropEventTypeSelect.addEventListener("change", syncCropConditionalFields);
-    syncCropConditionalFields();
-  }
-
+  // Insemination auto-fill
   const inseminationInput = $("#inseminationDate");
   const calvingInput = $("#expectedCalving");
   if (inseminationInput && calvingInput && !inseminationInput._listenerAttached) {
@@ -252,16 +238,19 @@ const initApp = () => {
     inseminationInput.addEventListener("change", () => { if (inseminationInput.value) calvingInput.value = addDaysIso(inseminationInput.value, 285); });
   }
 
+  // Med cow select — auto-suggest dosage based on weight
   const medCowInput = $("#medCowId");
   if (medCowInput && !medCowInput._listenerAttached) {
     medCowInput._listenerAttached = true;
     medCowInput.addEventListener("change", () => {
       setSelectedMedicationCowId(medCowInput.value);
       renderMedication(selectedMedicationCowId);
+      // Auto-suggest dosage based on cow weight
       updateDosageSuggestion();
     });
   }
 
+  // Med name input — recalculate dosage when medication name changes
   const medNameInput = $("#medName");
   if (medNameInput && !medNameInput._dosageListenerAttached) {
     medNameInput._dosageListenerAttached = true;
@@ -269,6 +258,7 @@ const initApp = () => {
     medNameInput.addEventListener("change", () => { updateDosageSuggestion(); });
   }
 
+  // Update dosage suggestion based on selected cow's weight
   const updateDosageSuggestion = () => {
     const cowId = $("#medCowId")?.value;
     const medName = $("#medName")?.value;
@@ -281,6 +271,7 @@ const initApp = () => {
       return;
     }
 
+    // Find cow's weight
     const cow = state.animals.find((a) => String(a.id) === String(cowId));
     const weight = cow?.weight ? parseFloat(cow.weight) : null;
 
@@ -308,6 +299,7 @@ const initApp = () => {
     }
   };
 
+  // ─── Form submissions ─────────────────────────────────────────────────────
   el.milkForm.addEventListener("submit", withButtonLoading(el.milkForm, async (event) => {
     event.preventDefault();
     try {
@@ -329,6 +321,7 @@ const initApp = () => {
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar produção", "error"); }
   }, "Salvando..."));
 
+  // ─── Animal form modal ────────────────────────────────────────────────────
   const openAnimalFormBtn = $("#openAnimalFormBtn");
   const animalFormModal = $("#animalFormModal");
   const animalFormModalForm = $("#animalFormModalForm");
@@ -390,6 +383,7 @@ const initApp = () => {
     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar reprodução", "error"); }
   }, "Registrando..."));
 
+  // ─── Medication Autocomplete + Smart Badge ────────────────────────────────────
   const setupMedicationAutocomplete = () => {
     const medNameInput = $("#medName");
     const medInfoBadge = $("#medInfoBadge");
@@ -398,6 +392,7 @@ const initApp = () => {
     const medDatalist = $("#medNameOptions");
     if (!medNameInput || !medDatalist) return;
 
+    // Build datalist from catalog
     const allNames = new Set();
     BOVINE_MEDICATIONS.forEach((med) => {
       med.patterns.forEach((p) => allNames.add(p));
@@ -428,9 +423,11 @@ const initApp = () => {
         `;
         medInfoBadge.style.display = "block";
 
+        // Auto-fill dosage if empty
         if (medDosageInput && !medDosageInput.value.trim()) {
           medDosageInput.value = info.dosage;
         }
+        // Auto-fill reapply interval if empty
         if (medReapplyInput && !medReapplyInput.value) {
           medReapplyInput.value = info.days;
         }
@@ -480,8 +477,8 @@ const initApp = () => {
         if (!isValidDate(eventDate)) throw new Error("Data inválida");
         if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
         if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
-        await insertCropEvent({ crop_group: $("#cropGroup").value, plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
-        el.cropForm.reset(); $("#cropDate").value = todayIso(); syncCropConditionalFields(); render(); showToast("Manejo da lavoura salvo!");
+        await insertCropEvent({ plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
+        el.cropForm.reset(); $("#cropDate").value = todayIso(); render(); showToast("Manejo da lavoura salvo!");
       } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar manejo", "error"); }
     }, "Salvando..."));
   }
@@ -540,6 +537,7 @@ const initApp = () => {
   if (el.onboardingForm && !el.onboardingForm._listenerAttached) { el.onboardingForm._listenerAttached = true; el.onboardingForm.addEventListener("submit", async (e) => { e.preventDefault(); try { await completeOnboarding(false); } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao concluir configuração", "error"); } }); }
   if (el.skipOnboardingButton && !el.skipOnboardingButton._listenerAttached) { el.skipOnboardingButton._listenerAttached = true; el.skipOnboardingButton.addEventListener("click", async () => { try { await completeOnboarding(true); } catch (err) { showToast(err.message || "Não foi possível pular agora", "error"); } }); }
   
+  // ─── Close modal buttons (data-close-modal) ──────────────────────────────
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
     if (btn._closeModalAttached) return;
     btn._closeModalAttached = true;
@@ -563,11 +561,13 @@ const initApp = () => {
   setupPeriodFilter();
   setupMilkFilter();
   
+  // ─── Accordion sections ─────────────────────────────────────────────────
   document.querySelectorAll(".accordion-toggle").forEach((toggle) => {
     const targetId = toggle.dataset.target;
     const content = document.getElementById(targetId);
     if (!content) return;
     
+    // Respect initial state from HTML
     const startsCollapsed = content.classList.contains("collapsed");
     toggle.setAttribute("aria-expanded", String(!startsCollapsed));
     
@@ -583,71 +583,12 @@ const initApp = () => {
     });
   });
 
-  const quickMedBtn = $("#quickMedBtn");
-  const medFormWrap = $("#medFormWrap");
-  const closeMedForm = $("#closeMedForm");
-
-  if (quickMedBtn && medFormWrap && !quickMedBtn._listenerAttached) {
-    quickMedBtn._listenerAttached = true;
-    quickMedBtn.addEventListener("click", () => {
-      medFormWrap.classList.toggle("hidden");
-      if (!medFormWrap.classList.contains("hidden")) {
-        medFormWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-    });
-  }
-
-  if (closeMedForm && medFormWrap && !closeMedForm._listenerAttached) {
-    closeMedForm._listenerAttached = true;
-    closeMedForm.addEventListener("click", () => {
-      medFormWrap.classList.add("hidden");
-    });
-  }
-
-  document.querySelectorAll(".health-section-header[data-toggle]").forEach((header) => {
-    if (header._listenerAttached) return;
-    header._listenerAttached = true;
-    const targetId = header.dataset.toggle;
-    const content = document.getElementById(targetId);
-    if (!content) return;
-    
-    const toggleSection = () => {
-      const isExpanded = header.getAttribute("aria-expanded") === "true";
-      header.setAttribute("aria-expanded", String(!isExpanded));
-      content.classList.toggle("collapsed", isExpanded);
-      const arrow = header.querySelector(".health-section-arrow");
-      if (arrow) arrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
-    };
-    
-    header.setAttribute("aria-expanded", "false");
-    content.classList.add("collapsed");
-    
-    header.addEventListener("click", toggleSection);
-    header.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSection(); }
-    });
-  });
-
-  document.querySelectorAll("[data-scroll-to]").forEach((btn) => {
-    if (btn._listenerAttached) return;
-    btn._listenerAttached = true;
-    btn.addEventListener("click", () => {
-      const targetId = btn.dataset.scrollTo;
-      const target = document.getElementById(targetId);
-      if (target) {
-        const header = target.querySelector(".health-section-header");
-        if (header && header.getAttribute("aria-expanded") === "false") {
-          header.click();
-        }
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
+  // ─── Dark mode toggle ───────────────────────────────────────────────────
   const themeToggleBtn = $("#themeToggle");
   if (themeToggleBtn && !themeToggleBtn._listenerAttached) {
     themeToggleBtn._listenerAttached = true;
     const initialTheme = getPreferredTheme();
+    // Garante que o atributo data-theme está correto (redundância de segurança)
     document.documentElement.setAttribute("data-theme", initialTheme);
     updateThemeToggleIcon(initialTheme);
     themeToggleBtn.addEventListener("click", () => {
@@ -656,12 +597,14 @@ const initApp = () => {
     });
   }
 
+  // ─── Install prompt ───────────────────────────────────────────────────
   setupInstallPrompt();
   setupInstallListeners();
 
   loadData();
 };
 
+// ─── Setup milk date filter ──────────────────────────────────────────────────
 const setupMilkFilter = () => {
   const filterButtons = document.querySelectorAll("[data-milk-period]");
   filterButtons.forEach((btn) => {
@@ -696,6 +639,7 @@ const setupMilkFilter = () => {
   }
 };
 
+// ─── Setup inline validations ───────────────────────────────────────────────
 const setupInlineValidations = () => {
   addInlineValidation($("#liters"), (v) => { const n = Number.parseFloat(v); if (v === "" || v === null) return "Informe os litros"; if (isNaN(n) || n < 0 || n > 1000) return "Valor deve ser entre 0 e 1000"; return null; });
   addInlineValidation($("#milkDate"), (v) => { if (!isValidDate(v)) return "Data inválida"; if (!isNotFutureDate(v)) return "Não pode ser data futura"; return null; });
@@ -708,6 +652,7 @@ const setupInlineValidations = () => {
   addInlineValidation($("#priceQuoteInput"), (v) => { const n = Number.parseFloat(v); if (isNaN(n) || n < 0 || n > 100) return "Valor deve ser entre 0 e 100"; return null; });
 };
 
+// ─── Support links ──────────────────────────────────────────────────────────
 const setupSupportLinks = () => {
   const contactUrl = (message, subject = "Suporte Terrasyn") => {
     const encoded = encodeURIComponent(message);
@@ -725,6 +670,7 @@ const setupSupportLinks = () => {
   });
 };
 
+// ─── Service worker ─────────────────────────────────────────────────────────
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
@@ -751,9 +697,11 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// ─── Global events ──────────────────────────────────────────────────────────
 window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)).catch(() => {}); } });
 window.addEventListener("offline", () => { const q = getSyncQueue(); setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error"); updateSyncBadge(); });
 
+// ─── Error boundary global ──────────────────────────────────────────────────
 window.addEventListener("error", (event) => {
   error("Erro global não tratado:", event.error);
   event.preventDefault();
@@ -763,6 +711,7 @@ window.addEventListener("unhandledrejection", (event) => {
   error("Promise rejeitada não tratada:", event.reason);
 });
 
+// ─── Boot ───────────────────────────────────────────────────────────────────
 setupSupportLinks();
 setupAuthListeners(initApp);
 setupAuthStateListener(initApp);

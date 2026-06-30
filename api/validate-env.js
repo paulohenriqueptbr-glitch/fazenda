@@ -1,3 +1,7 @@
+// ─── Validação de variáveis de ambiente ──────────────────────────────────────
+// Valida se todas as env vars necessárias estão configuradas antes de
+// processar requisições. Evita erros silenciosos em produção.
+
 const ENV_SCHEMA = {
   SUPABASE_URL: {
     required: true,
@@ -10,7 +14,7 @@ const ENV_SCHEMA = {
     message: "SUPABASE_ANON_KEY deve ter pelo menos 20 caracteres",
   },
   SUPABASE_SERVICE_ROLE_KEY: {
-    required: false,
+    required: false, // Só necessária em endpoints server-side
     minLength: 20,
     message: "SUPABASE_SERVICE_ROLE_KEY deve ter pelo menos 20 caracteres",
   },
@@ -26,6 +30,11 @@ const ENV_SCHEMA = {
   },
 };
 
+/**
+ * Valida variáveis de ambiente
+ * @param {string[]} requiredKeys - Chaves obrigatórias para este endpoint
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
 export const validateEnv = (requiredKeys = []) => {
   const errors = [];
 
@@ -52,6 +61,13 @@ export const validateEnv = (requiredKeys = []) => {
   return { valid: errors.length === 0, errors };
 };
 
+/**
+ * Valida e retorna erro 400 se inválido
+ * @param {object} request - Request object
+ * @param {object} response - Response object
+ * @param {string[]} requiredKeys - Chaves obrigatórias
+ * @returns {boolean} - true se válido, false se já respondeu com erro
+ */
 export const validateEnvOrError = (request, response, requiredKeys) => {
   const { valid, errors } = validateEnv(requiredKeys);
 

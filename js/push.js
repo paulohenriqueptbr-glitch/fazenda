@@ -1,3 +1,6 @@
+// ─── Push Notifications ─────────────────────────────────────────────────────
+// Módulo responsável por notificações push e alertas do service worker
+
 import {
   config, hasSupabase, db, state, todayIso, addDaysIso, userStorageKey,
 } from "./state.js";

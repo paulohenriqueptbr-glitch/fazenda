@@ -5,15 +5,17 @@ import { showToast } from "./ui.js";
 import { requireSession } from "./auth.js";
 import { warn, error } from "./logger.js";
 
+// ─── Constants ──────────────────────────────────────────────────────────────
 const SYNC_QUEUE_KEY = "controle-fazenda-sync-queue";
 const DEAD_LETTER_QUEUE_KEY = "controle-fazenda-dead-letter-queue";
 const MAX_SYNC_QUEUE_SIZE = 500;
 const MAX_SYNC_ITEM_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const DEAD_LETTER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const DEAD_LETTER_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MAX_RETRY_COUNT = 5;
 const VALID_MUTATION_TYPES = new Set(["insert", "update", "delete", "upsert"]);
-let _isSyncing = false;
+let _isSyncing = false; // Mutex to prevent re-entrancy
 
+/** @type {Object<string, { stateKey: string, table: string }>} */
 export const collections = {
   milk: { stateKey: "milk", table: "milk_records" },
   animal: { stateKey: "animals", table: "animals" },
@@ -25,6 +27,11 @@ export const collections = {
   reminder: { stateKey: "reminders", table: "reminders" },
 };
 
+// ─── Sync Queue ─────────────────────────────────────────────────────────────
+/**
+ * Retrieves the offline sync queue from localStorage.
+ * @returns {Array<{ id: string, type: string, action: string, payload: Object|null, recordId: string|null, timestamp: number, retryCount: number }>}
+ */
 export const getSyncQueue = () => {
   try {
     const queue = JSON.parse(localStorage.getItem(userStorageKey(SYNC_QUEUE_KEY))) || [];
@@ -43,6 +50,14 @@ const saveSyncQueue = (queue) => {
   }
 };
 
+/**
+ * Adds a mutation to the offline sync queue for later replay.
+ * @param {string} type - Collection key (e.g. "milk", "animal", "crop")
+ * @param {string} action - Mutation type: "insert", "update", "delete", or "upsert"
+ * @param {Object|null} payload - Record data to sync (null for deletes)
+ * @param {string|null} [recordId=null] - Record ID for update/delete operations
+ * @returns {void}
+ */
 export const enqueueMutation = (type, action, payload, recordId = null) => {
   if (!hasSupabase) return;
   if (!collections[type]) { warn(`enqueueMutation: tipo inválido "${type}" — ignorado`); return; }
@@ -51,6 +66,11 @@ export const enqueueMutation = (type, action, payload, recordId = null) => {
   saveSyncQueue([...queue, { id: localId(), type, action, payload, recordId, timestamp: Date.now(), retryCount: 0 }]);
 };
 
+// ─── Dead Letter Queue ──────────────────────────────────────────────────────
+/**
+ * Retrieves the dead letter queue (failed items requiring investigation).
+ * @returns {Array<Object>}
+ */
 export const getDeadLetterQueue = () => {
   try {
     const queue = JSON.parse(localStorage.getItem(userStorageKey(DEAD_LETTER_QUEUE_KEY))) || [];
@@ -70,9 +90,15 @@ const saveDeadLetterQueue = (queue) => {
   }
 };
 
+/**
+ * Sanitizes error messages to avoid leaking Supabase schema details.
+ * @param {Object} err - Error object from Supabase
+ * @returns {{ message: string, code: string|null }}
+ */
 const sanitizeErrorForLog = (err) => {
   const code = err?.code || null;
   const raw = String(err?.message || "").toLowerCase();
+  // Generic message based on classification — no schema details
   if (raw.includes("permission") || raw.includes("unauthorized") || raw.includes("forbidden") || code === "42501" || code === "42000") {
     return { message: "Permissão negada pelo servidor", code };
   }
@@ -91,6 +117,7 @@ const sanitizeErrorForLog = (err) => {
   return { message: "Erro do servidor", code };
 };
 
+// ─── Error Classification ───────────────────────────────────────────────────
 const classifySyncError = (err) => {
   if (!err) return "unknown";
   
@@ -98,6 +125,7 @@ const classifySyncError = (err) => {
   const code = err.code || "";
   const status = err.status || err.statusCode || 0;
 
+  // Network errors - should be retried
   if (
     message.includes("network") ||
     message.includes("fetch") ||
@@ -107,47 +135,55 @@ const classifySyncError = (err) => {
     message.includes("enotfound") ||
     code === "NETWORK_ERROR" ||
     status === 0 ||
-    status === 408 ||
-    status === 429 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
+    status === 408 ||  // Request Timeout
+    status === 429 ||  // Too Many Requests (rate limit - temporary)
+    status === 502 ||  // Bad Gateway
+    status === 503 ||  // Service Unavailable
+    status === 504     // Gateway Timeout
   ) {
     return "network";
   }
 
+  // Permission errors - need investigation, remove from queue
   if (
     message.includes("permission") ||
     message.includes("unauthorized") ||
     message.includes("forbidden") ||
-    code === "42501" ||
-    code === "42000" ||
-    status === 401 ||
-    status === 403
+    code === "42501" ||  // PostgreSQL insufficient privilege
+    code === "42000" ||  // Access rule violation (Supabase RLS)
+    status === 401 ||    // Unauthorized
+    status === 403       // Forbidden
   ) {
     return "permission";
   }
 
+  // Validation errors - discard, data is invalid
   if (
     message.includes("invalid") ||
     message.includes("violates") ||
     message.includes("constraint") ||
     message.includes("required") ||
     message.includes("format") ||
-    code === "23502" ||
-    code === "23503" ||
-    code === "23505" ||
-    code === "23514" ||
-    code === "22P02" ||
-    status === 400 ||
-    status === 422
+    code === "23502" ||  // NOT NULL violation
+    code === "23503" ||  // Foreign key violation
+    code === "23505" ||  // Unique violation
+    code === "23514" ||  // Check violation
+    code === "22P02" ||  // Invalid text representation
+    status === 400 ||    // Bad Request
+    status === 422       // Unprocessable Entity
   ) {
     return "validation";
   }
 
+  // Unknown errors - treat as network (retry)
   return "network";
 };
 
+// ─── Sync Badge ─────────────────────────────────────────────────────────────
+/**
+ * Updates or removes the sync pending badge in the UI to reflect queue size.
+ * @returns {void}
+ */
 export const updateSyncBadge = () => {
   const q = getSyncQueue();
   const count = q.length;
@@ -163,11 +199,19 @@ export const updateSyncBadge = () => {
   badge.title = `${count} registro${count > 1 ? "s" : ""} aguardando sincronização`;
 };
 
+// ─── Status indicator ───────────────────────────────────────────────────────
+/**
+ * Updates the sync status indicator text and kind in the UI.
+ * @param {string} message - Status message to display
+ * @param {string} [kind="local"] - Status kind: "local", "online", "syncing", or "error"
+ * @returns {void}
+ */
 export const setStatus = (message, kind = "local") => {
   const el = document.getElementById("syncStatus");
   if (el) { el.textContent = message; el.dataset.kind = kind; }
 };
 
+// ─── Validate sync payload ──────────────────────────────────────────────────
 const validateSyncPayload = (type, action, payload) => {
   if (action === "delete") return true;
   if (!payload || typeof payload !== "object") return false;
@@ -185,15 +229,18 @@ const validateSyncPayload = (type, action, payload) => {
   if (!allowed) return false;
   const keys = Object.keys(payload);
   if (!keys.every((k) => allowed.includes(k))) return false;
+  // Type validation for known numeric fields
   if (type === "milk" && payload.liters !== undefined && (typeof payload.liters !== "number" || payload.liters < 0)) return false;
   if (type === "lactation" && payload.daily_liters !== undefined && (typeof payload.daily_liters !== "number" || payload.daily_liters < 0)) return false;
   if (type === "animal" && payload.weight !== undefined && payload.weight !== null && (typeof payload.weight !== "number" || payload.weight < 0)) return false;
+  // Max string length validation
   for (const k of keys) {
     if (typeof payload[k] === "string" && payload[k].length > 1000) return false;
   }
   return true;
 };
 
+// ─── Load all pages from a table ─────────────────────────────────────────────
 const loadAllPages = async (table, options = {}) => {
   const { orderBy = "created_at", ascending = false, isOptional = false } = options;
   const PAGE_SIZE = 1000;
@@ -234,10 +281,19 @@ const loadAllPages = async (table, options = {}) => {
   return allData;
 };
 
+// ─── Load from Supabase ─────────────────────────────────────────────────────
+/**
+ * Loads all records from Supabase tables into local state with full pagination.
+ * Updates the sync status indicator and calls loadAppSettings when done.
+ * @param {Function} loadAppSettingsFn - Function to load app settings after data sync
+ * @returns {Promise<void>}
+ * @throws {Object} Auth-required error if session is invalid
+ */
 export const loadSupabase = async (loadAppSettingsFn) => {
   setStatus("Sincronizando", "syncing");
   await requireSession();
 
+  // Carrega todos os registros de cada tabela (com paginação completa)
   const [milk, animals, lactations, breeding, medication, cropEvents, stockItems, reminders] = await Promise.all([
     loadAllPages("milk_records", { orderBy: "date", ascending: false }),
     loadAllPages("animals", { orderBy: "created_at", ascending: false }),
@@ -269,6 +325,12 @@ const isMissingOptionalTable = (error, table) =>
 import { asArray, readLocal, CLIENT_PROFILE_KEY, PRICE_QUOTE_KEY, SUBSCRIPTION_ADMIN_KEY } from "./state.js";
 import { safeParseJson, normalizeClientProfile, normalizeSubscription } from "./state.js";
 
+// ─── Load App Settings ──────────────────────────────────────────────────────
+/**
+ * Loads app settings (price quote, client profile, subscription) from Supabase.
+ * @returns {Promise<void>}
+ * @throws {Object} Auth-required error if session is invalid
+ */
 export const loadAppSettings = async () => {
   const { data, error } = await db.from("app_settings").select("key,value").eq("user_id", currentUserId);
   if (error) throw error;
@@ -278,6 +340,14 @@ export const loadAppSettings = async () => {
   state.subscription = normalizeSubscription(safeParseJson(settings[SUBSCRIPTION_ADMIN_KEY], null) || state.clientProfile);
 };
 
+// ─── Save App Setting ───────────────────────────────────────────────────────
+/**
+ * Saves a single app setting key-value pair to Supabase.
+ * @param {string} key - Setting key (e.g. "milk_price_quote", "client_profile")
+ * @param {string} value - Setting value (JSON-stringified if object)
+ * @returns {Promise<void>}
+ * @throws {Object} Auth-required error if session is invalid
+ */
 export const saveAppSetting = async (key, value) => {
   await requireSession();
   const { error } = await db.from("app_settings").upsert(
@@ -287,9 +357,21 @@ export const saveAppSetting = async (key, value) => {
   if (error) throw error;
 };
 
+// ─── Process sync queue ─────────────────────────────────────────────────────
+/**
+ * Processes the offline sync queue by replaying mutations against Supabase.
+ * Handles error classification (network, permission, validation) with retry
+ * logic and dead letter queue for permanent failures.
+ * @param {Object} [options={}]
+ * @param {boolean} [options.refresh=true] - Whether to reload data after sync
+ * @param {Function} [options.renderFn] - UI render function to call after sync
+ * @param {Function} [options.loadSupabaseFn] - Function to reload Supabase data
+ * @param {Function} [options.loadAppSettingsFn] - Function to reload app settings
+ * @returns {Promise<void>}
+ */
 export const processSyncQueue = async ({ refresh = true, renderFn, loadSupabaseFn, loadAppSettingsFn } = {}) => {
   if (!hasSupabase) return;
-  if (_isSyncing) return;
+  if (_isSyncing) return; // Mutex: prevent re-entrancy
   _isSyncing = true;
   try {
     let queue = getSyncQueue();
@@ -311,6 +393,7 @@ export const processSyncQueue = async ({ refresh = true, renderFn, loadSupabaseF
         const col = collections[item.type];
         if (!col) continue;
         if (!validateSyncPayload(item.type, item.action, item.payload)) { warn("Payload inválido descartado:", item.id, item.type, item.action); continue; }
+        // INSERT uses upsert with record ID for idempotency to prevent duplicates on retry
         if (item.action === "insert") await db.from(col.table).upsert({ ...item.payload, id: item.recordId || item.id, user_id: currentUserId }, { onConflict: "id" });
         else if (item.action === "update") await db.from(col.table).update(item.payload).eq("id", item.recordId).eq("user_id", currentUserId);
         else if (item.action === "delete") await db.from(col.table).delete().eq("id", item.recordId).eq("user_id", currentUserId);

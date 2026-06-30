@@ -1,3 +1,4 @@
+// ─── Constantes ─────────────────────────────────────────────────────────────
 export const LOCAL_KEY = "controle-fazenda-data";
 export const PRICE_QUOTE_KEY = "milk_price_quote";
 export const CLIENT_PROFILE_KEY = "client_profile";
@@ -10,6 +11,7 @@ export const SUBSCRIPTION_STATUSES = new Set(["trial", "active", "overdue", "blo
 export const PRODUCTION_THRESHOLDS = { critical: 0.5, warning: 0.75, good: 1.0 };
 import { error } from "./logger.js";
 
+// ─── Estado global ──────────────────────────────────────────────────────────
 export const state = {
   milk: [],
   animals: [],
@@ -26,6 +28,7 @@ export const state = {
   confirmedAutoAlerts: new Set(),
 };
 
+// ─── Configuração do Supabase ───────────────────────────────────────────────
 export const config = window.CONTROLE_LEITE_CONFIG || {};
 export const hasSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey && window.supabase);
 export const db = hasSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey) : null;
@@ -46,6 +49,7 @@ export const supabaseUnavailableMessage = (err) => {
   return "Supabase indisponível no momento. Tente novamente.";
 };
 
+// ─── Variáveis de sessão ────────────────────────────────────────────────────
 export let currentUserId = null;
 export let selectedMedicationCowId = null;
 export let failedLoginAttempts = 0;
@@ -55,9 +59,11 @@ export const setSelectedMedicationCowId = (id) => { selectedMedicationCowId = id
 export const incrementFailedLoginAttempts = () => { failedLoginAttempts += 1; };
 export const resetFailedLoginAttempts = () => { failedLoginAttempts = 0; };
 
+// ─── Filtro de produção de leite ─────────────────────────────────────────────
 export const milkFilter = { period: "today", startDate: null, endDate: null };
 export const setMilkFilter = (updates) => { Object.assign(milkFilter, updates); };
 
+// ─── Helpers básicos ────────────────────────────────────────────────────────
 export const $ = (selector) => document.querySelector(selector);
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -93,6 +99,7 @@ export const withCurrentUser = (payload) => (currentUserId ? { ...payload, user_
 export const userStorageKey = (key) => (currentUserId ? `${key}:${currentUserId}` : key);
 export const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ─── Normalização de perfil e assinatura ─────────────────────────────────────
 export const defaultClientProfile = () => ({
   farmName: "",
   ownerName: "",
@@ -127,9 +134,11 @@ export const normalizeSubscription = (subscription = {}) => {
   };
 };
 
+// ─── Helpers de dados ───────────────────────────────────────────────────────
 export const safeParseJson = (value, fallback = {}) => { try { return JSON.parse(value); } catch { return fallback; } };
 export const asArray = (value) => (Array.isArray(value) ? value : []);
 
+// ─── LocalStorage ───────────────────────────────────────────────────────────
 export const readLocal = () => {
   try {
     const data = JSON.parse(localStorage.getItem(userStorageKey(LOCAL_KEY))) || {};
@@ -169,11 +178,17 @@ export const loadLocal = () => {
   state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
 };
 
+/**
+ * Loads only alert state (confirmed/dismissed) from localStorage.
+ * Called after loadSupabase() to restore alert confirmations that
+ * are not synced to Supabase.
+ */
 export const loadLocalAlerts = () => {
   const data = readLocal();
   state.dismissedAutoAlerts = new Set(asArray(data.dismissedAutoAlerts));
   state.confirmedAutoAlerts = new Set(asArray(data.confirmedAutoAlerts));
 };
 
+// Inicializa defaults
 state.clientProfile = defaultClientProfile();
 state.subscription = defaultSubscription();

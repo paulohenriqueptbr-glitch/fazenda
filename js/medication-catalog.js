@@ -1,3 +1,7 @@
+// ─── Catálogo de Medicamentos Bovinos ────────────────────────────────────────
+// Baseado em protocolos veterinários bovinos brasileiros.
+// Cada entrada define: padrões de busca, intervalo de reaplicação, dosagem padrão,
+// via de administração, categoria e observações.
 
 export const MEDICATION_CATEGORIES = {
   ECTOPARASITICIDA: { label: "Ectoparasiticida", icon: "bug" },
@@ -12,7 +16,19 @@ export const MEDICATION_CATEGORIES = {
   OUTROS: { label: "Outros", icon: "pill" },
 };
 
+/**
+ * Catálogo de medicamentos bovinos.
+ * patterns: array de strings para matching case-insensitive no nome do medicamento
+ * reapplyDays: intervalo padrão de reaplicação em dias
+ * dosage: dosagem padrão por peso (ex: "1 ml a cada 50 kg")
+ * route: via de administração (SC=subcutânea, IM=intramuscular, IV=intravenosa, PO=oral, TÓPICA=tópica)
+ * category: chave de MEDICATION_CATEGORIES
+ * notes: observações importantes
+ */
 export const BOVINE_MEDICATIONS = [
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ECTOPARASITICIDAS — Controle de carrapato, mosca dos chifres, bernes
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["cipermetrina", "cipermetrina", "cypermethrin"], reapplyDays: 15, dosage: "5 ml/animal (pour-on)", route: "TÓPICA (pour-on)", category: "ECTOPARASITICIDA", notes: "Controle de carrapato (Boophilus microplus). Intervalo de 15-21 dias conforme carga parasitária." },
   { patterns: ["deltametrina", "deltamethrin"], reapplyDays: 15, dosage: "1-2 ml/100 kg", route: "TÓPICA (pour-on)", category: "ECTOPARASITICIDA", notes: "Ectoparasiticida piretróide de amplo espectro." },
   { patterns: ["amitraz"], reapplyDays: 14, dosage: "500 ml/100 L de água (banho)", route: "TÓPICA (banho)", category: "ECTOPARASITICIDA", notes: "Acaricida para carrapato e piolho. Banho todo-passo." },
@@ -26,6 +42,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["fipronil"], reapplyDays: 21, dosage: "1 ml/10 kg", route: "TÓPICA (pour-on)", category: "ECTOPARASITICIDA", notes: "Acaricida e inseticida de longa persistência." },
   { patterns: ["malation", "malathion"], reapplyDays: 14, dosage: "800 ml/100 L (banho)", route: "TÓPICA (banho)", category: "ECTOPARASITICIDA", notes: "Organofosforado para mosca e carrapato." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HEMATÍNICOS — Suplementação de ferro e cobre
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["ferron 12", "ferron"], reapplyDays: 7, dosage: "10 ml/animal", route: "IM ou SC", category: "HEMATINICO", notes: "Suplemento de ferro para bezerros e animais anêmicos. Repetir semanalmente até correção." },
   { patterns: ["ferrodex"], reapplyDays: 7, dosage: "10 ml/animal (bezerros); 20 ml (adultos)", route: "IM", category: "HEMATINICO", notes: "Dextranato de ferro. Essencial para bezerros nos primeiros 2 meses de vida." },
   { patterns: ["ferridex", "ferro dextrano"], reapplyDays: 7, dosage: "10 ml/animal", route: "IM", category: "HEMATINICO", notes: "Dextranato de ferro para profilaxia de anemia em bezerros." },
@@ -34,6 +53,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["hematitan", "hematitan®"], reapplyDays: 7, dosage: "10 ml/animal", route: "IM", category: "HEMATINICO", notes: "Complexo de ferro para prevenção e tratamento de anemia." },
   { patterns: ["vitamin b12", "vitamina b12", "cyanocobalamin"], reapplyDays: 14, dosage: "5 ml/animal", route: "IM", category: "HEMATINICO", notes: "Cianocobalamina. Co-fator essencial em animais anêmicos." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANTIBIÓTICOS — Tratamento de infecções bacterianas
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["enrofloxacina", "enrofloxacin", "baytril"], reapplyDays: 3, dosage: "2,5-5 mg/kg/dia", route: "IM ou SC", category: "ANTIBIOTICO", notes: "Fluoroquinolona. Tratamento de infecções respiratórias e digestivas. Respeitar tempo de carência." },
   { patterns: ["ceftiofur", "excede", "naxcel"], reapplyDays: 3, dosage: "1 mg/kg/dia", route: "IM ou SC", category: "ANTIBIOTICO", notes: "Cefalosporina de 3ª geração. Mastite, infecções respiratórias. Tempo de carência: 0 dias (leite)." },
   { patterns: ["oxitetraciclina", "oxytetracycline", "terramicina"], reapplyDays: 3, dosage: "20 mg/kg (SC) ou 10 mg/kg (IV/IM)", route: "SC, IM ou IV", category: "ANTIBIOTICO", notes: "Antibiótico de amplo espectro. Pneumonia, metrite, mastite." },
@@ -48,6 +70,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["cefalonio", "cephapirin", "cefaquino"], reapplyDays: 3, dosage: "Intramamário: 1 frasco/querataria", route: "INTRAMAMÁRIO", category: "ANTIBIOTICO", notes: "Tratamento e profilaxia de mastite. Administrar após ordenha." },
   { patterns: ["cloxaceno", "cloxacillin"], reapplyDays: 3, dosage: "Intramamário: 1 frasco/querataria", route: "INTRAMAMÁRIO", category: "ANTIBIOTICO", notes: "Penicilina resistente à penicilinase. Mastite por estafilococo." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANTI-INFLAMATÓRIOS
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["flunixina", "flunixin", "banamine"], reapplyDays: 3, dosage: "1,1-2,2 mg/kg", route: "IV", category: "ANTI_INFLAMATORIO", notes: "AINE potente. Cólica, inflamações. CUIDADO: não usar em desidratados. Carência leite: 36h." },
   { patterns: ["ketoprofeno", "ketoprofen"], reapplyDays: 3, dosage: "2,2 mg/kg", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "AINE. Anti-inflamatório e antipirético. Carência leite: 48h." },
   { patterns: ["meloxicam", "meloxicam"], reapplyDays: 3, dosage: "0,5 mg/kg", route: "IV ou SC", category: "ANTI_INFLAMATORIO", notes: "AINE seletivo COX-2. Menor impacto gastrintestinal." },
@@ -55,6 +80,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["prednisolona", "prednisolone"], reapplyDays: 5, dosage: "0,5-1 mg/kg/dia", route: "IM ou PO", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide. Reduz progressivamente a dose." },
   { patterns: ["dipirona", "metamizole", "novalgina"], reapplyDays: 1, dosage: "25 mg/kg", route: "IV ou IM", category: "ANTI_INFLAMATORIO", notes: "Antipirético e analgésico. Uso clínico geral." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANTIPARASITÁRIOS (Vermífugos) — Endoparasitas
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["ivermectina", "ivermectin", "ivomec", "ivomec gold"], reapplyDays: 60, dosage: "1 ml/50 kg (1% injetável) ou 2 ml/100 kg (pour-on)", route: "SC ou TÓPICA", category: "ANTIPARASITARIO", notes: "Endectocida. Vermífugo e ectoparasiticida. Intervalo mínimo 21 dias, recomendado 60 dias." },
   { patterns: ["albendazol", "albendazole", "valbazen"], reapplyDays: 60, dosage: "7,5 mg/kg", route: "PO", category: "ANTIPARASITARIO", notes: "Vermífugo de amplo espectro. Nematódeos, cestódeos, trematódeos. Carência leite: 60h." },
   { patterns: ["moxidectina", "moxidectin", "cydectin"], reapplyDays: 60, dosage: "0,2 mg/kg", route: "SC ou TÓPICA", category: "ANTIPARASITARIO", notes: "Macrociclo lactona de longa ação. Mais potente que ivermectina." },
@@ -71,6 +99,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["closamectina", "closamectin", "closantel ivermectina"], reapplyDays: 60, dosage: "1 ml/50 kg", route: "SC", category: "ANTIPARASITARIO_COMBO", notes: "Combinação anti-helmíntica e ectoparasiticida. Fasciola + nematódeos + carrapato." },
   { patterns: ["nitranil", "nitroxynil"], reapplyDays: 60, dosage: "10 mg/kg", route: "SC", category: "ANTIPARASITARIO", notes: "Trematicida. Fasciola hepática. (Nota: já existe nitroxinil listado separadamente.)" },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VITAMÍNICOS E SUPLEMENTOS
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["multimin", "multi-min"], reapplyDays: 28, dosage: "1 ml/45 kg", route: "SC", category: "VITAMINICO", notes: "Suplemento trace mineral. Zinco, selênio, cobre, manganês. Injeção a cada 28 dias." },
   { patterns: ["selenium", "selênio", "selenio"], reapplyDays: 21, dosage: "1 ml/45 kg (complexo de Se)", route: "IM ou SC", category: "VITAMINICO", notes: "Selenito de sódio ou complexo. Prevenção de miopatias e abortos." },
   { patterns: ["vitamin a", "vitamina a", "retinol"], reapplyDays: 30, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Deficiência em pastagens pobres. Importante para reprodução e imunidade." },
@@ -85,6 +116,9 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["vitaminas injetaveis", "vitaminas", "injetavel vitaminico"], reapplyDays: 30, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Suplemento vitaminico injetável. Pós-parto, estresse, deficiência nutricional." },
   { patterns: ["complexo b", "complexo-b", "complexo b injetavel"], reapplyDays: 14, dosage: "5-10 ml/animal", route: "IM", category: "VITAMINICO", notes: "Metabolismo energético. Indicado em anorexia, convalescença, pós-cirúrgico." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VACINAS
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["febre aftosa", "aftosa", "foot-and-mouth"], reapplyDays: 180, dosage: "Dose conforme bula (2 ml)", route: "SC", category: "VACINA", notes: "Vacinação semestral obrigatória (calendário nacional). Pólos de vacinação." },
   { patterns: ["clostridiose", "clostridial", "clostridium", "7 em 1", "8 em 1"], reapplyDays: 365, dosage: "Dose conforme bula (2 ml)", route: "SC", category: "VACINA", notes: "Clostridiose(s). Anual. Bezerros: 1ª dose a partir de 3 meses, reforço em 30-45 dias." },
   { patterns: ["brucelose", "brucella"], reapplyDays: 0, dosage: "Dose única (Reba 19)", route: "SC (região inguinal)", category: "VACINA", notes: "Dose única entre 3-8 meses de fêmea. Vacinação obrigatória." },
@@ -93,11 +127,17 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["botulismo", "clostridium botulinum"], reapplyDays: 365, dosage: "Dose conforme bula", route: "SC", category: "VACINA", notes: "Anual. Essencial em regiões com histórico." },
   { patterns: ["carbúnculo", "anthrax", "carbunclo"], reapplyDays: 365, dosage: "Dose conforme bula", route: "SC", category: "VACINA", notes: "Anual. Obrigatória em regiões endêmicas." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANESTÉSICOS
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["xilazina", "xylazine", "rompun"], reapplyDays: 1, dosage: "0,05-0,1 mg/kg (sedação); 0,1-0,3 mg/kg (anestesia)", route: "IM ou IV", category: "ANESTESICO", notes: "Sedativo e analgésico. Ruminotomia, castração, cesárea. Antídoto: yohimbina." },
   { patterns: ["ketamina", "ketamine"], reapplyDays: 1, dosage: "2-4 mg/kg", route: "IV", category: "ANESTESICO", notes: "Anestésico dissociativo. Procedimentos curtos." },
   { patterns: ["lidocaina", "lidocaine", "lidocaína"], reapplyDays: 1, dosage: "Bloco: 3-5 ml por ponto", route: "BLOCO LOCAL", category: "ANESTESICO", notes: "Anestesia local. Episiotomia, suturas, bloqueios." },
   { patterns: ["procaína", "procaine", "procaína penicilina"], reapplyDays: 3, dosage: "Varia conforme formulação", route: "IM", category: "ANESTESICO", notes: "Penicilina procaína. Anestesia local prolongada." },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OUTROS / ESPECIAIS
+  // ═══════════════════════════════════════════════════════════════════════════
   { patterns: ["gonadorelin", "gonadorelina", "cystorelina"], reapplyDays: 10, dosage: "100-200 mcg", route: "IM", category: "OUTROS", notes: "GnRH. Sincronização de estro, cistos ovarianos. Repetir em 10 dias se necessário." },
   { patterns: ["d-cloprostenol", "cloprostenol", "d-clost", "estrumate"], reapplyDays: 11, dosage: "2 ml (500 mcg)", route: "IM", category: "OUTROS", notes: "PGF2α. Sincronização de estro, luteólise. Repetir em 11 dias para sincronia." },
   { patterns: ["progesterona", "progesterone", "CIDR"], reapplyDays: 7, dosage: "Implante intravaginal (1,9 g)", route: "INTRAVAGINAL", category: "OUTROS", notes: "Implante de progesterona. Sincronização de estro. Manter 7-8 dias." },
@@ -108,21 +148,34 @@ export const BOVINE_MEDICATIONS = [
   { patterns: ["dexametasona longa", "dexamethasone long acting", "dexasone"], reapplyDays: 7, dosage: "20-40 mg/animal", route: "IM", category: "ANTI_INFLAMATORIO", notes: "Corticosteroide de depósito. Anti-inflamatório prolongado. CUIDADO: causar aborto em gestantes." },
 ];
 
+/**
+ * Finds a medication in the catalog by name (fuzzy matching).
+ * @param {string} name - Medication name to search
+ * @returns {object|null} - Matching catalog entry or null
+ */
 export const findMedication = (name) => {
   const search = String(name || "").toLowerCase().trim();
   if (!search) return null;
-
+  
+  // Exact match first
   for (const med of BOVINE_MEDICATIONS) {
     if (med.patterns.some((p) => search === p.toLowerCase())) return med;
   }
-
+  
+  // Partial match
   for (const med of BOVINE_MEDICATIONS) {
     if (med.patterns.some((p) => search.includes(p.toLowerCase()) || p.toLowerCase().includes(search))) return med;
   }
-
+  
   return null;
 };
 
+/**
+ * Gets the reapplication interval for a medication, considering catalog + custom override.
+ * @param {string} medicationName
+ * @param {number|null} customIntervalDays - User-defined override
+ * @returns {{ days: number, label: string, category: string, notes: string, dosage: string, route: string }}
+ */
 export const getMedicationInfo = (medicationName, customIntervalDays = null) => {
   if (customIntervalDays !== null && customIntervalDays !== undefined && Number(customIntervalDays) > 0) {
     return {
@@ -158,9 +211,16 @@ export const getMedicationInfo = (medicationName, customIntervalDays = null) => 
   };
 };
 
+/**
+ * Calcula a dose recomendada de um medicamento baseado no peso do animal.
+ * @param {string} medicationName - Nome do medicamento
+ * @param {number|null} animalWeight - Peso do animal em kg
+ * @param {number|null} customInterval - Intervalo customizado de reaplicação
+ * @returns {{ dosage: string, calculatedDose: string|null, weightUsed: number|null, warning: string|null }}
+ */
 export const calculateDosage = (medicationName, animalWeight = null, customInterval = null) => {
   const info = getMedicationInfo(medicationName, customInterval);
-
+  
   if (!animalWeight || animalWeight <= 0) {
     return {
       dosage: info.dosage,
@@ -170,6 +230,7 @@ export const calculateDosage = (medicationName, animalWeight = null, customInter
     };
   }
 
+  // Padrões de dosagem por kg (extraídos do catálogo)
   const dosagePatterns = [
     { pattern: /(\d+(?:,\d+)?)\s*ml\/(\d+)\s*kg/i, unit: "ml", factor: true },
     { pattern: /(\d+(?:,\d+)?)\s*mg\/kg/i, unit: "mg", factor: true },
@@ -182,26 +243,27 @@ export const calculateDosage = (medicationName, animalWeight = null, customInter
   ];
 
   const dosageStr = info.dosage;
-
+  
   for (const { pattern, unit, factor, per100, per50 } of dosagePatterns) {
     const match = dosageStr.match(pattern);
     if (!match) continue;
-
+    
     const baseValue = parseFloat(match[1].replace(",", "."));
     let calculatedDose = null;
-
+    
     if (factor) {
+      // Ex: "1 ml/50 kg" → 1 ml para cada 50 kg
       calculatedDose = (baseValue * animalWeight) / (per50 ? 50 : per100 ? 100 : 1);
     } else if (per100) {
       calculatedDose = (baseValue * animalWeight) / 100;
     } else if (per50) {
       calculatedDose = (baseValue * animalWeight) / 50;
     }
-
+    
     if (calculatedDose !== null) {
       const rounded = Math.round(calculatedDose * 10) / 10;
       const calculatedStr = `${rounded} ${unit} (${animalWeight} kg)`;
-
+      
       return {
         dosage: dosageStr,
         calculatedDose: calculatedStr,
@@ -211,6 +273,7 @@ export const calculateDosage = (medicationName, animalWeight = null, customInter
     }
   }
 
+  // Não conseguiu calcular automaticamente
   return {
     dosage: dosageStr,
     calculatedDose: null,
