@@ -1,4 +1,4 @@
-const CACHE_NAME = "terrasyn-v39";
+const CACHE_NAME = "terrasyn-v40";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -28,7 +28,6 @@ const APP_FILES = [
   "./js/backup.js",
   "./js/push.js",
   "./js/install.js",
-  "./js/forms.js",
   "./vendor/supabase.js?v=2.108.0",
   "./vendor/chart.js",
   "./vendor/lucide.js",

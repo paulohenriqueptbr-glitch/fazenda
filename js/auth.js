@@ -1,7 +1,6 @@
 import {
   $, config, hasSupabase, db, canUseLocalAccount, canUseLocalAccountWithPassword,
   supabaseUnavailableMessage, currentUserId, setCurrentUserId,
-  failedLoginAttempts, incrementFailedLoginAttempts, resetFailedLoginAttempts,
   SAVED_LOGIN_EMAIL_KEY, MAX_LOGIN_ATTEMPTS, todayIso, userStorageKey,
   state, normalizeClientProfile, normalizeSubscription,
   readLocal, loadLocal, writeLocal,
@@ -11,44 +10,118 @@ import { error } from "./logger.js";
 
 // ─── Local Auth Helpers ───────────────────────────────────────────────────
 const LOCAL_ADMIN_HASH_KEY = "local-admin-hash";
+const LOCAL_ADMIN_SALT_KEY = "local-admin-salt";
 const LOCAL_ADMIN_EMAIL_KEY = "local-admin-email";
+const LOCAL_ADMIN_ATTEMPTS_KEY = "local-admin-attempts";
+const LOCAL_ADMIN_LOCKOUT_KEY = "local-admin-lockout";
 const DEFAULT_LOCAL_PASSWORD = "admin123";
+const PBKDF2_ITERATIONS = 100000;
 
+<<<<<<< HEAD
 /**
  * Hash a password using SHA-256 via Web Crypto API.
  * @param {string} password
  * @returns {Promise<string>} hex-encoded hash
  */
 const hashPassword = async (password) => {
+=======
+const generateSalt = () => {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(salt).map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+const hashPassword = async (password, salt) => {
+>>>>>>> e73643bf (Atualizar projeto)
   const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest("SHA-256", data);
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const saltBytes = encoder.encode(salt);
+  const hash = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: saltBytes, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    keyMaterial, 256
+  );
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
+<<<<<<< HEAD
 /**
  * Local login without fetch — verifies password against stored hash in localStorage.
  * @param {string} email
  * @param {string} password
  * @returns {Promise<{email: string}>}
  */
+=======
+const getStoredAttempts = () => {
+  try {
+    const data = JSON.parse(localStorage.getItem(LOCAL_ADMIN_ATTEMPTS_KEY) || "{}");
+    const lockout = parseInt(localStorage.getItem(LOCAL_ADMIN_LOCKOUT_KEY) || "0", 10);
+    // Reset if lockout expired (15 min)
+    if (lockout && Date.now() > lockout) {
+      localStorage.removeItem(LOCAL_ADMIN_ATTEMPTS_KEY);
+      localStorage.removeItem(LOCAL_ADMIN_LOCKOUT_KEY);
+      return { count: 0, lockoutUntil: 0 };
+    }
+    return { count: data.count || 0, lockoutUntil: lockout || 0 };
+  } catch { return { count: 0, lockoutUntil: 0 }; }
+};
+
+const recordFailedAttempt = () => {
+  const { count } = getStoredAttempts();
+  const newCount = count + 1;
+  localStorage.setItem(LOCAL_ADMIN_ATTEMPTS_KEY, JSON.stringify({ count: newCount }));
+  if (newCount >= MAX_LOGIN_ATTEMPTS) {
+    // Lockout for 15 minutes
+    localStorage.setItem(LOCAL_ADMIN_LOCKOUT_KEY, String(Date.now() + 15 * 60 * 1000));
+  }
+};
+
+const clearAttempts = () => {
+  localStorage.removeItem(LOCAL_ADMIN_ATTEMPTS_KEY);
+  localStorage.removeItem(LOCAL_ADMIN_LOCKOUT_KEY);
+};
+
+>>>>>>> e73643bf (Atualizar projeto)
 const loginLocal = async (email, password) => {
   const storedHash = localStorage.getItem(LOCAL_ADMIN_HASH_KEY);
+  const storedSalt = localStorage.getItem(LOCAL_ADMIN_SALT_KEY);
+
+  // Check lockout
+  const { count: attemptCount, lockoutUntil } = getStoredAttempts();
+  if (lockoutUntil && Date.now() < lockoutUntil) {
+    const minutes = Math.ceil((lockoutUntil - Date.now()) / 60000);
+    throw new Error(`Conta bloqueada. Tente novamente em ${minutes} minuto(s).`);
+  }
+  if (attemptCount >= MAX_LOGIN_ATTEMPTS) {
+    throw new Error("Muitas tentativas. Aguarde 15 minutos.");
+  }
 
   // If no hash stored yet, create one with default password
   if (!storedHash) {
-    const defaultHash = await hashPassword(DEFAULT_LOCAL_PASSWORD);
+    // First login: hash default password with new salt and store
+    const salt = generateSalt();
+    const defaultHash = await hashPassword(DEFAULT_LOCAL_PASSWORD, salt);
     localStorage.setItem(LOCAL_ADMIN_HASH_KEY, defaultHash);
+    localStorage.setItem(LOCAL_ADMIN_SALT_KEY, salt);
     if (password !== DEFAULT_LOCAL_PASSWORD) {
+      recordFailedAttempt();
       throw new Error("Senha inválida");
     }
   } else {
-    const inputHash = await hashPassword(password);
+    const salt = storedSalt || generateSalt();
+    // If no salt stored, re-hash with new salt on next successful login
+    const inputHash = await hashPassword(password, salt);
     if (inputHash !== storedHash) {
+      recordFailedAttempt();
       throw new Error("Senha inválida");
+    }
+    // Migrate: if no salt was stored, save it now
+    if (!storedSalt) {
+      localStorage.setItem(LOCAL_ADMIN_SALT_KEY, salt);
     }
   }
 
+  clearAttempts();
   localStorage.setItem(LOCAL_ADMIN_EMAIL_KEY, email);
   return { email };
 };
@@ -246,7 +319,6 @@ export const setupAuthListeners = (initAppFn) => {
     if (canUseLocalAccountWithPassword && email.toLowerCase() === "admin") {
       try {
         const result = await loginLocal(email.toLowerCase(), password);
-        resetFailedLoginAttempts();
         setCurrentUserId("local-admin");
         if ($("#rememberLoginEmail")?.checked) saveLoginEmail(email);
         showApp(result.email || "admin local");
@@ -254,14 +326,20 @@ export const setupAuthListeners = (initAppFn) => {
         showToast("Modo local ativo.");
         return;
       } catch (err) {
-        incrementFailedLoginAttempts();
         showLoginError(err.message || "Usuário ou senha incorretos.");
         return;
       }
     }
 
-    if (failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
-      showLoginError("Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
+    // Persistent lockout check for Supabase login
+    const { count: attemptCount, lockoutUntil } = getStoredAttempts();
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const minutes = Math.ceil((lockoutUntil - Date.now()) / 60000);
+      showLoginError(`Conta bloqueada. Tente novamente em ${minutes} minuto(s).`);
+      return;
+    }
+    if (attemptCount >= MAX_LOGIN_ATTEMPTS) {
+      showLoginError("Muitas tentativas. Aguarde 15 minutos antes de tentar novamente.");
       return;
     }
     if (!hasSupabase || !db) { showLoginError(supabaseUnavailableMessage()); return; }
@@ -270,16 +348,17 @@ export const setupAuthListeners = (initAppFn) => {
     try {
       const { data, error } = await db.auth.signInWithPassword({ email, password });
       if (error) {
-        incrementFailedLoginAttempts();
+        recordFailedAttempt();
+        const { count: newCount } = getStoredAttempts();
         const { delay } = await import("./state.js");
-        await delay(Math.min(failedLoginAttempts * 2000, 30000));
+        await delay(Math.min(newCount * 2000, 30000));
         const message = error.message === "Invalid login credentials"
-          ? `E-mail ou senha incorretos. Tentativa ${failedLoginAttempts}/${MAX_LOGIN_ATTEMPTS}.`
+          ? `E-mail ou senha incorretos. Tentativa ${newCount}/${MAX_LOGIN_ATTEMPTS}.`
           : supabaseErrorMessage(error);
         showLoginError(message);
         return;
       }
-      resetFailedLoginAttempts();
+      clearAttempts();
       setCurrentUserId(data.user.id);
       if ($("#rememberLoginEmail")?.checked) saveLoginEmail(data.user.email || email);
       showApp(data.user.email);
@@ -314,7 +393,7 @@ export const setupAuthListeners = (initAppFn) => {
       if (error) { showLoginError(authErrorMessage(error)); return; }
       signupForm.reset();
       if (data.session?.user) {
-        resetFailedLoginAttempts();
+        clearAttempts();
         setCurrentUserId(data.session.user.id);
         saveLoginEmail(data.session.user.email || email);
         showApp(data.session.user.email);

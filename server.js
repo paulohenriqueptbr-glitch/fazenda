@@ -86,7 +86,24 @@ app.get('/api/config.js', (req, res) => {
   res.send(`window.CONTROLE_LEITE_CONFIG = ${JSON.stringify(config)};`);
 });
 
+<<<<<<< HEAD
 // Servir arquivos estáticos da raiz (index.html, styles.css, js/, etc)
+=======
+// Bloquear acesso a arquivos sensíveis (antes do static)
+app.use((req, res, next) => {
+  const blocked = [
+    /\.env/i, /\.git/i, /node_modules/i, /\.sql$/i,
+    /server\.js$/i, /package\.json$/i, /package-lock\.json$/i,
+    /\.gitignore$/i, /\.env\./i, /backup/i, /\.log$/i,
+  ];
+  if (blocked.some((re) => re.test(req.path))) {
+    return res.status(403).json({ error: "Acesso negado" });
+  }
+  next();
+});
+
+// Servir arquivos estáticos (frontend apenas)
+>>>>>>> e73643bf (Atualizar projeto)
 app.use(express.static(__dirname));
 
 // Fallback para index.html (útil para PWAs/Single Page Apps)
