@@ -6,13 +6,6 @@ import { showToast } from "./ui.js";
 import { writeLocal } from "./state.js";
 import { getMedicationInfo } from "./medication-catalog.js";
 
-// ─── Date helpers ───────────────────────────────────────────────────────────
-/**
- * Calculates the number of days between two ISO date strings.
- * @param {string} fromIso - Start date in ISO format (YYYY-MM-DD)
- * @param {string} toIso - End date in ISO format (YYYY-MM-DD)
- * @returns {number|null} Day difference (positive if toIso is after fromIso), or null if dates are invalid
- */
 export const diffDays = (fromIso, toIso) => {
   const from = parseIsoDate(fromIso);
   const to = parseIsoDate(toIso);
@@ -22,30 +15,13 @@ export const diffDays = (fromIso, toIso) => {
   return Math.round((to - from) / (24 * 60 * 60 * 1000));
 };
 
-/**
- * Calculates the number of days from today until a given ISO date.
- * @param {string} isoDate - Target date in ISO format (YYYY-MM-DD)
- * @returns {number|null} Days until the date (negative if past), or null if invalid
- */
 export const daysFromToday = (isoDate) => diffDays(todayIso(), isoDate);
 
-// ─── Medication reapplication (catalog-based) ────────────────────────────────
-/**
- * Determines the reapplication interval for a medication based on catalog lookup.
- * @param {string} medicationName - The name of the medication
- * @param {number|null} customInterval - User-defined interval override (days)
- * @returns {{ days: number, label: string }}
- */
 export const getMedicationInterval = (medicationName, customInterval = null) => {
   const info = getMedicationInfo(medicationName, customInterval);
   return { days: info.days, label: info.label };
 };
 
-/**
- * Calculates the next reapplication date for a medication record.
- * @param {{ administration_date: string, medication_name: string, reapply_interval_days?: number|null }} record
- * @returns {{ nextDate: string, daysUntil: number, interval: { days: number, label: string } }|null}
- */
 export const getNextReapplyDate = (record) => {
   if (!record?.administration_date) return null;
   const interval = getMedicationInterval(record.medication_name, record.reapply_interval_days);
@@ -54,13 +30,6 @@ export const getNextReapplyDate = (record) => {
   return { nextDate, daysUntil, interval };
 };
 
-// ─── Alert status ───────────────────────────────────────────────────────────
-/**
- * Determines the alert status based on a due date and completion flag.
- * @param {string} dueDate - Due date in ISO format
- * @param {boolean} [done=false] - Whether the alert is completed
- * @returns {"done"|"overdue"|"today"|"week"|"upcoming"} Alert status string
- */
 export const alertStatus = (dueDate, done = false) => {
   if (done) return "done";
   const days = daysFromToday(dueDate);
@@ -71,12 +40,6 @@ export const alertStatus = (dueDate, done = false) => {
   return "upcoming";
 };
 
-/**
- * Returns a human-readable label for the alert status, including overdue severity.
- * @param {string} dueDate - Due date in ISO format
- * @param {boolean} [done=false] - Whether the alert is completed
- * @returns {string} Localized status label with optional urgency indicator
- */
 export const alertStatusLabel = (dueDate, done = false) => {
   const status = alertStatus(dueDate, done);
   const days = daysFromToday(dueDate);
@@ -88,7 +51,6 @@ export const alertStatusLabel = (dueDate, done = false) => {
   return formatDate(dueDate);
 };
 
-// ─── Build alerts ───────────────────────────────────────────────────────────
 const makeAlert = ({ id, title, due_date, category, notes = "", type = "auto", done = false, urgency = "normal" }) => ({
   id, title, due_date, category, notes, type, done, status: alertStatus(due_date, done), urgency,
 });
@@ -132,13 +94,11 @@ const buildAutomaticAlerts = () => {
     alerts.push(makeAlert({ id: `auto-crop-${r.id || r.plot_name}-${dueDate}`, title: rule.title, due_date: dueDate, category: "Lavoura", notes: `${r.plot_name || "Area"} - ${r.crop_name || r.event_type || "manejo"}.` }));
   });
 
-  // Medication reapplication reminders
   state.medication.forEach((m) => {
     if (!m.administration_date) return;
     const reapply = getNextReapplyDate(m);
     if (!reapply) return;
     const { nextDate, daysUntil, interval } = reapply;
-    // Only show alert in the 7 days before and 7 days after the due date
     if (daysUntil === null || daysUntil < -7 || daysUntil > 7) return;
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
     const animalName = animal?.identification || m.cow_id || "";
@@ -174,10 +134,6 @@ const buildAutomaticAlerts = () => {
   return alerts;
 };
 
-/**
- * Checks for milk withdrawal period violations.
- * Returns alerts if any cow was treated with antibiotics and the withdrawal period hasn't expired.
- */
 const buildMilkWithdrawalAlerts = () => {
   const today = todayIso();
   const alerts = [];
@@ -188,19 +144,16 @@ const buildMilkWithdrawalAlerts = () => {
     const info = getMedicationInfo(m.medication_name, m.reapply_interval_days);
     const notes = (info.notes || "").toLowerCase();
     
-    // Extract withdrawal period from notes (look for "carência leite: Xh")
     const withdrawalMatch = notes.match(/car[eê]ncia leite:\s*(\d+)\s*h/);
     if (!withdrawalMatch) return;
     
     const withdrawalHours = parseInt(withdrawalMatch[1], 10);
     if (isNaN(withdrawalHours) || withdrawalHours <= 0) return;
     
-    // Calculate when withdrawal expires
     const adminDate = new Date(m.administration_date);
     const withdrawEndDate = new Date(adminDate.getTime() + withdrawalHours * 60 * 60 * 1000);
     const withdrawEndDateStr = withdrawEndDate.toISOString().split("T")[0];
     
-    // If withdrawal hasn't expired yet
     if (withdrawEndDateStr >= today) {
       const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
       const animalName = animal?.identification || m.cow_id || "";
@@ -220,15 +173,10 @@ const buildMilkWithdrawalAlerts = () => {
   return alerts;
 };
 
-/**
- * Checks for abortifacient medications given to pregnant cows.
- * Returns alerts if a cow with an active breeding record (pregnant) receives an abortifacient.
- */
 const buildAbortifacientAlerts = () => {
   const today = todayIso();
   const alerts = [];
   
-  // Known abortifacient patterns
   const abortifacientPatterns = [
     "dexametasona", "dexamethasone", "dexasone",
     "prednisolona", "prednisolone",
@@ -244,7 +192,6 @@ const buildAbortifacientAlerts = () => {
     const isAbortifacient = abortifacientPatterns.some((p) => medLower.includes(p));
     if (!isAbortifacient) return;
     
-    // Check if this cow has an active pregnancy (breeding record with expected_calving_date in the future)
     const activePregnancy = state.breeding.find((b) => 
       String(b.cow_id) === String(m.cow_id) && 
       b.expected_calving_date && 
@@ -269,9 +216,6 @@ const buildAbortifacientAlerts = () => {
   return alerts;
 };
 
-/**
- * Checks for low stock items and generates reorder alerts.
- */
 const buildStockAlerts = () => {
   const today = todayIso();
   const alerts = [];
@@ -295,10 +239,6 @@ const buildStockAlerts = () => {
   return alerts;
 };
 
-/**
- * Checks for weather-related crop issues.
- * Warns if spraying was done recently and rain is forecast, or if planting was done in bad conditions.
- */
 const buildWeatherCropAlerts = () => {
   const today = todayIso();
   const alerts = [];
@@ -341,11 +281,6 @@ const buildWeatherCropAlerts = () => {
   return alerts;
 };
 
-/**
- * Builds and returns all alerts (automatic + manual reminders), sorted by
- * status urgency and due date. Filters out dismissed alerts and marks confirmed ones.
- * @returns {Array<{ id: string, title: string, due_date: string, category: string, notes: string, type: string, done: boolean, status: string, urgency: string }>}
- */
 export const buildAlerts = () => {
   const dismissed = state.dismissedAutoAlerts || new Set();
   const confirmed = state.confirmedAutoAlerts || new Set();
@@ -364,10 +299,6 @@ export const buildAlerts = () => {
   });
 };
 
-/**
- * Counts medication reapplication alerts grouped by urgency.
- * @returns {{ overdue: number, today: number, soon: number, upcoming: number, total: number }}
- */
 export const countMedicationAlerts = () => {
   const alerts = buildAlerts();
   const medAlerts = alerts.filter((a) => a.category === "Medicação" && !a.done);
@@ -380,12 +311,6 @@ export const countMedicationAlerts = () => {
   };
 };
 
-// ─── Alert actions ──────────────────────────────────────────────────────────
-/**
- * Dismisses an automatic alert by adding it to the dismissed set and persisting.
- * @param {string} alertId - ID of the alert to dismiss
- * @returns {void}
- */
 export const dismissAutoAlert = (alertId) => {
   if (!state.dismissedAutoAlerts) state.dismissedAutoAlerts = new Set();
   state.dismissedAutoAlerts.add(alertId);
@@ -393,12 +318,6 @@ export const dismissAutoAlert = (alertId) => {
   showToast("Alerta dispensado.");
 };
 
-/**
- * Confirms an automatic alert by adding it to the confirmed set, removing
- * it from dismissed if present, and persisting.
- * @param {string} alertId - ID of the alert to confirm
- * @returns {void}
- */
 export const confirmAutoAlert = (alertId) => {
   if (!state.confirmedAutoAlerts) state.confirmedAutoAlerts = new Set();
   state.confirmedAutoAlerts.add(alertId);
@@ -407,11 +326,6 @@ export const confirmAutoAlert = (alertId) => {
   showToast("Alerta confirmado.");
 };
 
-/**
- * Toggles the completion status of a reminder record.
- * @param {string|number} id - Reminder record ID
- * @returns {Promise<void>}
- */
 export const toggleReminder = async (id) => {
   const reminder = findRecord("reminder", id);
   if (!reminder) return;
@@ -420,12 +334,6 @@ export const toggleReminder = async (id) => {
   showToast(done ? "Lembrete concluido." : "Lembrete reaberto.");
 };
 
-// ─── Badge de notificação ──────────────────────────────────────────────────
-/**
- * Updates the alerts badge count in both quick-access and nav elements,
- * hiding badges when count is zero.
- * @returns {void}
- */
 export const updateAlertsBadge = () => {
   const alerts = buildAlerts();
   const pendingCount = alerts.filter((a) => !a.done).length;

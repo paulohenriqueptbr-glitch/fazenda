@@ -8,7 +8,6 @@ import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getF
 import { generateRecommendations, getRecommendationsSummary } from "./recommendations.js";
 import { forecastStock, forecastMedication, forecastLactation } from "./predictions.js";
 
-// ─── Sparkline helper ──────────────────────────────────────────────────────
 const generateSparkline = (data, width = 80, height = 28) => {
   if (!data.length || data.every((v) => v === 0)) return "";
   const max = Math.max(...data);
@@ -36,7 +35,6 @@ const generateSparkline = (data, width = 80, height = 28) => {
   </svg>`;
 };
 
-// ─── DOM Elements ───────────────────────────────────────────────────────────
 export const el = {
   appShell: $("#appShell"),
   syncStatus: $("#syncStatus"),
@@ -112,7 +110,6 @@ export const el = {
   productionChart: $("#productionChart"),
 };
 
-// ─── Action buttons ─────────────────────────────────────────────────────────
 const actionButtons = (type, id) => `
   <div class="item-actions">
     <button type="button" data-action="edit" data-type="${type}" data-id="${escapeHtml(id)}">Editar</button>
@@ -134,7 +131,6 @@ export const reminderActions = (record) => {
   `;
 };
 
-// ─── Subscription ───────────────────────────────────────────────────────────
 const subscriptionLabels = { trial: "Teste", active: "Ativa", overdue: "Vencida", blocked: "Bloqueada", canceled: "Cancelada" };
 
 const daysUntil = (isoDate) => {
@@ -162,7 +158,6 @@ const applySubscriptionAccess = (profile) => {
     .forEach((c) => { c.disabled = blocked; });
 };
 
-// ─── Contact URLs ───────────────────────────────────────────────────────────
 const contactUrl = (message, subject = "Suporte Terrasyn") => {
   const encoded = encodeURIComponent(message);
   if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${encoded}`;
@@ -172,7 +167,6 @@ const contactUrl = (message, subject = "Suporte Terrasyn") => {
 const supportUrl = () => contactUrl("Olá, preciso de suporte no Terrasyn.");
 const subscribeUrl = () => contactUrl(`Olá, quero assinar o Terrasyn. Plano: ${formatMoney(planPrice)}/mês.`, "Assinatura Terrasyn");
 
-// ─── Render functions ───────────────────────────────────────────────────────
 export const renderClientPanel = () => {
   const profile = normalizeClientProfile(state.clientProfile);
   const subscription = normalizeSubscription(state.subscription);
@@ -213,7 +207,6 @@ export const renderPriceQuote = () => {
   if (el.priceQuoteValue) el.priceQuoteValue.textContent = `R$ ${formatted} por litro`;
 };
 
-// ─── Period filter ──────────────────────────────────────────────────────────
 let dashboardPeriod = "today";
 
 const getPeriodRange = (period) => {
@@ -302,7 +295,6 @@ export const renderSummary = () => {
   const fortnightStart = day <= 15 ? `${currentMonth}-01` : `${currentMonth}-16`;
   const monthStart = `${currentMonth}-01`;
 
-  // Today
   const todayRecords = state.milk.filter((r) => r.date === today);
   const todayLiters = todayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
   if (el.todayTotal) {
@@ -313,7 +305,6 @@ export const renderSummary = () => {
   }
   if (el.todayValue) el.todayValue.textContent = formatMoney(todayLiters * price);
 
-  // Sparkline - últimos 7 dias
   const sparklineContainer = document.getElementById("sparklineContainer");
   if (sparklineContainer) {
     const last7Days = [];
@@ -326,24 +317,20 @@ export const renderSummary = () => {
     sparklineContainer.innerHTML = generateSparkline(last7Days);
   }
 
-  // Fortnight
   const fortnightRecords = state.milk.filter((r) => r.date && r.date >= fortnightStart && r.date <= today);
   const fortnightLiters = fortnightRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
   if (el.fortnightTotal) el.fortnightTotal.textContent = formatLiters(fortnightLiters);
   if (el.fortnightValue) el.fortnightValue.textContent = formatMoney(fortnightLiters * price);
 
-  // Month
   const monthRecords = state.milk.filter((r) => r.date && r.date >= monthStart && r.date <= today);
   const monthLiters = monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
   if (el.monthTotal) el.monthTotal.textContent = formatLiters(monthLiters);
   if (el.monthValue) el.monthValue.textContent = formatMoney(monthLiters * price);
 
-  // Animals
   if (el.animalTotal) el.animalTotal.textContent = String(state.animals.length);
   const lactating = state.animals.filter((a) => a.status === "Em lactação").length;
   if (el.lactatingTotal) el.lactatingTotal.textContent = `${lactating} em lactação`;
 
-  // Trend analysis panel
   const trend = calculateProductionTrend();
   let trendPanel = document.getElementById("trendPanel");
   if (!trendPanel) {
@@ -418,7 +405,6 @@ export const setupPeriodFilter = () => {
   if (el.customPeriodEnd && !el.customPeriodEnd._periodAttached) { el.customPeriodEnd._periodAttached = true; el.customPeriodEnd.addEventListener("change", renderSummary); }
 };
 
-// ─── Render lists ───────────────────────────────────────────────────────────
 export const renderMilk = () => {
   const price = Number(state.priceQuote || 0);
   const today = todayIso();
@@ -448,11 +434,9 @@ export const renderMilk = () => {
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
   const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
   
-  // ─── Cálculos do resumo do filtro ────────────────────────────────────────
   const totalLiters = records.reduce((sum, r) => sum + Number(r.liters || 0), 0);
   const totalValue = totalLiters * price;
   
-  // ─── Resumo do período filtrado ──────────────────────────────────────────
   const summaryHtml = `<div class="milk-filter-summary">
     <span class="milk-filter-label">${escapeHtml(periodLabel)}</span>
     <span class="milk-filter-stats">${records.length} registro${records.length !== 1 ? "s" : ""} | ${escapeHtml(formatLiters(totalLiters))} | ${escapeHtml(formatMoney(totalValue))}</span>
@@ -475,7 +459,6 @@ export const renderAnimals = () => {
     : empty("Nenhum animal cadastrado", "animal");
 };
 
-// ─── Animal Profile Modal ──────────────────────────────────────────────────
 export const openAnimalProfile = (animalId) => {
   const animal = state.animals.find((a) => String(a.id) === String(animalId));
   if (!animal) return;
@@ -492,18 +475,15 @@ export const openAnimalProfile = (animalId) => {
     (r) => String(r.cow_id) === String(animalId) && !r.end_date
   );
 
-  // Fill title
   const titleEl = document.getElementById("animalProfileTitle");
   if (titleEl) titleEl.textContent = `Ficha: ${animal.identification}`;
 
-  // Fill status badge
   const statusEl = document.getElementById("animalProfileStatus");
   if (statusEl) {
     statusEl.textContent = animal.status;
     statusEl.className = "status-badge";
   }
 
-  // Fill breeding list
   const breedingListEl = document.getElementById("profileBreedingList");
   if (breedingListEl) {
     if (breedingRecords.length === 0) {
@@ -521,7 +501,6 @@ export const openAnimalProfile = (animalId) => {
     }
   }
 
-  // Fill health list
   const healthListEl = document.getElementById("profileHealthList");
   if (healthListEl) {
     if (healthRecords.length === 0) {
@@ -542,7 +521,6 @@ export const openAnimalProfile = (animalId) => {
     }
   }
 
-  // Fill additional info (type + active lactations)
   const contentEl = document.querySelector("#animalProfileModal .profile-content");
   if (contentEl) {
     let infoHtml = `
@@ -559,7 +537,6 @@ export const openAnimalProfile = (animalId) => {
         </div>
       `;
     }
-    // Insert before first section-title
     const firstSection = contentEl.querySelector(".section-title");
     if (firstSection) {
       let infoContainer = contentEl.querySelector(".profile-info-container");
@@ -572,7 +549,6 @@ export const openAnimalProfile = (animalId) => {
     }
   }
 
-  // Open modal
   const modal = document.getElementById("animalProfileModal");
   if (modal) modal.classList.remove("hidden");
 };
@@ -590,7 +566,6 @@ export const renderBreeding = () => {
     : empty("Nenhuma reprodução registrada", "breeding");
 };
 
-// ─── Medication profiles ────────────────────────────────────────────────────
 export const getUniqueMedicationAnimals = () => {
   const animals = new Map();
   state.animals.forEach((a) => { const key = cowProfileKey(a.identification || a.id); if (!key || animals.has(key)) return; animals.set(key, a); });
@@ -661,7 +636,6 @@ export const renderUpcomingReapplications = () => {
     const reapply = getNextReapplyDate(m);
     if (!reapply) return;
     const { nextDate, daysUntil, interval } = reapply;
-    // Mostra apenas reaplicações futuras ou de hoje (não mostra atrasados)
     if (daysUntil === null || daysUntil < 0 || daysUntil > 14) return;
     
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
@@ -722,17 +696,11 @@ export const renderUpcomingReapplications = () => {
   `;
 };
 
-/**
- * Detects chronic treatment patterns for each animal.
- * Flags cows that received the same medication 3+ times in the last 30 days.
- * @returns {Array} Array of chronic treatment alerts
- */
 export const detectChronicTreatments = () => {
   const today = todayIso();
   const thirtyDaysAgo = addDaysIso(today, -30);
   const chronicAlerts = [];
   
-  // Group medications by cow_id
   const cowMedications = {};
   state.medication.forEach((m) => {
     if (!m.administration_date || !m.cow_id || !m.medication_name) return;
@@ -746,7 +714,6 @@ export const detectChronicTreatments = () => {
     cowMedications[key].dates.push(m.administration_date);
   });
   
-  // Find chronic patterns (3+ treatments in 30 days)
   Object.values(cowMedications).forEach((data) => {
     if (data.count < 3) return;
     
@@ -766,9 +733,6 @@ export const detectChronicTreatments = () => {
   return chronicAlerts;
 };
 
-/**
- * Renders chronic treatment warnings in the medication panel.
- */
 export const renderChronicTreatments = () => {
   const container = $("#chronicTreatments");
   if (!container) return;
@@ -829,7 +793,6 @@ export const renderMedication = (selectedMedicationCowId) => {
     </div>`;
 };
 
-// ─── Crop Dashboard (Lavoura) ───────────────────────────────────────────────
 let cropGroupFilter = "Todas";
 export const setCropGroupFilter = (value) => { cropGroupFilter = value || "Todas"; };
 
@@ -903,7 +866,6 @@ export const renderCropEvents = () => {
     : empty("Nenhum manejo de lavoura registrado", "crop");
 };
 
-// ─── Crop Groups (Lavoura Individual com Dias de Vida) ─────────────────────
 export const renderCropGroups = () => {
   if (!el.cropGroupList) return;
 
@@ -1002,7 +964,6 @@ export const renderStockItems = () => {
     : empty("Nenhum item em estoque cadastrado", "stock");
 };
 
-// ─── Alerts ─────────────────────────────────────────────────────────────────
 export const renderAlertItem = (alert) => {
   const isManual = alert.type === "manual";
   const autoActions = !isManual && !alert.done ? `<div class="item-actions"><button type="button" data-action="confirm-auto-alert" data-id="${escapeHtml(alert.id)}">Confirmar</button><button type="button" class="ghost" data-action="dismiss-auto-alert" data-id="${escapeHtml(alert.id)}">Dispensar</button></div>` : "";
@@ -1026,9 +987,8 @@ export const renderAlerts = () => {
   el.alertList.innerHTML = alerts.length ? alerts.map(renderAlertItem).join("") : empty("Nenhum alerta no momento", "alert");
 };
 
-// ─── Weather ────────────────────────────────────────────────────────────────
 const WEATHER_CACHE_KEY = "last_weather_forecast";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000;
 
 export const renderWeatherForecast = (data) => {
   if (!el.weatherForecast) return;
@@ -1042,17 +1002,14 @@ export const renderWeatherForecast = (data) => {
 export const loadWeatherForecast = async (city) => {
   if (!el.weatherForecast) return;
 
-  // Try to load cached forecast first
   const cached = localStorage.getItem(WEATHER_CACHE_KEY);
   if (cached) {
     try {
       const cacheData = JSON.parse(cached);
       if (cacheData.city === city && cacheData.data && cacheData.timestamp) {
         const isCacheFresh = (Date.now() - cacheData.timestamp) < CACHE_TTL_MS;
-        // Show cached data when offline (even if expired) or when cache is still fresh
         if (!navigator.onLine || isCacheFresh) {
           renderWeatherForecast(cacheData.data);
-          // Show "last updated" indicator
           const updated = new Date(cacheData.timestamp);
           const timeStr = updated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
           const dateStr = updated.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
@@ -1060,15 +1017,12 @@ export const loadWeatherForecast = async (city) => {
             const header = el.weatherForecast.querySelector(".weather-header small");
             if (header) header.textContent = `${escapeHtml(cacheData.data.source || "Open-Meteo")} (Atualizado: ${dateStr} ${timeStr})`;
           }
-          // If offline, don't attempt fetch — just show cached data
           if (!navigator.onLine) return;
         }
-        // If cache is expired and online, treat as cache miss — fall through to fetch
       }
-    } catch { /* invalid cache — ignore */ }
+    } catch { }
   }
 
-  // Show skeleton while loading
   el.weatherForecast.innerHTML = `
     <div class="weather-header skeleton skeleton-card">
       <span>Previsão do tempo</span>
@@ -1085,7 +1039,6 @@ export const loadWeatherForecast = async (city) => {
     clearTimeout(timeoutId);
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
-    // Cache the successful response
     localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ city, data, timestamp: Date.now() }));
     localStorage.setItem(userStorageKey("weather_city"), city);
     renderWeatherForecast(data);
@@ -1093,7 +1046,6 @@ export const loadWeatherForecast = async (city) => {
     if (err.name === "AbortError") {
       throw new Error("Tempo limite excedido. Verifique sua conexão.");
     }
-    // If fetch failed but we have cached data, show it (don't re-render skeleton)
     if (cached) {
       try {
         const cacheData = JSON.parse(cached);
@@ -1101,13 +1053,12 @@ export const loadWeatherForecast = async (city) => {
           renderWeatherForecast(cacheData.data);
           return;
         }
-      } catch { /* ignore */ }
+      } catch { }
     }
     throw err;
   }
 };
 
-// ─── Reports ────────────────────────────────────────────────────────────────
 let productionChart = null;
 
 const destroyChart = () => {
@@ -1149,7 +1100,6 @@ export const renderReports = () => {
   if (chartRecords.length > 0 && window.Chart && el.productionChart) {
     const ctx = el.productionChart.getContext ? el.productionChart : document.createElement("canvas");
 
-    // Destrói chart anterior antes de criar novo (previne memory leak)
     destroyChart();
 
     el.productionChart.innerHTML = "";
@@ -1174,7 +1124,6 @@ export const renderReports = () => {
   }
 };
 
-// ─── Debounce helper ────────────────────────────────────────────────────────
 const debounce = (fn, ms = 16) => {
   let timer;
   return (...args) => {
@@ -1183,13 +1132,6 @@ const debounce = (fn, ms = 16) => {
   };
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DASHBOARD INTELIGENTE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Renderiza o painel de KPIs inteligentes no dashboard.
- */
 export const renderSmartDashboard = () => {
   const container = $("#smartDashboard");
   if (!container) return;
@@ -1202,17 +1144,14 @@ export const renderSmartDashboard = () => {
   const recommendations = getRecommendationsSummary();
   const forecast = forecastProduction(7);
 
-  // Score color
   const scoreColor = farmScore.score >= 80 ? "excellent" : farmScore.score >= 60 ? "good" : farmScore.score >= 40 ? "regular" : "attention";
 
-  // Trend icon
   const trendIcon = production.hasData
     ? production.trendDirection === "up" ? "📈" : production.trendDirection === "down" ? "📉" : "➡️"
     : "📊";
 
   container.innerHTML = `
     <div class="smart-dashboard">
-      <!-- SCORE DA FAZENDA -->
       <div class="smart-card farm-score-card ${scoreColor}">
         <div class="smart-card-header">
           <span class="smart-icon">🎯</span>
@@ -1225,7 +1164,6 @@ export const renderSmartDashboard = () => {
         <small>${escapeHtml(production.hasData ? `${trendIcon} Tendência ${production.trendDirection === "up" ? "de alta" : production.trendDirection === "down" ? "de queda" : "estável"}` : "Colete mais dados para análise")}</small>
       </div>
 
-      <!-- KPIs DE PRODUÇÃO -->
       <div class="smart-card">
         <div class="smart-card-header">
           <span class="smart-icon">🥛</span>
@@ -1256,7 +1194,6 @@ export const renderSmartDashboard = () => {
         ` : ""}
       </div>
 
-      <!-- KPIs DO REBANHO -->
       <div class="smart-card">
         <div class="smart-card-header">
           <span class="smart-icon">🐄</span>
@@ -1291,7 +1228,6 @@ export const renderSmartDashboard = () => {
         `}
       </div>
 
-      <!-- KPIs FINANCEIROS -->
       <div class="smart-card">
         <div class="smart-card-header">
           <span class="smart-icon">💰</span>
@@ -1317,7 +1253,6 @@ export const renderSmartDashboard = () => {
         </div>
       </div>
 
-      <!-- ANOMALIAS (se houver) -->
       ${anomalies.length > 0 ? `
         <div class="smart-card anomaly-card">
           <div class="smart-card-header">
@@ -1336,7 +1271,6 @@ export const renderSmartDashboard = () => {
         </div>
       ` : ""}
 
-      <!-- RECOMENDAÇÕES TOP 3 -->
       ${recommendations.total > 0 ? `
         <div class="smart-card recommendations-card">
           <div class="smart-card-header">
@@ -1361,9 +1295,6 @@ export const renderSmartDashboard = () => {
   `;
 };
 
-/**
- * Renderiza previsão de produção no painel de relatórios.
- */
 export const renderProductionForecast = () => {
   const container = $("#forecastPanel");
   if (!container) return;
@@ -1396,9 +1327,6 @@ export const renderProductionForecast = () => {
   `;
 };
 
-/**
- * Renderiza recomendações no painel de alertas.
- */
 export const renderRecommendations = () => {
   const container = $("#recommendationList");
   if (!container) return;
@@ -1425,9 +1353,6 @@ export const renderRecommendations = () => {
   `).join("");
 };
 
-/**
- * Renderiza previsão de estoque.
- */
 export const renderStockForecast = () => {
   const container = $("#stockForecastPanel");
   if (!container) return;
@@ -1464,9 +1389,6 @@ export const renderStockForecast = () => {
   `;
 };
 
-/**
- * Renderiza previsão de medicação.
- */
 export const renderMedicationForecast = () => {
   const container = $("#medicationForecastPanel");
   if (!container) return;
@@ -1502,9 +1424,6 @@ export const renderMedicationForecast = () => {
   `;
 };
 
-/**
- * Renderiza previsão de lactação.
- */
 export const renderLactationForecast = () => {
   const container = $("#lactationForecastPanel");
   if (!container) return;
@@ -1538,7 +1457,6 @@ export const renderLactationForecast = () => {
   `;
 };
 
-// ─── Master render (debounced) ──────────────────────────────────────────────
 let _renderScheduled = false;
 let _pendingMedicationCowId = null;
 
@@ -1564,13 +1482,13 @@ const _doRender = () => {
   renderRecommendations();
   renderReports();
   renderProductionForecast();
+  updateHealthBadges();
 };
 
 export const render = (selectedMedicationCowId) => {
   _pendingMedicationCowId = selectedMedicationCowId ?? _pendingMedicationCowId;
   if (_renderScheduled) return;
   _renderScheduled = true;
-  // Use requestAnimationFrame para batch de updates visuais
   if (typeof requestAnimationFrame !== "undefined") {
     requestAnimationFrame(_doRender);
   } else {
@@ -1578,18 +1496,41 @@ export const render = (selectedMedicationCowId) => {
   }
 };
 
-// Versão debounce para chamadas externas que podem ser frecuentes
 export const debouncedRender = debounce((selectedMedicationCowId) => {
   _pendingMedicationCowId = selectedMedicationCowId ?? _pendingMedicationCowId;
   _doRender();
 }, 50);
 
-// ─── Populate cow selects ───────────────────────────────────────────────────
 export const populateCowSelects = () => {
   const options = state.animals.map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.identification)}</option>`).join("");
   ["#lactCowId", "#breedCowId", "#medCowId"].forEach((sel) => { const el = $(sel); if (el) el.innerHTML = options; });
   const medSelect = $("#medCowId");
   if (medSelect) {
     medSelect.innerHTML = getUniqueMedicationAnimals().map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.identification || a.id)}</option>`).join("");
+  }
+};
+
+export const updateHealthBadges = () => {
+  const reapplyBadge = $("#reapplyBadge");
+  const chronicBadge = $("#chronicBadge");
+  
+  if (reapplyBadge) {
+    const upcomingCount = document.querySelectorAll("#upcomingReapply .upcoming-reapply-item").length;
+    if (upcomingCount > 0) {
+      reapplyBadge.textContent = upcomingCount;
+      reapplyBadge.classList.remove("hidden");
+    } else {
+      reapplyBadge.classList.add("hidden");
+    }
+  }
+  
+  if (chronicBadge) {
+    const chronicCount = document.querySelectorAll("#chronicTreatments .chronic-item").length;
+    if (chronicCount > 0) {
+      chronicBadge.textContent = chronicCount;
+      chronicBadge.classList.remove("hidden");
+    } else {
+      chronicBadge.classList.add("hidden");
+    }
   }
 };

@@ -5580,3 +5580,563 @@ button.accordion-toggle:hover {
   background: var(--green-soft);
 }
 
+/* ─── Health Section Styles ─────────────────────────────────────────────── */
+.health-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 480px) {
+  .health-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.health-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  text-align: center;
+  min-height: 80px;
+}
+
+.health-action-card:hover {
+  background: var(--green-soft);
+  border-color: var(--green);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.health-action-card:active {
+  transform: translateY(0);
+}
+
+.health-action-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.health-action-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  line-height: 1.2;
+}
+
+.health-action-badge {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.health-action-badge.hidden {
+  display: none;
+}
+
+/* Health Form Panel */
+.health-form-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+.health-form-panel.hidden {
+  display: none;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.health-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--green-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.health-form-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--green-dark);
+}
+
+.health-form-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--muted);
+  transition: all var(--transition-fast);
+}
+
+.health-form-close:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+/* Health Sections */
+.health-section {
+  margin-bottom: var(--space-3);
+}
+
+.health-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.health-section-header:hover {
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+
+.health-section-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.health-section-arrow {
+  font-size: 0.8rem;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.health-section-header[aria-expanded="true"] .health-section-arrow {
+  transform: rotate(180deg);
+}
+
+.health-section-content {
+  padding: var(--space-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  margin-top: -1px;
+}
+
+.health-section-content.collapsed {
+  display: none;
+}
+
+/* Upcoming Reapply Styles */
+.upcoming-reapply-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.upcoming-reapply-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.upcoming-reapply-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+
+.upcoming-reapply-count.urgent {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.upcoming-reapply-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.upcoming-reapply-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--field);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--green);
+}
+
+.upcoming-reapply-item.today {
+  border-left-color: var(--danger);
+  background: var(--danger-light);
+}
+
+.upcoming-reapply-item.soon {
+  border-left-color: var(--amber);
+  background: var(--amber-light);
+}
+
+.upcoming-reapply-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reapply-med-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.reapply-animal {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.reapply-interval {
+  font-size: 0.75rem;
+  color: var(--muted-light);
+}
+
+.upcoming-reapply-due {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--green-dark);
+  text-align: right;
+}
+
+.upcoming-reapply-due.today {
+  color: var(--danger);
+}
+
+.upcoming-reapply-due.soon {
+  color: var(--amber);
+}
+
+/* Chronic Treatment Styles */
+.chronic-treatment-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.chronic-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--amber-light);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--amber);
+}
+
+.chronic-header span:first-child {
+  font-size: 1.2rem;
+}
+
+.chronic-header strong {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--brand-earth);
+}
+
+.chronic-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--amber);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+
+.chronic-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chronic-item {
+  padding: var(--space-3);
+  background: var(--field);
+  border-radius: var(--radius);
+}
+
+.chronic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-2);
+}
+
+.chronic-animal {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.chronic-med {
+  font-size: 0.85rem;
+  color: var(--green-dark);
+}
+
+.chronic-count-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chronic-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chronic-date {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+
+.chronic-advice {
+  padding: var(--space-3);
+  background: var(--field);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.chronic-advice small {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Medical Workspace */
+.medical-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.medical-cow-tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+}
+
+.medical-cow-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  min-width: 100px;
+  background: var(--field);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.medical-cow-tab:hover {
+  background: var(--green-soft);
+  border-color: var(--green-light);
+}
+
+.medical-cow-tab.active {
+  background: var(--green-light);
+  border-color: var(--green);
+}
+
+.medical-cow-tab span {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.medical-cow-tab small {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.medical-cow-tab em {
+  font-size: 0.7rem;
+  color: var(--green-dark);
+  font-style: normal;
+}
+
+/* Medical Record Card */
+.medical-record-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.medical-record-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: var(--green-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.medical-record-head div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.medical-record-head span {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.medical-record-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.medical-record-head small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.medical-record-head strong {
+  font-size: 0.8rem;
+  color: var(--green-dark);
+}
+
+.medical-record-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--field);
+  border-bottom: 1px solid var(--line);
+}
+
+.medical-record-summary span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.medical-record-summary small {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.medical-record-summary strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.medical-history {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.medical-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--field);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--green);
+}
+
+.medical-history-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.medical-history-item span {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.medical-history-item small {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.medical-history-item strong {
+  font-size: 0.85rem;
+  color: var(--green-dark);
+}
+
