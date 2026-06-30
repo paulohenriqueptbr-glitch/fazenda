@@ -113,8 +113,12 @@ export const normalizeCropEventInput = (data) => {
   if (!isValidDate(eventDate)) throw new Error("Data invalida");
   if (!isNotFutureDate(eventDate)) throw new Error("Nao pode registrar manejo futuro");
   if (areaTasks === null && areaRaw !== "" && areaRaw !== null && areaRaw !== undefined) throw new Error("Area em tarefas invalida");
+  const allowedGroups = ["Milho/Sorgo", "Palma Forrageira", "Outra"];
+  const cropGroupRaw = cleanText(data.crop_group ?? data.cropGroup, 40);
+  const cropGroup = allowedGroups.includes(cropGroupRaw) ? cropGroupRaw : "Milho/Sorgo";
   return {
     plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate,
+    crop_group: cropGroup,
     product: optionalText(data.product, 120), dosage: optionalText(data.dosage, 80),
     area_tasks: areaTasks, notes: optionalText(data.notes, 500),
   };

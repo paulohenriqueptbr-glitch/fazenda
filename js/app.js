@@ -14,7 +14,7 @@ import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterv
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
-  openAnimalProfile,
+  openAnimalProfile, renderCropGroups, setCropGroupFilter,
 } from "./render.js";
 import { log, warn, error } from "./logger.js";
 import { initPushNotifications, checkPushAlerts } from "./push.js";
@@ -23,6 +23,17 @@ import { setupInstallPrompt, setupInstallListeners } from "./install.js";
 
 // ─── Onboarding ─────────────────────────────────────────────────────────────
 const hideOnboarding = () => { if (el.onboardingModal) el.onboardingModal.classList.add("hidden"); };
+
+const syncCropConditionalFields = () => {
+  const select = $("#cropEventType");
+  if (!select) return;
+  const value = select.value;
+  document.querySelectorAll(".crop-form-conditional").forEach((block) => {
+    const allowed = (block.dataset.cropFields || "").split(",").map((s) => s.trim());
+    block.classList.toggle("hidden", !allowed.includes(value));
+  });
+};
+
 
 const maybeShowOnboarding = () => {
   if (!el.onboardingModal || !currentUserId) return;
@@ -166,7 +177,7 @@ const initApp = () => {
           else if (type === "lactation") { const dl = validateNumber(data.daily_liters, 0, 500); if (dl === null) throw new Error("Litros/dia inválido"); if (data.end_date && !isValidDateRange(record.start_date, data.end_date)) throw new Error("Data de fim inválida"); await updateRecord(type, id, { daily_liters: dl, end_date: data.end_date || null }); }
           else if (type === "breeding") { if (!isValidDate(data.expected_calving_date)) throw new Error("Data inválida"); await updateRecord(type, id, { expected_calving_date: data.expected_calving_date }); }
           else if (type === "medication") { if (!data.medication_name?.trim()) throw new Error("Medicamento inválido"); if (!isValidDate(data.administration_date)) throw new Error("Data inválida"); await updateRecord(type, id, { medication_name: data.medication_name.trim(), dosage: (data.dosage || "").trim(), administration_date: data.administration_date }); }
-          else if (type === "crop") { await updateRecord(type, id, { plot_name: (data.plot_name || "").trim(), crop_name: (data.crop_name || "").trim(), event_type: (data.event_type || "").trim(), event_date: data.event_date, product: (data.product || "").trim().substring(0, 120) || null, dosage: (data.dosage || "").trim().substring(0, 80) || null, area_tasks: data.area_tasks ? validateNumber(data.area_tasks, 0, 100000) : null, notes: (data.notes || "").trim().substring(0, 500) || null }); }
+          else if (type === "crop") { await updateRecord(type, id, { crop_group: (data.crop_group || "Milho/Sorgo").trim(), plot_name: (data.plot_name || "").trim(), crop_name: (data.crop_name || "").trim(), event_type: (data.event_type || "").trim(), event_date: data.event_date, product: (data.product || "").trim().substring(0, 120) || null, dosage: (data.dosage || "").trim().substring(0, 80) || null, area_tasks: data.area_tasks ? validateNumber(data.area_tasks, 0, 100000) : null, notes: (data.notes || "").trim().substring(0, 500) || null }); }
           else if (type === "stock") { await updateRecord(type, id, data); }
           else if (type === "reminder") { await updateRecord(type, id, { ...data, done: Boolean(record.done), completed_at: record.completed_at || null }); }
           populateCowSelects(); render(); showToast("Registro atualizado com sucesso!");
@@ -228,6 +239,26 @@ const initApp = () => {
       event.preventDefault();
       header.click();
     });
+  }
+
+  // Crop filter tabs (Todas / Milho-Sorgo / Palma / Outra)
+  if (el.cropGroupFilter && !el.cropGroupFilter._attached) {
+    el.cropGroupFilter._attached = true;
+    el.cropGroupFilter.addEventListener("click", (event) => {
+      const tab = event.target.closest(".crop-filter-tab");
+      if (!tab) return;
+      el.cropGroupFilter.querySelectorAll(".crop-filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      setCropGroupFilter(tab.dataset.cropFilter);
+      renderCropGroups();
+    });
+  }
+
+  // Crop form: show only the fields relevant to the selected manejo type
+  const cropEventTypeSelect = $("#cropEventType");
+  if (cropEventTypeSelect && !cropEventTypeSelect._conditionalAttached) {
+    cropEventTypeSelect._conditionalAttached = true;
+    cropEventTypeSelect.addEventListener("change", syncCropConditionalFields);
+    syncCropConditionalFields();
   }
 
   // Insemination auto-fill
@@ -477,8 +508,8 @@ const initApp = () => {
         if (!isValidDate(eventDate)) throw new Error("Data inválida");
         if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
         if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
-        await insertCropEvent({ plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
-        el.cropForm.reset(); $("#cropDate").value = todayIso(); render(); showToast("Manejo da lavoura salvo!");
+        await insertCropEvent({ crop_group: $("#cropGroup").value, plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
+        el.cropForm.reset(); $("#cropDate").value = todayIso(); syncCropConditionalFields(); render(); showToast("Manejo da lavoura salvo!");
       } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar manejo", "error"); }
     }, "Salvando..."));
   }

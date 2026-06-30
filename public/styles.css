@@ -5352,6 +5352,191 @@ button {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+   CROP DASHBOARD — Stats, filtros e formulário inteligente
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.crop-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.crop-stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--panel);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
+}
+
+.crop-stat-card strong {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.crop-stat-card small {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.crop-stat-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.crop-stat-warn {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: var(--amber-light);
+}
+
+.crop-stat-warn strong {
+  color: #b45309;
+}
+
+.crop-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.crop-filter-tabs {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.crop-filter-tab {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-light);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.crop-filter-tab:hover {
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.crop-filter-tab.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.crop-add-toggle {
+  width: auto;
+  white-space: nowrap;
+}
+
+.crop-form-conditional {
+  display: contents;
+}
+
+.crop-form-conditional.hidden {
+  display: none;
+}
+
+.crop-form-conditional.hidden label,
+.crop-form-conditional.hidden input,
+.crop-form-conditional.hidden select,
+.crop-form-conditional.hidden textarea {
+  display: none;
+}
+
+.crop-attention-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--amber-light);
+  color: #b45309;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.crop-group-card-stale {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.crop-tag-milho {
+  background: var(--amber-light);
+  color: #92400e;
+}
+
+.crop-tag-palma {
+  background: var(--green-light);
+  color: var(--green-dark);
+}
+
+.crop-tag-outra {
+  background: var(--blue-light);
+  color: #1d4ed8;
+}
+
+[data-theme="dark"] .crop-stat-card {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .crop-stat-warn {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+[data-theme="dark"] .crop-filter-tab {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .crop-attention-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .crop-tag-milho {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .crop-tag-outra {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+@media (max-width: 720px) {
+  .crop-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .crop-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crop-add-toggle {
+    width: 100%;
+    text-align: left;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
    DOSAGE SUGGESTION - Auto-dose by weight
    ═══════════════════════════════════════════════════════════════════════════════ */
 

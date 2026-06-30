@@ -58,6 +58,8 @@ export const el = {
   medicationList: $("#medicationList"),
   cropEventList: $("#cropEventList"),
   cropGroupList: $("#cropGroupList"),
+  cropStats: $("#cropStats"),
+  cropGroupFilter: $("#cropGroupFilter"),
   stockList: $("#stockList"),
   alertList: $("#alertList"),
   milkForm: $("#milkForm"),
@@ -827,6 +829,68 @@ export const renderMedication = (selectedMedicationCowId) => {
     </div>`;
 };
 
+// ─── Crop Dashboard (Lavoura) ───────────────────────────────────────────────
+let cropGroupFilter = "Todas";
+export const setCropGroupFilter = (value) => { cropGroupFilter = value || "Todas"; };
+
+const CROP_GROUP_CLASS = {
+  "Milho/Sorgo": "crop-tag-milho",
+  "Palma Forrageira": "crop-tag-palma",
+  "Outra": "crop-tag-outra",
+};
+
+const buildCropGroupsMap = () => {
+  const groups = new Map();
+  state.cropEvents.forEach((r) => {
+    const cropGroup = r.crop_group || "Milho/Sorgo";
+    const key = `${cropGroup}|||${r.plot_name}|||${r.crop_name}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        plot_name: r.plot_name,
+        crop_name: r.crop_name,
+        crop_group: cropGroup,
+        events: [],
+        plantingDate: null,
+        lastEventDate: null,
+      });
+    }
+    const group = groups.get(key);
+    group.events.push(r);
+    if (r.event_type === "Plantio" && r.event_date) {
+      if (!group.plantingDate || r.event_date < group.plantingDate) group.plantingDate = r.event_date;
+    }
+    if (r.event_date && (!group.lastEventDate || r.event_date > group.lastEventDate)) group.lastEventDate = r.event_date;
+  });
+  return groups;
+};
+
+export const renderCropStats = () => {
+  if (!el.cropStats) return;
+  const today = todayIso();
+  const groups = buildCropGroupsMap();
+  const totalLavouras = groups.size;
+  const monthRecords = state.cropEvents.filter((r) => String(r.event_date || "").startsWith(monthKey()));
+  const stale = [...groups.values()].filter((g) => g.lastEventDate && diffDays(g.lastEventDate, today) > 15).length;
+  const lastEvent = [...state.cropEvents].sort((a, b) => String(b.event_date || "").localeCompare(String(a.event_date || "")))[0];
+
+  const cards = [
+    { label: "Lavouras ativas", value: totalLavouras, icon: "&#127793;" },
+    { label: "Eventos este mês", value: monthRecords.length, icon: "&#128197;" },
+    { label: "Sem atividade +15 dias", value: stale, icon: "&#9888;&#65039;", warn: stale > 0 },
+    { label: "Última atividade", value: lastEvent ? formatDate(lastEvent.event_date) : "—", icon: "&#128338;" },
+  ];
+
+  el.cropStats.innerHTML = cards.map((c) => `
+    <div class="crop-stat-card ${c.warn ? "crop-stat-warn" : ""}">
+      <span class="crop-stat-icon">${c.icon}</span>
+      <div>
+        <strong>${escapeHtml(String(c.value))}</strong>
+        <small>${escapeHtml(c.label)}</small>
+      </div>
+    </div>
+  `).join("");
+};
+
 export const renderCropEvents = () => {
   if (!el.cropEventList) return;
   const records = [...state.cropEvents].sort((a, b) => String(b.event_date || "").localeCompare(String(a.event_date || "")));
@@ -843,44 +907,38 @@ export const renderCropEvents = () => {
 export const renderCropGroups = () => {
   if (!el.cropGroupList) return;
 
-  const today = todayIso();
-  const groups = new Map();
+  renderCropStats();
 
-  state.cropEvents.forEach((r) => {
-    const key = `${r.plot_name}|||${r.crop_name}`;
-    if (!groups.has(key)) {
-      groups.set(key, {
-        plot_name: r.plot_name,
-        crop_name: r.crop_name,
-        crop_group: r.crop_group || "",
-        events: [],
-        plantingDate: null,
-      });
-    }
-    const group = groups.get(key);
-    group.events.push(r);
-    if (r.event_type === "Plantio" && r.event_date) {
-      if (!group.plantingDate || r.event_date < group.plantingDate) {
-        group.plantingDate = r.event_date;
-      }
-    }
-  });
+  const today = todayIso();
+  const groups = buildCropGroupsMap();
 
   if (groups.size === 0) {
-    el.cropGroupList.innerHTML = "";
+    el.cropGroupList.innerHTML = empty("Nenhuma lavoura cadastrada ainda. Adicione o primeiro manejo acima.", "crop");
     return;
   }
 
-  const sortedGroups = [...groups.values()].sort((a, b) => {
-    const dateA = a.plantingDate || "";
-    const dateB = b.plantingDate || "";
+  let filtered = [...groups.values()];
+  if (cropGroupFilter && cropGroupFilter !== "Todas") filtered = filtered.filter((g) => g.crop_group === cropGroupFilter);
+
+  if (filtered.length === 0) {
+    el.cropGroupList.innerHTML = empty(`Nenhuma lavoura em "${cropGroupFilter}"`, "crop");
+    return;
+  }
+
+  const sortedGroups = filtered.sort((a, b) => {
+    const dateA = a.plantingDate || a.lastEventDate || "";
+    const dateB = b.plantingDate || b.lastEventDate || "";
     return dateB.localeCompare(dateA);
   });
 
   el.cropGroupList.innerHTML = sortedGroups.map((group) => {
     const daysAlive = group.plantingDate ? diffDays(group.plantingDate, today) : null;
-    const groupBadge = group.crop_group
-      ? `<span class="crop-group-badge">${escapeHtml(group.crop_group)}</span>`
+    const daysSinceLast = group.lastEventDate ? diffDays(group.lastEventDate, today) : null;
+    const isStale = daysSinceLast !== null && daysSinceLast > 15;
+    const groupTagClass = CROP_GROUP_CLASS[group.crop_group] || "crop-tag-outra";
+    const groupBadge = `<span class="crop-group-badge ${groupTagClass}">${escapeHtml(group.crop_group)}</span>`;
+    const attentionBadge = isStale
+      ? `<span class="crop-attention-badge">&#9888;&#65039; ${daysSinceLast} dias sem atividade</span>`
       : "";
     const daysDisplay = daysAlive !== null
       ? `<span class="crop-days-number">${daysAlive}</span><span class="crop-days-label">dias</span>`
@@ -893,13 +951,15 @@ export const renderCropGroups = () => {
           <div>
             <span>${escapeHtml(r.event_type)}</span>
             <small>${escapeHtml(formatDate(r.event_date))}${r.product ? ` | ${escapeHtml(r.product)}` : ""}${r.dosage ? ` | ${escapeHtml(r.dosage)}` : ""}</small>
+            ${r.notes ? `<small>${escapeHtml(r.notes)}</small>` : ""}
           </div>
           <strong>${escapeHtml(formatTasks(r.area_tasks) || r.event_type)}</strong>
+          ${recordActions("crop", r)}
         </article>
       `).join("");
 
     return `
-      <div class="crop-group-card" data-crop-group-key="${escapeHtml(group.plot_name + "|||" + group.crop_name)}">
+      <div class="crop-group-card ${isStale ? "crop-group-card-stale" : ""}" data-crop-group-key="${escapeHtml(group.plot_name + "|||" + group.crop_name)}">
         <div class="crop-group-header" role="button" tabindex="0" aria-expanded="false">
           <div class="crop-group-info">
             <div class="crop-group-title-row">
@@ -909,6 +969,7 @@ export const renderCropGroups = () => {
             <div class="crop-group-meta">
               ${groupBadge}
               <span class="crop-event-count">${group.events.length} evento${group.events.length === 1 ? "" : "s"}</span>
+              ${attentionBadge}
             </div>
           </div>
           <div class="crop-group-days">

@@ -244,19 +244,31 @@
     <div id="medicationList" class="list accordion-content"></div>
   </section>
 
-  <section id="crops" class="panel">
+  <section id="crops" class="panel crops-panel">
     <div class="panel-head">
       <div>
         <span>Manejo agricola</span>
         <h2>&#127793; Lavoura</h2>
       </div>
-      <p>Controle plantio, insumos, tarefas e observações de campo.</p>
+      <p>Acompanhe cada talhão, da plantação à colheita, em um só lugar.</p>
     </div>
-    <button type="button" class="accordion-toggle" data-target="cropFormWrap" style="width:100%;text-align:left;">
-      &#10133; Adicionar novo manejo <span class="accordion-arrow">&#9660;</span>
-    </button>
+
+    <div id="cropStats" class="crop-stats-grid"></div>
+
+    <div class="crop-toolbar">
+      <div id="cropGroupFilter" class="crop-filter-tabs" role="tablist" aria-label="Filtrar por lavoura">
+        <button type="button" class="crop-filter-tab active" data-crop-filter="Todas">Todas</button>
+        <button type="button" class="crop-filter-tab" data-crop-filter="Milho/Sorgo">Milho/Sorgo</button>
+        <button type="button" class="crop-filter-tab" data-crop-filter="Palma Forrageira">Palma Forrageira</button>
+        <button type="button" class="crop-filter-tab" data-crop-filter="Outra">Outra</button>
+      </div>
+      <button type="button" class="accordion-toggle crop-add-toggle" data-target="cropFormWrap">
+        &#10133; Novo manejo <span class="accordion-arrow">&#9660;</span>
+      </button>
+    </div>
+
     <div id="cropFormWrap" class="accordion-content collapsed">
-      <form id="cropForm" class="form-grid">
+      <form id="cropForm" class="form-grid crop-form">
         <label for="cropGroup">Lavoura</label>
         <select id="cropGroup">
           <option value="Milho/Sorgo">Milho/Sorgo</option>
@@ -278,21 +290,29 @@
         </select>
         <label for="cropDate">Data</label>
         <input id="cropDate" type="date" required>
-        <label for="cropProduct">Produto/insumo</label>
-        <input id="cropProduct" type="text" placeholder="Opcional">
-        <label for="cropDosage">Dosagem</label>
-        <input id="cropDosage" type="text" placeholder="Ex.: 2 L/tarefa">
-        <label for="cropAreaTasks">Área (tarefas)</label>
-        <input id="cropAreaTasks" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 3">
+
+        <div class="crop-form-conditional" data-crop-fields="Pulverização,Adubação">
+          <label for="cropProduct">Produto/insumo</label>
+          <input id="cropProduct" type="text" placeholder="Ex.: Ureia, Atrazina">
+          <label for="cropDosage">Dosagem</label>
+          <input id="cropDosage" type="text" placeholder="Ex.: 2 L/tarefa">
+        </div>
+
+        <div class="crop-form-conditional" data-crop-fields="Plantio,Colheita,Irrigação">
+          <label for="cropAreaTasks">Área (tarefas)</label>
+          <input id="cropAreaTasks" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 3">
+        </div>
+
         <label for="cropNotes">Observações</label>
         <textarea id="cropNotes" rows="3" placeholder="Detalhes do manejo"></textarea>
         <button type="submit">Salvar manejo</button>
       </form>
     </div>
-    <div class="section-title accordion-toggle" data-target="cropGroupList" role="button" tabindex="0"><h2>&#127793; Lavouras <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="cropGroupList" class="list crop-group-list accordion-content"></div>
-    <div class="section-title accordion-toggle" data-target="cropEventList" role="button" tabindex="0"><h2>&#127793; Manejos <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="cropEventList" class="list accordion-content"></div>
+
+    <div id="cropGroupList" class="list crop-group-list"></div>
+
+    <div class="section-title accordion-toggle" data-target="cropEventList" role="button" tabindex="0"><h2>&#128203; Histórico completo <span class="accordion-arrow">&#9660;</span></h2></div>
+    <div id="cropEventList" class="list accordion-content collapsed"></div>
   </section>
 
   <section id="stock" class="panel">
