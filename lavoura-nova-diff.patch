@@ -1,0 +1,147 @@
+diff --git a/index.html b/index.html
+index 17175408..9b9df32d 100644
+--- a/index.html
++++ b/index.html
+@@ -264,7 +264,14 @@
+           <option value="Outra">Outra</option>
+         </select>
+         <label for="cropPlot">Talhão/área</label>
+-        <input id="cropPlot" type="text" placeholder="Ex.: Talhão 1" required>
++        <select id="cropPlot" required>
++          <option value="">Selecione...</option>
++          <option value="__new__">&#10133; Nova lavoura...</option>
++        </select>
++        <div id="cropPlotNewWrap" class="crop-plot-new-wrap hidden">
++          <label for="cropPlotNew">Nome da nova lavoura</label>
++          <input id="cropPlotNew" type="text" placeholder="Ex.: Talhão 2 - Milho" maxlength="100">
++        </div>
+         <label for="cropName">Cultura</label>
+         <input id="cropName" type="text" placeholder="Ex.: Milho, Sorgo, Palma" required>
+         <label for="cropEventType">Manejo</label>
+diff --git a/js/app.js b/js/app.js
+index 31d2502e..be21e1ed 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -461,24 +461,35 @@ const initApp = () => {
+     } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar medicação", "error"); }
+   }, "Registrando..."));
+ 
++  if (el.cropPlot) {
++    el.cropPlot.addEventListener("change", () => {
++      const isNew = el.cropPlot.value === "__new__";
++      if (el.cropPlotNewWrap) el.cropPlotNewWrap.classList.toggle("hidden", !isNew);
++      if (isNew && el.cropPlotNew) el.cropPlotNew.focus();
++    });
++  }
++
+   if (el.cropForm) {
+     el.cropForm.addEventListener("submit", withButtonLoading(el.cropForm, async (event) => {
+       event.preventDefault();
+       try {
+-        const plotName = $("#cropPlot").value.trim();
++        const plotSelectValue = $("#cropPlot").value.trim();
++        const plotName = plotSelectValue === "__new__" ? $("#cropPlotNew").value.trim() : plotSelectValue;
+         const cropName = $("#cropName").value.trim();
+         const eventType = $("#cropEventType").value.trim();
+         const eventDate = $("#cropDate").value;
+         const areaTasksRaw = $("#cropAreaTasks").value;
+         const areaTasks = areaTasksRaw ? validateNumber(areaTasksRaw, 0, 100000) : null;
+-        if (!plotName || plotName.length > 100) throw new Error("Talhão/área deve ter 1-100 caracteres");
++        if (!plotSelectValue) throw new Error("Selecione uma lavoura ou crie uma nova");
++        if (!plotName || plotName.length > 100) throw new Error("Nome da lavoura deve ter 1-100 caracteres");
+         if (!cropName || cropName.length > 100) throw new Error("Cultura deve ter 1-100 caracteres");
+         if (!eventType || eventType.length > 80) throw new Error("Manejo deve ter 1-80 caracteres");
+         if (!isValidDate(eventDate)) throw new Error("Data inválida");
+         if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
+         if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
+         await insertCropEvent({ plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
+-        el.cropForm.reset(); $("#cropDate").value = todayIso(); render(); showToast("Manejo da lavoura salvo!");
++        const wasNewPlot = plotSelectValue === "__new__";
++        el.cropForm.reset(); $("#cropDate").value = todayIso(); if (el.cropPlotNewWrap) el.cropPlotNewWrap.classList.add("hidden"); render(); showToast(wasNewPlot ? `Nova lavoura "${plotName}" criada!` : "Manejo da lavoura salvo!");
+       } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar manejo", "error"); }
+     }, "Salvando..."));
+   }
+diff --git a/js/render.js b/js/render.js
+index cabd82fc..0a46284f 100644
+--- a/js/render.js
++++ b/js/render.js
+@@ -58,6 +58,9 @@ export const el = {
+   medicationList: $("#medicationList"),
+   cropEventList: $("#cropEventList"),
+   cropGroupList: $("#cropGroupList"),
++  cropPlot: $("#cropPlot"),
++  cropPlotNewWrap: $("#cropPlotNewWrap"),
++  cropPlotNew: $("#cropPlotNew"),
+   stockList: $("#stockList"),
+   alertList: $("#alertList"),
+   milkForm: $("#milkForm"),
+@@ -839,6 +842,23 @@ export const renderCropEvents = () => {
+     : empty("Nenhum manejo de lavoura registrado", "crop");
+ };
+ 
++// ─── Crop Plot select (popula lavouras existentes + opção "Nova lavoura") ──
++export const populateCropPlotOptions = () => {
++  const select = el.cropPlot;
++  if (!select) return;
++  const currentValue = select.value;
++  const plots = [...new Set(state.cropEvents.map((r) => r.plot_name).filter(Boolean))]
++    .sort((a, b) => a.localeCompare(b, "pt-BR"));
++  select.innerHTML = `
++    <option value="">Selecione...</option>
++    <option value="__new__">&#10133; Nova lavoura...</option>
++    ${plots.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}
++  `;
++  if (currentValue && (currentValue === "__new__" || plots.includes(currentValue))) {
++    select.value = currentValue;
++  }
++};
++
+ // ─── Crop Groups (Lavoura Individual com Dias de Vida) ─────────────────────
+ export const renderCropGroups = () => {
+   if (!el.cropGroupList) return;
+@@ -1494,6 +1514,7 @@ const _doRender = () => {
+   renderMedication(_pendingMedicationCowId);
+   renderCropEvents();
+   renderCropGroups();
++  populateCropPlotOptions();
+   renderStockItems();
+   renderStockForecast();
+   renderMedicationForecast();
+diff --git a/public/styles.css b/public/styles.css
+index 12924899..83f97f08 100644
+--- a/public/styles.css
++++ b/public/styles.css
+@@ -5236,6 +5236,33 @@ button {
+   font-weight: 700;
+ }
+ 
++.crop-plot-new-wrap {
++  grid-column: 1 / -1;
++  display: flex;
++  flex-direction: column;
++  gap: 4px;
++  padding: var(--space-3);
++  background: var(--green-soft);
++  border: 1px solid var(--green-light);
++  border-radius: var(--radius);
++  margin-bottom: var(--space-2);
++}
++
++.crop-plot-new-wrap label {
++  font-size: 0.78rem;
++  font-weight: 600;
++  color: var(--green-dark);
++}
++
++[data-theme="dark"] .crop-plot-new-wrap {
++  background: rgba(16, 185, 129, 0.08);
++  border-color: rgba(16, 185, 129, 0.25);
++}
++
++[data-theme="dark"] .crop-plot-new-wrap label {
++  color: var(--green-vivid);
++}
++
+ .crop-event-count {
+   font-size: 0.78rem;
+   color: var(--muted);
