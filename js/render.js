@@ -741,21 +741,13 @@ export const renderMedication = (selectedMedicationCowId) => {
   renderUpcomingReapplications();
   renderChronicTreatments();
   const profiles = getMedicationCowProfiles();
-  const selectedProfile = getSelectedMedicationProfile(profiles, selectedMedicationCowId);
   const medCowSelect = $("#medCowId");
   if (!profiles.length) { el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica", "medication"); return; }
-  if (selectedProfile && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedProfile.id))) medCowSelect.value = selectedProfile.id;
-  el.medicationList.innerHTML = `
-    <div class="medical-workspace">
-      <div class="medical-cow-tabs" role="tablist" aria-label="Fichas médicas das vacas">${profiles.map((p) => {
-        const active = (p.ids || [p.id]).some((id) => (selectedProfile?.ids || [selectedProfile?.id]).some((sid) => cowIdKey(id) === cowIdKey(sid)));
-        const last = p.records[0];
-        const countText = `${p.records.length} ${p.records.length === 1 ? "registro" : "registros"}`;
-        const dateText = last ? formatDate(last.administration_date) : "Sem medicação";
-        return `<button class="medical-cow-tab ${active ? "active" : ""}" type="button" data-medical-cow-id="${escapeHtml(p.id)}" role="tab" aria-selected="${active ? "true" : "false"}"><span>${escapeHtml(p.label)}</span><small>${escapeHtml(countText)}</small><em>${escapeHtml(dateText)}</em></button>`;
-      }).join("")}</div>
-      <div class="medical-record-panel" role="tabpanel">${selectedProfile ? renderMedicalCowRecord(selectedProfile) : empty("Selecione uma vaca para abrir a ficha médica", "medical")}</div>
-    </div>`;
+  if (selectedMedicationCowId && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedMedicationCowId))) medCowSelect.value = selectedMedicationCowId;
+  el.medicationList.innerHTML = `<div class="med-cards-grid">${profiles.map((p) => {
+    const isExpanded = selectedMedicationCowId && (p.ids || [p.id]).some((id) => cowIdKey(id) === cowIdKey(selectedMedicationCowId));
+    return renderMedicalCowRecord(p, isExpanded);
+  }).join("")}</div>`;
 };
 
 export const renderCropEvents = () => {
@@ -1427,7 +1419,6 @@ const _doRender = () => {
   renderCropGroups();
   renderStockItems();
   renderStockForecast();
-  renderMedicationForecast();
   renderLactationForecast();
   renderAlerts();
   updateAlertsBadge();
