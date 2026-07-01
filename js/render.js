@@ -732,40 +732,9 @@ export const detectChronicTreatments = () => {
 export const renderChronicTreatments = () => {
   const container = $("#chronicTreatments");
   if (!container) return;
-  
-  const chronicAlerts = detectChronicTreatments();
-  
-  if (chronicAlerts.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-  
-  container.innerHTML = `
-    <div class="chronic-treatment-panel">
-      <div class="chronic-header">
-        <span>⚠️</span>
-        <strong>Tratamentos Recorrentes</strong>
-        <span class="chronic-count">${chronicAlerts.length}</span>
-      </div>
-      <div class="chronic-list">
-        ${chronicAlerts.map((alert) => `
-          <div class="chronic-item">
-            <div class="chronic-info">
-              <span class="chronic-animal">${escapeHtml(alert.animal_name)}</span>
-              <span class="chronic-med">${escapeHtml(alert.medication_name)}</span>
-              <span class="chronic-count-label">${alert.treatment_count} aplicações em 30 dias</span>
-            </div>
-            <div class="chronic-dates">
-              ${alert.dates.map((d) => `<span class="chronic-date">${formatDate(d)}</span>`).join("")}
-            </div>
-          </div>
-        `).join("")}
-      </div>
-      <div class="chronic-advice">
-        <small>💡 Considere consultar um veterinário sobre padrões recorrentes de tratamento.</small>
-      </div>
-    </div>
-  `;
+  const alerts = detectChronicTreatments();
+  if (!alerts.length) { container.innerHTML = ""; return; }
+  container.innerHTML = `<div class="med-alert-bar-inner warning"><span class="med-alert-icon">&#9888;&#65039;</span><span class="med-alert-text">${alerts.length} tratamento${alerts.length > 1 ? "s" : ""} recorrente${alerts.length > 1 ? "s" : ""}</span></div>`;
 };
 
 export const renderMedication = (selectedMedicationCowId) => {
