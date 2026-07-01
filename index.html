@@ -210,10 +210,11 @@
     <div class="panel-head">
       <div>
         <span>Sanidade</span>
-        <h2>&#129657; Fichas médicas</h2>
+        <h2>&#129657; Saúde</h2>
       </div>
-      <p>Controle medicamentos, reaplicações e histórico de cada vaca.</p>
     </div>
+    <div id="upcomingReapply" class="med-alert-bar"></div>
+    <div id="chronicTreatments" class="med-alert-bar"></div>
     <button type="button" class="accordion-toggle" data-target="medFormWrap" style="width:100%;text-align:left;">
       &#10133; Registrar medicação <span class="accordion-arrow">&#9660;</span>
     </button>
@@ -235,14 +236,7 @@
         <button type="submit">Registrar medicação</button>
       </form>
     </div>
-    <div class="section-title accordion-toggle" data-target="upcomingReapply" role="button" tabindex="0"><h2>&#9200; Próximas reaplicações <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="upcomingReapply" class="accordion-content"></div>
-    <div class="section-title accordion-toggle" data-target="chronicTreatments" role="button" tabindex="0"><h2>&#9888;&#65039; Tratamentos crônicos <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="chronicTreatments" class="accordion-content"></div>
-    <div class="section-title accordion-toggle" data-target="medicationForecastPanel" role="button" tabindex="0"><h2>&#128202; Previsão de medicamentos <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="medicationForecastPanel" class="accordion-content"></div>
-    <div class="section-title accordion-toggle" data-target="medicationList" role="button" tabindex="0"><h2>&#129657; Fichas médicas das vacas <span class="accordion-arrow">&#9660;</span></h2></div>
-    <div id="medicationList" class="list accordion-content"></div>
+    <div id="medicationList" class="list"></div>
   </section>
 
   <section id="crops" class="panel">

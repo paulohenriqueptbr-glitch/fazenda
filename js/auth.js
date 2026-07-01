@@ -189,7 +189,8 @@ export const authErrorMessage = (error) => {
 };
 
 export const handleSupabaseError = (err, context = "") => {
-  error(`Erro Supabase${context ? ` [${context}]` : ""}:`, err);
+  const detail = err?.message || err?.code || err?.details || err?.hint || String(err);
+  error(`Erro Supabase${context ? ` [${context}]` : ""}:`, detail, err);
   const message = supabaseErrorMessage(err);
   showToast(message, "error");
   return message;

@@ -630,94 +630,56 @@ export const getSelectedMedicationProfile = (profiles, selectedMedicationCowId) 
   return profiles.find((p) => p.records.length > 0) || profiles[0];
 };
 
-const renderMedicalCowRecord = (profile) => {
+const renderMedicalCowRecord = (profile, isExpanded) => {
   const records = profile.records;
   const last = records[0];
-  const info = [profile.type, profile.status].filter(Boolean).join(" | ");
-  const countLabel = `${records.length} ${records.length === 1 ? "registro" : "registros"}`;
+  const info = [profile.type, profile.status].filter(Boolean).join(" · ");
   return `
-    <article class="medical-record-card">
-      <header class="medical-record-head"><div><span>Ficha médica</span><h3>${escapeHtml(profile.label)}</h3><small>${escapeHtml(info || "Dados do rebanho")}</small></div><strong>${escapeHtml(countLabel)}</strong></header>
-      <div class="medical-record-summary">
-        <span><small>Total</small><strong>${escapeHtml(String(records.length))}</strong></span>
-        <span><small>Última aplicação</small><strong>${escapeHtml(last ? formatDate(last.administration_date) : "-")}</strong></span>
-        <span><small>Último medicamento</small><strong>${escapeHtml(last?.medication_name || "-")}</strong></span>
+    <article class="med-animal-card${isExpanded ? " expanded" : ""}" data-medical-cow-id="${escapeHtml(profile.id)}">
+      <div class="med-card-header">
+        <div class="med-card-title">
+          <h3>${escapeHtml(profile.label)}</h3>
+          ${info ? `<small>${escapeHtml(info)}</small>` : ""}
+        </div>
+        <div class="med-card-meta">
+          <span class="med-card-count">${records.length}</span>
+          <span class="med-card-label">${records.length === 1 ? "registro" : "registros"}</span>
+        </div>
       </div>
-      <div class="medical-history">${records.length ? records.map((r, i) => { const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : ""; const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "Sem dosagem"; return `<article class="item medical-history-item"><div><span>${escapeHtml(medName)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(dosageDisplay)}</strong>${recordActions("medication", r)}</article>`; }).join("") : empty("Nenhuma medicação registrada para esta vaca", "medication")}</div>
+      <div class="med-card-summary">
+        <span>${escapeHtml(last?.medication_name || "Sem medicação")}</span>
+        <em>${escapeHtml(last ? formatDate(last.administration_date) : "")}</em>
+      </div>
+      <div class="med-card-history">${records.length ? records.map((r) => {
+        const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : "";
+        const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "";
+        return `<article class="item medical-history-item"><div><span>${escapeHtml(medName)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(dosageDisplay)}</strong>${recordActions("medication", r)}</article>`;
+      }).join("") : '<small class="med-card-empty">Nenhuma medicação registrada</small>'}</div>
     </article>`;
 };
 
 export const renderUpcomingReapplications = () => {
   const container = $("#upcomingReapply");
   if (!container) return;
-  
-  const today = todayIso();
   const upcoming = [];
-  
   state.medication.forEach((m) => {
     if (!m.administration_date) return;
     const reapply = getNextReapplyDate(m);
     if (!reapply) return;
-    const { nextDate, daysUntil, interval } = reapply;
-    // Mostra apenas reaplicações futuras ou de hoje (não mostra atrasados)
+    const { daysUntil, interval } = reapply;
     if (daysUntil === null || daysUntil < 0 || daysUntil > 14) return;
-    
     const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
-    const animalName = animal?.identification || m.cow_id || "";
-    
-    let urgencyClass = "upcoming";
+    const animalName = animal?.identification || "";
     let dueLabel = "";
-    if (daysUntil === 0) {
-      urgencyClass = "today";
-      dueLabel = "Reaplicar hoje";
-    } else if (daysUntil === 1) {
-      urgencyClass = "soon";
-      dueLabel = "Reaplicar amanhã";
-    } else if (daysUntil <= 3) {
-      urgencyClass = "soon";
-      dueLabel = `Reaplicar em ${daysUntil} dias`;
-    } else {
-      dueLabel = `Reaplicar em ${daysUntil} dias`;
-    }
-    
-    upcoming.push({
-      medication_name: m.medication_name || "Medicamento",
-      animalName,
-      nextDate,
-      daysUntil,
-      interval,
-      urgencyClass,
-      dueLabel,
-    });
+    if (daysUntil === 0) dueLabel = "hoje";
+    else if (daysUntil === 1) dueLabel = "amanhã";
+    else dueLabel = `${daysUntil}d`;
+    upcoming.push({ medication_name: m.medication_name || "Med.", animalName, daysUntil, dueLabel });
   });
-  
   upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
-  
-  if (upcoming.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-  
-  const urgentCount = upcoming.filter((u) => u.urgencyClass === "overdue" || u.urgencyClass === "today").length;
-  
-  container.innerHTML = `
-    <div class="upcoming-reapply-header">
-      <h3>📋 Próximas reaplicações</h3>
-      ${urgentCount > 0 ? `<span class="upcoming-reapply-count urgent">${urgentCount}</span>` : `<span class="upcoming-reapply-count">${upcoming.length}</span>`}
-    </div>
-    <div class="upcoming-reapply-list">
-      ${upcoming.map((u) => `
-        <div class="upcoming-reapply-item ${u.urgencyClass}">
-          <div class="upcoming-reapply-info">
-            <span class="reapply-med-name">${escapeHtml(u.medication_name)}</span>
-            ${u.animalName ? `<span class="reapply-animal">${escapeHtml(u.animalName)}</span>` : ""}
-            <span class="reapply-interval">Intervalo: ${u.interval.days} dias</span>
-          </div>
-          <div class="upcoming-reapply-due ${u.urgencyClass}">${u.dueLabel}</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+  if (!upcoming.length) { container.innerHTML = ""; return; }
+  const urgent = upcoming.filter((u) => u.daysUntil <= 1).length;
+  container.innerHTML = `<div class="med-alert-bar-inner${urgent ? " urgent" : ""}"><span class="med-alert-icon">&#9200;</span><span class="med-alert-text">${upcoming.length} reaplicaç${upcoming.length === 1 ? "ão" : "ões"} pendente${upcoming.length === 1 ? "" : "s"}${urgent ? ` (${urgent} urgente${urgent > 1 ? "s" : ""})` : ""}</span></div>`;
 };
 
 /**
