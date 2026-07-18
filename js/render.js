@@ -645,7 +645,7 @@ const renderMedicalCowRecord = (profile, isExpanded, options = {}) => {
   // Check if last medication has overdue reapplication
   let overdueBadge = "";
   if (last?.administration_date && last?.reapply_interval_days) {
-    const nextReapply = getNextReapplyDate(last.administration_date, last.reapply_interval_days);
+    const nextReapply = getNextReapplyDate(last);
     const daysUntil = daysFromToday(nextReapply);
     if (daysUntil < 0) {
       overdueBadge = `<span class="med-overdue-badge" title="Reaplicação vencida há ${Math.abs(daysUntil)} dia(s)">⚠ Vencida ${Math.abs(daysUntil)}d</span>`;

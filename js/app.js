@@ -670,7 +670,7 @@ const showHistoryModal = async (cowId) => {
       </div>
       <div class="history-modal-body">
         ${medRecords.map((r) => {
-          const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r.administration_date, r.reapply_interval_days) : null;
+          const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r) : null;
           const daysUntil = nextReapply ? daysFromToday(nextReapply) : null;
           let statusBadge = "";
           if (daysUntil !== null) {
@@ -736,7 +736,7 @@ const exportHistory = (cowId, cowLabel) => {
   
   const headers = ["Medicamento", "Dosagem", "Data de aplicação", "Reaplicar em (dias)", "Próxima reaplicação", "Status"];
   const rows = records.map((r) => {
-    const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r.administration_date, r.reapply_interval_days) : "";
+    const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r) : "";
     const daysUntil = nextReapply ? daysFromToday(nextReapply) : "";
     let status = "";
     if (daysUntil !== "") {
