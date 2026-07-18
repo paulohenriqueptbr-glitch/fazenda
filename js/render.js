@@ -629,9 +629,25 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
   const records = profile.records;
   const last = records[0];
   const info = [profile.type, profile.status].filter(Boolean).join(" · ");
+  
+  const getMedIcon = (name) => {
+    const n = (name || "").toLowerCase();
+    if (n.includes("vacina") || n.includes("vacin")) return "&#129657;";
+    if (n.includes("antibiótico") || n.includes("antibiot")) return "&#128138;";
+    if (n.includes("anti") || n.includes("inflam")) return "&#128154;";
+    if (n.includes("vermif") || n.includes("parasit")) return "&#129440;";
+    if (n.includes("vitamina") || n.includes("vit")) return "&#127775;";
+    return "&#128138;";
+  };
+
+  const lastDate = last?.administration_date ? formatDate(last.administration_date) : "";
+  const daysSince = last?.administration_date ? daysFromToday(last.administration_date) : null;
+  const daysLabel = daysSince !== null ? (daysSince < 0 ? `há ${Math.abs(daysSince)}d` : daysSince === 0 ? "hoje" : `em ${daysSince}d`) : "";
+
   return `
     <article class="med-animal-card${isExpanded ? " expanded" : ""}" data-medical-cow-id="${escapeHtml(profile.id)}">
       <div class="med-card-header">
+        <div class="med-card-icon">${getMedIcon(last?.medication_name)}</div>
         <div class="med-card-title">
           <h3>${escapeHtml(profile.label)}</h3>
           ${info ? `<small>${escapeHtml(info)}</small>` : ""}
@@ -642,8 +658,14 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
         </div>
       </div>
       <div class="med-card-summary">
-        <span>${escapeHtml(last?.medication_name || "Sem medicação")}</span>
-        <em>${escapeHtml(last ? formatDate(last.administration_date) : "")}</em>
+        <div class="med-card-summary-main">
+          <span class="med-card-med-name">${escapeHtml(last?.medication_name || "Sem medicação")}</span>
+          <span class="med-card-dosage">${last?.dosage ? escapeHtml(last.dosage) : ""}</span>
+        </div>
+        <div class="med-card-summary-date">
+          <span class="med-card-date">${escapeHtml(lastDate)}</span>
+          ${daysLabel ? `<span class="med-card-days">${escapeHtml(daysLabel)}</span>` : ""}
+        </div>
       </div>
       <div class="med-card-history">${records.length ? records.map((r) => {
         const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : "";
@@ -658,7 +680,15 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
 export const renderMedication = (selectedMedicationCowId) => {
   const profiles = getMedicationCowProfiles();
   const medCowSelect = $("#medCowId");
-  if (!profiles.length) { el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica", "medication"); return; }
+  if (!profiles.length) {
+    el.medicationList.innerHTML = `
+      <div class="med-empty-state">
+        <span class="med-empty-icon">&#129657;</span>
+        <h3>Nenhuma medicação registrada</h3>
+        <p>Cadastre uma vaca e registre a primeira medicação para começar o controle sanitário.</p>
+      </div>`;
+    return;
+  }
   if (selectedMedicationCowId && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedMedicationCowId))) medCowSelect.value = selectedMedicationCowId;
   el.medicationList.innerHTML = `<div class="med-cards-grid">${profiles.map((p) => {
     const isExpanded = selectedMedicationCowId && (p.ids || [p.id]).some((id) => cowIdKey(id) === cowIdKey(selectedMedicationCowId));

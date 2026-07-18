@@ -2098,49 +2098,70 @@ button[type="submit"]:active,
    FICHA MÉDICA — Cards Individuais
    ═══════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════
+   ABDE SAUDE - Cards e Visual
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .med-cards-grid {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .med-animal-card {
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--green);
+  border: 1px solid var(--line-light);
   border-radius: var(--radius-lg);
   background: var(--panel);
   box-shadow: var(--shadow-xs);
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow var(--transition), border-color var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .med-animal-card:hover {
   box-shadow: var(--shadow-sm);
-  border-left-color: var(--green-vivid);
+  border-color: var(--green);
+  transform: translateY(-1px);
 }
 
 .med-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
+}
+
+.med-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-light);
+  border-radius: var(--radius-md);
+  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .med-card-title {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .med-card-title h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .med-card-title small {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 
@@ -2152,6 +2173,7 @@ button[type="submit"]:active,
   padding: 4px 10px;
   border-radius: var(--radius-full);
   background: var(--green-light);
+  flex-shrink: 0;
 }
 
 .med-card-count {
@@ -2162,7 +2184,7 @@ button[type="submit"]:active,
 }
 
 .med-card-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   color: var(--green-dark);
   opacity: 0.7;
@@ -2175,18 +2197,48 @@ button[type="submit"]:active,
   padding: var(--space-2) var(--space-4);
   border-top: 1px solid var(--line-light);
   background: var(--field);
-  font-size: 0.82rem;
 }
 
-.med-card-summary span {
+.med-card-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.med-card-med-name {
   font-weight: 600;
+  font-size: 0.82rem;
   color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.med-card-summary em {
-  font-style: normal;
-  color: var(--muted);
+.med-card-dosage {
+  font-size: 0.75rem;
+  color: var(--green-dark);
+  font-weight: 500;
+}
+
+.med-card-summary-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.med-card-date {
   font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.med-card-days {
+  font-size: 0.7rem;
+  color: var(--green);
+  font-weight: 600;
 }
 
 .med-card-history {
@@ -2200,7 +2252,7 @@ button[type="submit"]:active,
 }
 
 .med-animal-card.expanded {
-  border-left-color: var(--green-vivid);
+  border-color: var(--green);
   box-shadow: var(--shadow-sm);
 }
 
@@ -2209,6 +2261,193 @@ button[type="submit"]:active,
   text-align: center;
   padding: var(--space-4);
   color: var(--muted);
+}
+
+/* Empty State */
+.med-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--muted);
+}
+
+.med-empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
+}
+
+.med-empty-state h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.med-empty-state p {
+  margin: 0;
+  font-size: 0.85rem;
+  max-width: 280px;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMULARIO DE MEDICACAO
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.med-form-container {
+  margin-bottom: var(--space-4);
+}
+
+.med-form-container .accordion-toggle {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.med-form-container .accordion-toggle:hover {
+  background: var(--green-light);
+  border-color: var(--green);
+}
+
+.med-form-container .accordion-icon {
+  color: var(--green);
+  font-size: 1rem;
+}
+
+.med-form-container .accordion-text {
+  flex: 1;
+}
+
+.med-form-container .accordion-arrow {
+  font-size: 0.7rem;
+  color: var(--muted);
+  transition: transform var(--transition-fast);
+}
+
+.med-form-container .accordion-content.collapsed + .med-form-container .accordion-arrow,
+.med-form-container .accordion-content.collapsed ~ .accordion-arrow {
+  transform: rotate(0deg);
+}
+
+.med-form-container .accordion-content:not(.collapsed) ~ .accordion-arrow,
+.med-form-container .accordion-toggle:not(.collapsed) .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+.med-form-container .accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 500px;
+  opacity: 1;
+  border: 1px solid var(--line-light);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--panel);
+}
+
+.med-form-container .accordion-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  border: 0;
+}
+
+.med-form-container .accordion-content .form-grid {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.med-form-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.med-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.med-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.med-form-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.med-form-field input,
+.med-form-field select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: 0.9rem;
+  color: var(--ink);
+  transition: border-color var(--transition-fast);
+}
+
+.med-form-field input:focus,
+.med-form-field select:focus {
+  outline: 0;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-light);
+}
+
+.med-form-field input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.med-submit {
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.med-submit:hover {
+  background: var(--green-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 620px) {
+  .med-form-row-2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Medical History (Timeline) ── */
@@ -3390,11 +3629,15 @@ button[type="submit"]:active,
 /* ===== RESPONSIVE ===== */
 @media (max-width: 620px) { 
   .client-summary, .payment-panel, .modal-actions { grid-template-columns: 1fr; } 
-  .med-card-header { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
-  .med-card-meta { align-self: flex-start; }
-  .med-card-summary { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .med-card-header { gap: var(--space-2); }
+  .med-card-icon { width: 32px; height: 32px; font-size: 1rem; }
+  .med-card-title h3 { font-size: 0.9rem; }
+  .med-card-summary { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+  .med-card-summary-date { align-items: flex-start; }
   .medical-history-item { grid-template-columns: auto 1fr auto; padding-left: var(--space-8); }
   .medical-history-item > strong { grid-column: 2 / -1; justify-self: start; margin-top: 2px; }
+  .med-empty-state { padding: var(--space-6) var(--space-4); }
+  .med-empty-icon { font-size: 2.5rem; }
   .onboarding-card { padding: 22px 18px; } 
 }
 
