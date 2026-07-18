@@ -127,7 +127,7 @@ const initApp = () => {
           else if (type === "reminder") { await updateRecord(type, id, { ...data, done: Boolean(record.done), completed_at: record.completed_at || null }); }
           populateCowSelects(); render(); showToast("Registro atualizado com sucesso!");
         }
-        if (action === "delete") { if (!findRecord(type, id)) return; if (!window.confirm("Deseja excluir este registro?")) return; await deleteRecord(type, id); populateCowSelects(); render(); }
+        if (action === "delete") { if (!findRecord(type, id)) return; if (!window.confirm("Deseja excluir este registro?")) return; await deleteRecord(type, id); populateCowSelects(); render(); showToast("Registro excluído com sucesso!", "success"); }
         if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
@@ -439,6 +439,27 @@ const initApp = () => {
 
   setupMedicationAutocomplete();
 
+  // Date default + Enter to submit on last field
+  const setupMedFormDefaults = () => {
+    const medDateInput = $("#medDate");
+    if (medDateInput && !medDateInput._defaultSet) {
+      medDateInput._defaultSet = true;
+      medDateInput.value = todayIso();
+    }
+    // Enter on last field submits the form
+    const medReapplyInput = $("#medReapplyInterval");
+    if (medReapplyInput && !medReapplyInput._enterAttached) {
+      medReapplyInput._enterAttached = true;
+      medReapplyInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          el.medicationForm.requestSubmit();
+        }
+      });
+    }
+  };
+  setupMedFormDefaults();
+
   safeSubmit(el.medicationForm, async () => {
     const medName = $("#medName").value.trim();
     const medDate = $("#medDate").value;
@@ -450,7 +471,7 @@ const initApp = () => {
     setSelectedMedicationCowId(medCowId);
     const reapplyDays = $("#medReapplyInterval")?.value ? validateNumber($("#medReapplyInterval").value, 1, 365) : null;
     await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate, reapply_interval_days: reapplyDays });
-    el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; render(); showToast("Medicação registrada!");
+    el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; $("#medDate").value = todayIso(); render(); showToast("Medicação registrada!");
   }, "registrar medicação", "Registrando...");
 
   if (el.cropForm) {

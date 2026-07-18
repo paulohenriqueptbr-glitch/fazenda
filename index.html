@@ -222,7 +222,7 @@
         <span class="accordion-arrow">&#9660;</span>
       </button>
       <div id="medFormWrap" class="accordion-content collapsed">
-        <form id="medicationForm" class="form-grid">
+        <form id="medicationForm" class="form-grid" autocomplete="off">
           <div class="med-form-row">
             <div class="med-form-field">
               <label for="medCowId">Vaca</label>
@@ -232,7 +232,7 @@
           <div class="med-form-row med-form-row-2">
             <div class="med-form-field">
               <label for="medName">Medicamento</label>
-              <input id="medName" type="text" placeholder="Ex.: Vitamina A" list="medNameOptions" required>
+              <input id="medName" type="text" placeholder="Ex.: Vitamina A" list="medNameOptions" required autocomplete="off">
               <datalist id="medNameOptions"></datalist>
               <div id="medInfoBadge" class="med-info-badge" style="display:none;"></div>
             </div>
@@ -257,6 +257,14 @@
           </button>
         </form>
       </div>
+    </div>
+    <div class="med-toolbar">
+      <input type="text" id="medSearchInput" class="med-search-input" placeholder="Buscar por nome ou brinco..." autocomplete="off">
+      <select id="medSortSelect" class="med-sort-select">
+        <option value="recent">Mais recente</option>
+        <option value="name">Nome (A-Z)</option>
+        <option value="records">Mais registros</option>
+      </select>
     </div>
     <div id="medicationList" class="list"></div>
   </section>

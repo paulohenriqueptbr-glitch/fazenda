@@ -2416,6 +2416,129 @@ button[type="submit"]:active,
   border-left: 3px solid var(--green);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SEARCH/SORT TOOLBAR
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.med-toolbar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.med-search-input {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: 0.85rem;
+  color: var(--ink);
+  transition: border-color var(--transition-fast);
+}
+
+.med-search-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-light);
+}
+
+.med-search-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.med-sort-select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.med-sort-select:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPE BADGES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.med-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.med-type-badge.vaccine {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.med-type-badge.antibiotic {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.med-type-badge.anti {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.med-type-badge.dewormer {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+
+.med-type-badge.vitamin {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+}
+
+.med-type-badge.other {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATIONS & ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes medCardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.med-cards-grid .med-animal-card {
+  animation: medCardFadeIn 0.25s ease both;
+}
+
+.med-cards-grid .med-animal-card:nth-child(2) { animation-delay: 0.05s; }
+.med-cards-grid .med-animal-card:nth-child(3) { animation-delay: 0.1s; }
+.med-cards-grid .med-animal-card:nth-child(4) { animation-delay: 0.15s; }
+.med-cards-grid .med-animal-card:nth-child(5) { animation-delay: 0.2s; }
+
+/* Focus visible */
+.med-form-field input:focus-visible,
+.med-form-field select:focus-visible,
+.med-search-input:focus-visible,
+.med-sort-select:focus-visible,
+.med-inline-edit-form input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
 /* History Modal */
 .history-modal-overlay {
   position: fixed;
@@ -3910,6 +4033,8 @@ button[type="submit"]:active,
   .med-empty-state { padding: var(--space-6) var(--space-4); }
   .med-empty-icon { font-size: 2.5rem; }
   .med-card-footer { flex-direction: column; gap: var(--space-2); }
+  .med-toolbar { flex-direction: column; }
+  .med-sort-select { min-width: 100%; }
   .onboarding-card { padding: 22px 18px; } 
 }
 

@@ -62,6 +62,8 @@ export const el = {
   lactationList: $("#lactationList"),
   breedingList: $("#breedingList"),
   medicationList: $("#medicationList"),
+  medSearchInput: $("#medSearchInput"),
+  medSortSelect: $("#medSortSelect"),
   cropEventList: $("#cropEventList"),
   cropGroupList: $("#cropGroupList"),
   stockList: $("#stockList"),
@@ -632,15 +634,18 @@ const renderMedicalCowRecord = (profile, isExpanded, options = {}) => {
   const info = [profile.type, profile.status].filter(Boolean).join(" · ");
   const { lazyLoad = false, expandedId = null } = options;
   
-  const getMedIcon = (name) => {
+  const getMedType = (name) => {
     const n = (name || "").toLowerCase();
-    if (n.includes("vacina") || n.includes("vacin")) return "&#129657;";
-    if (n.includes("antibiótico") || n.includes("antibiot")) return "&#128138;";
-    if (n.includes("anti") || n.includes("inflam")) return "&#128154;";
-    if (n.includes("vermif") || n.includes("parasit")) return "&#129440;";
-    if (n.includes("vitamina") || n.includes("vit")) return "&#127775;";
-    return "&#128138;";
+    if (n.includes("vacina") || n.includes("vacin")) return { icon: "&#129657;", label: "Vacina", cls: "vaccine" };
+    if (n.includes("antibiótico") || n.includes("antibiot")) return { icon: "&#128138;", label: "Antibiótico", cls: "antibiotic" };
+    if (n.includes("anti") || n.includes("inflam")) return { icon: "&#128154;", label: "Anti-inflamatório", cls: "anti" };
+    if (n.includes("vermif") || n.includes("parasit")) return { icon: "&#129440;", label: "Vermifugo", cls: "dewormer" };
+    if (n.includes("vitamina") || n.includes("vit")) return { icon: "&#127775;", label: "Vitamina", cls: "vitamin" };
+    return { icon: "&#128138;", label: "Medicamento", cls: "other" };
   };
+  
+  const medType = getMedType(last?.medication_name);
+  const typeBadge = `<span class="med-type-badge ${medType.cls}">${medType.icon} ${medType.label}</span>`;
 
   // Check if last medication has overdue reapplication
   let overdueBadge = "";
@@ -710,10 +715,10 @@ const renderMedicalCowRecord = (profile, isExpanded, options = {}) => {
   return `
     <article class="med-animal-card${isExpanded ? " expanded" : ""}" data-medical-cow-id="${escapeHtml(profile.id)}">
       <div class="med-card-header">
-        <div class="med-card-icon">${getMedIcon(last?.medication_name)}</div>
+        <div class="med-card-icon" title="${medType.label}">${medType.icon}</div>
         <div class="med-card-title">
           <h3>${escapeHtml(profile.label)}</h3>
-          ${info ? `<small>${escapeHtml(info)}</small>` : ""}
+          <small>${typeBadge} ${info ? `· ${escapeHtml(info)}` : ""}</small>
         </div>
         <div class="med-card-meta">
           <span class="med-card-count">${records.length}</span>
@@ -739,7 +744,53 @@ const renderMedicalCowRecord = (profile, isExpanded, options = {}) => {
     </article>`;
 };
 
+// ─── Medication search/sort state ──────────────────────────────────────────
+let medSearchQuery = "";
+let medSortBy = "recent";
 
+const setupMedSearchSort = () => {
+  if (el.medSearchInput && !el.medSearchInput._searchAttached) {
+    el.medSearchInput._searchAttached = true;
+    el.medSearchInput.addEventListener("input", () => {
+      medSearchQuery = el.medSearchInput.value.toLowerCase().trim();
+      renderMedication(selectedMedicationCowId);
+    });
+  }
+  if (el.medSortSelect && !el.medSortSelect._sortAttached) {
+    el.medSortSelect._sortAttached = true;
+    el.medSortSelect.addEventListener("change", () => {
+      medSortBy = el.medSortSelect.value;
+      renderMedication(selectedMedicationCowId);
+    });
+  }
+};
+
+const filterAndSortProfiles = (profiles) => {
+  let filtered = profiles;
+  
+  if (medSearchQuery) {
+    filtered = profiles.filter(p => {
+      const label = (p.label || "").toLowerCase();
+      const ids = (p.ids || []).map(id => String(id).toLowerCase());
+      const cowId = String(p.id || "").toLowerCase();
+      return label.includes(medSearchQuery) || ids.some(id => id.includes(medSearchQuery)) || cowId.includes(medSearchQuery);
+    });
+  }
+  
+  if (medSortBy === "name") {
+    filtered.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
+  } else if (medSortBy === "records") {
+    filtered.sort((a, b) => b.records.length - a.records.length);
+  } else {
+    filtered.sort((a, b) => {
+      const aDate = a.records[0]?.administration_date || "";
+      const bDate = b.records[0]?.administration_date || "";
+      return String(bDate).localeCompare(String(aDate));
+    });
+  }
+  
+  return filtered;
+};
 
 // ─── Virtualized rendering for medication cards ──────────────────────────────
 const VIRTUALIZATION_THRESHOLD = 50;
@@ -786,9 +837,12 @@ const renderMedicationVirtualized = (profiles, selectedMedicationCowId, containe
 };
 
 export const renderMedication = (selectedMedicationCowId) => {
-  const profiles = getMedicationCowProfiles();
+  setupMedSearchSort();
+  const rawProfiles = getMedicationCowProfiles();
+  const profiles = filterAndSortProfiles(rawProfiles);
   const medCowSelect = $("#medCowId");
-  if (!profiles.length) {
+  
+  if (!rawProfiles.length) {
     el.medicationList.innerHTML = `
       <div class="med-empty-state">
         <span class="med-empty-icon">&#129657;</span>
@@ -797,9 +851,20 @@ export const renderMedication = (selectedMedicationCowId) => {
       </div>`;
     return;
   }
+  
   if (selectedMedicationCowId && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedMedicationCowId))) medCowSelect.value = selectedMedicationCowId;
   
   const editingId = window._editingMedId || null;
+  
+  if (!profiles.length && medSearchQuery) {
+    el.medicationList.innerHTML = `
+      <div class="med-empty-state">
+        <span class="med-empty-icon">&#128270;</span>
+        <h3>Nenhum resultado para "${escapeHtml(medSearchQuery)}"</h3>
+        <p>Tente buscar por outro nome ou brinco.</p>
+      </div>`;
+    return;
+  }
   
   // Use virtualization for large lists
   if (profiles.length > VIRTUALIZATION_THRESHOLD) {
