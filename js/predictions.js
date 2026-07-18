@@ -118,44 +118,6 @@ const calculateItemConsumption = (item) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PREVISÃO DE MEDICAÇÃO
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Prevê próximas necessidades de medicação baseado no catálogo e histórico.
- */
-export const forecastMedication = () => {
-  const today = todayIso();
-  const medications = state.medication || [];
-  const forecast = [];
-
-  medications.forEach((m) => {
-    if (!m.administration_date || !m.medication_name) return;
-
-    const info = getMedicationInfo(m.medication_name, m.reapply_interval_days);
-    const nextDate = addDaysIso(m.administration_date, info.days);
-    const daysUntil = diffDays(today, nextDate);
-
-    if (daysUntil !== null && daysUntil <= 30) {
-      const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
-      forecast.push({
-        medication_name: m.medication_name,
-        cow_id: m.cow_id,
-        cow_name: animal?.identification || m.cow_id,
-        lastDate: m.administration_date,
-        nextDate,
-        daysUntil,
-        interval: info.days,
-        category: info.category,
-        urgency: daysUntil < 0 ? "overdue" : daysUntil <= 2 ? "urgent" : daysUntil <= 7 ? "soon" : "planned",
-      });
-    }
-  });
-
-  return forecast.sort((a, b) => a.daysUntil - b.daysUntil);
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // PREVISÃO DE CUSTOS
 // ═══════════════════════════════════════════════════════════════════════════════
 

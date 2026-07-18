@@ -4151,130 +4151,6 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== UPCOMING REAPPLICATIONS PANEL ===== */
-.upcoming-reapply-panel {
-  margin-bottom: var(--space-4);
-}
-
-.upcoming-reapply-panel:empty {
-  display: none;
-}
-
-.upcoming-reapply-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-}
-
-.upcoming-reapply-header h3 {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
-
-.upcoming-reapply-count {
-  background: var(--green);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  min-width: 24px;
-  text-align: center;
-}
-
-.upcoming-reapply-count.urgent {
-  background: #ef4444;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.upcoming-reapply-list {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.upcoming-reapply-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  border: 1px solid var(--line-light);
-  gap: var(--space-3);
-}
-
-.upcoming-reapply-item.overdue {
-  border-left: 3px solid #ef4444;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
-}
-
-.upcoming-reapply-item.today {
-  border-left: 3px solid #f59e0b;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, transparent 100%);
-}
-
-.upcoming-reapply-item.soon {
-  border-left: 3px solid var(--green);
-  background: linear-gradient(135deg, rgba(16, 169, 129, 0.03) 0%, transparent 100%);
-}
-
-.upcoming-reapply-item.upcoming {
-  border-left: 3px solid var(--line);
-}
-
-.upcoming-reapply-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.upcoming-reapply-info .reapply-med-name {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.upcoming-reapply-info .reapply-animal {
-  font-size: 0.82rem;
-  color: var(--ink-secondary);
-}
-
-.upcoming-reapply-info .reapply-interval {
-  font-size: 0.75rem;
-  color: var(--ink-tertiary, #9ca3af);
-}
-
-.upcoming-reapply-due {
-  font-size: 0.82rem;
-  font-weight: 600;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.upcoming-reapply-due.overdue { color: #ef4444; }
-.upcoming-reapply-due.today { color: #f59e0b; }
-.upcoming-reapply-due.soon { color: var(--green); }
-.upcoming-reapply-due.upcoming { color: var(--ink-secondary); }
-
-.upcoming-reapply-empty {
-  padding: var(--space-3);
-  text-align: center;
-  color: var(--ink-secondary);
-  font-size: 0.85rem;
-}
-
 /* ===== PRODUCTION TREND PANEL ===== */
 .production-trend-panel {
   background: var(--panel);
@@ -4331,114 +4207,6 @@ button {
 .trend-change.down { color: #ef4444; }
 .trend-change.stable { color: var(--ink-secondary); }
 .trend-change.neutral { color: var(--ink-tertiary, #9ca3af); }
-
-/* ===== CHRONIC TREATMENT PANEL ===== */
-.chronic-treatment-container {
-  margin-bottom: var(--space-4);
-}
-
-.chronic-treatment-container:empty {
-  display: none;
-}
-
-.chronic-treatment-panel {
-  background: var(--panel);
-  border: 1px solid #f59e0b;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.chronic-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
-  border-bottom: 1px solid #f59e0b;
-}
-
-.chronic-header strong {
-  font-size: 0.9rem;
-  color: #92400e;
-}
-
-.chronic-count {
-  margin-left: auto;
-  background: #f59e0b;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.chronic-list {
-  padding: var(--space-2) var(--space-3);
-}
-
-.chronic-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line-light);
-  gap: var(--space-2);
-}
-
-.chronic-item:last-child {
-  border-bottom: none;
-}
-
-.chronic-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.chronic-animal {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--ink);
-}
-
-.chronic-med {
-  font-size: 0.82rem;
-  color: var(--ink-secondary);
-}
-
-.chronic-count-label {
-  font-size: 0.75rem;
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.chronic-dates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.chronic-date {
-  font-size: 0.7rem;
-  background: var(--input-bg);
-  padding: 1px 6px;
-  border-radius: var(--radius);
-  color: var(--ink-secondary);
-}
-
-.chronic-advice {
-  padding: var(--space-2) var(--space-3);
-  background: rgba(245, 158, 11, 0.05);
-  border-top: 1px solid var(--line-light);
-}
-
-.chronic-advice small {
-  color: var(--ink-secondary);
-  font-style: italic;
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SMART DASHBOARD - KPIs e Analytics
@@ -4865,7 +4633,6 @@ button {
 
 .forecast-panel,
 .stock-forecast-panel,
-.medication-forecast-panel,
 .lactation-forecast-panel {
   background: var(--panel);
   border-radius: var(--radius-lg);
@@ -4938,7 +4705,6 @@ button {
 
 /* Stock Forecast */
 .stock-forecast-list,
-.medication-forecast-list,
 .lactation-forecast-list {
   display: flex;
   flex-direction: column;
@@ -4946,7 +4712,6 @@ button {
 }
 
 .stock-forecast-item,
-.medication-forecast-item,
 .lactation-forecast-item {
   display: flex;
   align-items: center;
@@ -4957,21 +4722,18 @@ button {
 }
 
 .stock-forecast-item.critical,
-.medication-forecast-item.overdue,
 .lactation-forecast-item.critical {
   background: rgba(239, 68, 68, 0.08);
   border-left: 3px solid var(--danger);
 }
 
 .stock-forecast-item.warning,
-.medication-forecast-item.urgent,
 .lactation-forecast-item.warning {
   background: rgba(245, 158, 11, 0.08);
   border-left: 3px solid var(--amber);
 }
 
 .stock-info,
-.med-info,
 .lact-info {
   display: flex;
   flex-direction: column;
@@ -4979,21 +4741,19 @@ button {
 }
 
 .stock-info strong,
-.med-info strong,
 .lact-info strong {
   font-size: 0.85rem;
   color: var(--ink);
 }
 
 .stock-info small,
-.med-info small,
 .lact-info small {
   font-size: 0.75rem;
   color: var(--muted);
 }
 
 .stock-qty,
-.med-due {
+.lact-rec {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -5002,8 +4762,7 @@ button {
   color: var(--ink);
 }
 
-.stock-qty small,
-.med-due small {
+.stock-qty small {
   font-size: 0.7rem;
   color: var(--muted);
   font-weight: 400;

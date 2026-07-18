@@ -1,12 +1,12 @@
 import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays, milkFilter, setMilkFilter } from "./state.js";
 import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge, countUp } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
-import { buildAlerts, alertStatusLabel, daysFromToday, getNextReapplyDate, countMedicationAlerts, diffDays, updateAlertsBadge } from "./alerts.js";
+import { buildAlerts, alertStatusLabel, daysFromToday, diffDays, updateAlertsBadge } from "./alerts.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
 import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getFinancialAnalysis, getFarmScore, forecastProduction } from "./analytics.js";
 import { generateRecommendations, getRecommendationsSummary } from "./recommendations.js";
-import { forecastStock, forecastMedication, forecastLactation } from "./predictions.js";
+import { forecastStock, forecastLactation } from "./predictions.js";
 
 // ─── Sparkline helper ──────────────────────────────────────────────────────
 const generateSparkline = (data, width = 80, height = 28) => {
@@ -658,88 +658,9 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
     </article>`;
 };
 
-export const renderUpcomingReapplications = () => {
-  const container = $("#upcomingReapply");
-  if (!container) return;
-  const upcoming = [];
-  state.medication.forEach((m) => {
-    if (!m.administration_date) return;
-    const reapply = getNextReapplyDate(m);
-    if (!reapply) return;
-    const { daysUntil, interval } = reapply;
-    if (daysUntil === null || daysUntil < 0 || daysUntil > 14) return;
-    const animal = state.animals.find((a) => String(a.id) === String(m.cow_id));
-    const animalName = animal?.identification || "";
-    let dueLabel = "";
-    if (daysUntil === 0) dueLabel = "hoje";
-    else if (daysUntil === 1) dueLabel = "amanhã";
-    else dueLabel = `${daysUntil}d`;
-    upcoming.push({ medication_name: m.medication_name || "Med.", animalName, daysUntil, dueLabel });
-  });
-  upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
-  if (!upcoming.length) { container.innerHTML = ""; return; }
-  const urgent = upcoming.filter((u) => u.daysUntil <= 1).length;
-  container.innerHTML = `<div class="med-alert-bar-inner${urgent ? " urgent" : ""}"><span class="med-alert-icon">&#9200;</span><span class="med-alert-text">${upcoming.length} reaplicaç${upcoming.length === 1 ? "ão" : "ões"} pendente${upcoming.length === 1 ? "" : "s"}${urgent ? ` (${urgent} urgente${urgent > 1 ? "s" : ""})` : ""}</span></div>`;
-};
 
-/**
- * Detects chronic treatment patterns for each animal.
- * Flags cows that received the same medication 3+ times in the last 30 days.
- * @returns {Array} Array of chronic treatment alerts
- */
-export const detectChronicTreatments = () => {
-  const today = todayIso();
-  const thirtyDaysAgo = addDaysIso(today, -30);
-  const chronicAlerts = [];
-  
-  // Group medications by cow_id
-  const cowMedications = {};
-  state.medication.forEach((m) => {
-    if (!m.administration_date || !m.cow_id || !m.medication_name) return;
-    if (m.administration_date < thirtyDaysAgo) return;
-    
-    const key = `${m.cow_id}|${m.medication_name.toLowerCase().trim()}`;
-    if (!cowMedications[key]) {
-      cowMedications[key] = { cow_id: m.cow_id, medication_name: m.medication_name, count: 0, dates: [] };
-    }
-    cowMedications[key].count++;
-    cowMedications[key].dates.push(m.administration_date);
-  });
-  
-  // Find chronic patterns (3+ treatments in 30 days)
-  Object.values(cowMedications).forEach((data) => {
-    if (data.count < 3) return;
-    
-    const animal = state.animals.find((a) => String(a.id) === String(data.cow_id));
-    const animalName = animal?.identification || data.cow_id || "";
-    
-    chronicAlerts.push({
-      animal_name: animalName,
-      cow_id: data.cow_id,
-      medication_name: data.medication_name,
-      treatment_count: data.count,
-      dates: data.dates.sort(),
-      message: `${animalName} recebeu ${data.medication_name} ${data.count} vezes nos últimos 30 dias`,
-    });
-  });
-  
-  return chronicAlerts;
-};
-
-/**
- * Renders chronic treatment warnings in the medication panel.
- */
-export const renderChronicTreatments = () => {
-  const container = $("#chronicTreatments");
-  if (!container) return;
-  const alerts = detectChronicTreatments();
-  if (!alerts.length) { container.innerHTML = ""; return; }
-  container.innerHTML = `<div class="med-alert-bar-inner warning"><span class="med-alert-icon">&#9888;&#65039;</span><span class="med-alert-text">${alerts.length} tratamento${alerts.length > 1 ? "s" : ""} recorrente${alerts.length > 1 ? "s" : ""}</span></div>`;
-};
 
 export const renderMedication = (selectedMedicationCowId) => {
-  renderUpcomingReapplications();
-  renderChronicTreatments();
   const profiles = getMedicationCowProfiles();
   const medCowSelect = $("#medCowId");
   if (!profiles.length) { el.medicationList.innerHTML = empty("Cadastre uma vaca para criar a ficha médica", "medication"); return; }
@@ -1318,44 +1239,6 @@ export const renderStockForecast = () => {
             <div class="stock-qty">
               <span>${formatStockQuantity(s.currentQty, s.unit)}</span>
               ${s.daysUntilEmpty !== null ? `<small>~${s.daysUntilEmpty} dias</small>` : ""}
-            </div>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
-};
-
-/**
- * Renderiza previsão de medicação.
- */
-export const renderMedicationForecast = () => {
-  const container = $("#medicationForecastPanel");
-  if (!container) return;
-
-  const forecast = forecastMedication();
-  const urgent = forecast.filter((f) => f.urgency === "overdue" || f.urgency === "urgent");
-
-  if (urgent.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="medication-forecast-panel">
-      <div class="forecast-header">
-        <span>💊</span>
-        <strong>Medicação — Próximas Reaplicações</strong>
-      </div>
-      <div class="medication-forecast-list">
-        ${urgent.map((f) => `
-          <div class="medication-forecast-item ${f.urgency}">
-            <div class="med-info">
-              <strong>${escapeHtml(f.medication_name)}</strong>
-              <small>${escapeHtml(f.cow_name)}</small>
-            </div>
-            <div class="med-due">
-              <span>${f.daysUntil < 0 ? `${Math.abs(f.daysUntil)}d atrasado` : f.daysUntil === 0 ? "Hoje" : `${f.daysUntil}d`}</span>
             </div>
           </div>
         `).join("")}

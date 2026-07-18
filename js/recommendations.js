@@ -43,10 +43,7 @@ export const generateRecommendations = () => {
   // 1. Recomendações de produção
   recommendations.push(...getProductionRecommendations());
 
-  // 2. Recomendações de saúde
-  recommendations.push(...getHealthRecommendations());
-
-  // 3. Recomendações de reprodução
+  // 2. Recomendações de reprodução
   recommendations.push(...getReproductionRecommendations());
 
   // 4. Recomendações de estoque
@@ -112,61 +109,6 @@ const getProductionRecommendations = () => {
       message: `Produção subiu ${analysis.trendPercent}% — mantenha a rotina atual.`,
       action: null,
       icon: "📈",
-    });
-  }
-
-  return recommendations;
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECOMENDAÇÕES DE SAÚDE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const getHealthRecommendations = () => {
-  const recommendations = [];
-  const today = todayIso();
-  const herd = getHerdAnalysis();
-
-  // Lactações muito longas
-  const longLactations = (state.lactations || []).filter((l) => {
-    if (l.end_date) return false;
-    const days = diffDays(l.start_date, today);
-    return days !== null && days > 300;
-  });
-
-  if (longLactations.length > 0) {
-    const cow = state.animals.find((a) => String(a.id) === String(longLactations[0].cow_id));
-    recommendations.push({
-      type: RECOMMENDATION_TYPES.HEALTH,
-      priority: RECOMMENDATION_PRIORITY.HIGH,
-      title: "Lactação longa detectada",
-      message: `${cow?.identification || "Vaca"} está em lactação há mais de 300 dias. Considere secar para descanso reprodutivo.`,
-      action: "Considerar secagem",
-      icon: "🐄",
-    });
-  }
-
-  // Muitas medicações recentes
-  if (herd.recentMedications > 5) {
-    recommendations.push({
-      type: RECOMMENDATION_TYPES.HEALTH,
-      priority: RECOMMENDATION_PRIORITY.MEDIUM,
-      title: "Muitas medicações recentes",
-      message: `${herd.recentMedications} medicações nos últimos 30 dias. Avalie se há padrão de doenças recorrentes.`,
-      action: "Revisar sanidade",
-      icon: "💊",
-    });
-  }
-
-  // Saúde do rebanho baixa
-  if (herd.healthScore < 70) {
-    recommendations.push({
-      type: RECOMMENDATION_TYPES.HEALTH,
-      priority: RECOMMENDATION_PRIORITY.MEDIUM,
-      title: "Índice de saúde abaixo do ideal",
-      message: `Score de saúde: ${herd.healthScore}/100. Considere melhorar manejo sanitário.`,
-      action: "Melhorar manejo",
-      icon: "🩺",
     });
   }
 
