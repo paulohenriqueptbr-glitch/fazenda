@@ -192,3 +192,26 @@ export const loadLocalAlerts = () => {
 // Inicializa defaults
 state.clientProfile = defaultClientProfile();
 state.subscription = defaultSubscription();
+
+// ─── Date helpers ───────────────────────────────────────────────────────────
+/**
+ * Calculates the number of days between two ISO date strings.
+ * @param {string} fromIso - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} toIso - End date in ISO format (YYYY-MM-DD)
+ * @returns {number|null} Day difference (positive if toIso is after fromIso), or null if dates are invalid
+ */
+export const diffDays = (fromIso, toIso) => {
+  const from = parseIsoDate(fromIso);
+  const to = parseIsoDate(toIso);
+  if (!from || !to) return null;
+  from.setHours(0, 0, 0, 0);
+  to.setHours(0, 0, 0, 0);
+  return Math.round((to - from) / (24 * 60 * 60 * 1000));
+};
+
+/**
+ * Calculates the number of days from today until a given ISO date.
+ * @param {string} isoDate - Target date in ISO format (YYYY-MM-DD)
+ * @returns {number|null} Days until the date (negative if past), or null if invalid
+ */
+export const daysFromToday = (isoDate) => diffDays(todayIso(), isoDate);

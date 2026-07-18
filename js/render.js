@@ -7,6 +7,11 @@ import { supportWhatsapp, supportEmail } from "./state.js";
 import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getFinancialAnalysis, getFarmScore, forecastProduction } from "./analytics.js";
 import { generateRecommendations, getRecommendationsSummary } from "./recommendations.js";
 import { forecastStock, forecastLactation } from "./predictions.js";
+import { contactUrl, supportUrl, subscribeUrl } from "./urls.js";
+import { sumLiters, getMonthAverage, countLactating } from "./stats.js";
+import { renderWeatherForecast as renderWeather, loadWeatherForecast } from "./weather.js";
+import { renderReports as renderReportsModule } from "./reports.js";
+import { renderSmartDashboard, renderProductionForecast, renderStockForecast, renderLactationForecast, renderRecommendations } from "./smart-dashboard.js";
 
 // ─── Sparkline helper ──────────────────────────────────────────────────────
 const generateSparkline = (data, width = 80, height = 28) => {
@@ -160,16 +165,6 @@ const applySubscriptionAccess = (profile) => {
     .forEach((c) => { c.disabled = blocked; });
 };
 
-// ─── Contact URLs ───────────────────────────────────────────────────────────
-const contactUrl = (message, subject = "Suporte Terrasyn") => {
-  const encoded = encodeURIComponent(message);
-  if (supportWhatsapp) return `https://wa.me/${supportWhatsapp}?text=${encoded}`;
-  if (supportEmail) return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encoded}`;
-  return "privacy.html#contato";
-};
-const supportUrl = () => contactUrl("Olá, preciso de suporte no Terrasyn.");
-const subscribeUrl = () => contactUrl(`Olá, quero assinar o Terrasyn. Plano: ${formatMoney(planPrice)}/mês.`, "Assinatura Terrasyn");
-
 // ─── Render functions ───────────────────────────────────────────────────────
 export const renderClientPanel = () => {
   const profile = normalizeClientProfile(state.clientProfile);
@@ -244,14 +239,14 @@ export const calculateProductionTrend = () => {
   });
 
   const last7 = milkData.slice(-7);
-  const last7Avg = last7.reduce((sum, r) => sum + Number(r.liters || 0), 0) / last7.length;
+  const last7Avg = last7.length > 0 ? sumLiters(last7) / last7.length : 0;
 
   const prev7 = milkData.slice(-14, -7);
-  const prev7Avg = prev7.length > 0 ? prev7.reduce((sum, r) => sum + Number(r.liters || 0), 0) / prev7.length : null;
+  const prev7Avg = prev7.length > 0 ? sumLiters(prev7) / prev7.length : null;
 
-  const last30Avg = last30.length > 0 ? last30.reduce((sum, r) => sum + Number(r.liters || 0), 0) / last30.length : null;
+  const last30Avg = last30.length > 0 ? sumLiters(last30) / last30.length : null;
 
-  const prev30Avg = prev30.length > 0 ? prev30.reduce((sum, r) => sum + Number(r.liters || 0), 0) / prev30.length : null;
+  const prev30Avg = prev30.length > 0 ? sumLiters(prev30) / prev30.length : null;
 
   let trendDirection = "stable";
   let trendPercent = 0;
@@ -275,7 +270,7 @@ export const calculateProductionTrend = () => {
   const sorted30 = [...last30].sort((a, b) => Number(b.liters || 0) - Number(a.liters || 0));
   const bestDay = sorted30[0] || null;
   const worstDay = sorted30[sorted30.length - 1] || null;
-  const totalMonth = last30.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const totalMonth = sumLiters(last30);
 
   return {
     hasData: true,
@@ -302,7 +297,7 @@ export const renderSummary = () => {
 
   // Today
   const todayRecords = state.milk.filter((r) => r.date === today);
-  const todayLiters = todayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const todayLiters = sumLiters(todayRecords);
   if (el.todayTotal) {
     const currentVal = parseFloat(el.todayTotal.textContent) || 0;
     if (currentVal !== todayLiters) {
@@ -318,7 +313,7 @@ export const renderSummary = () => {
     for (let i = 6; i >= 0; i--) {
       const date = addDaysIso(today, -i);
       const dayRecords = state.milk.filter((r) => r.date === date);
-      const dayLiters = dayRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+      const dayLiters = sumLiters(dayRecords);
       last7Days.push(dayLiters);
     }
     sparklineContainer.innerHTML = generateSparkline(last7Days);
@@ -326,19 +321,19 @@ export const renderSummary = () => {
 
   // Fortnight
   const fortnightRecords = state.milk.filter((r) => r.date && r.date >= fortnightStart && r.date <= today);
-  const fortnightLiters = fortnightRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const fortnightLiters = sumLiters(fortnightRecords);
   if (el.fortnightTotal) el.fortnightTotal.textContent = formatLiters(fortnightLiters);
   if (el.fortnightValue) el.fortnightValue.textContent = formatMoney(fortnightLiters * price);
 
   // Month
   const monthRecords = state.milk.filter((r) => r.date && r.date >= monthStart && r.date <= today);
-  const monthLiters = monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const monthLiters = sumLiters(monthRecords);
   if (el.monthTotal) el.monthTotal.textContent = formatLiters(monthLiters);
   if (el.monthValue) el.monthValue.textContent = formatMoney(monthLiters * price);
 
   // Animals
   if (el.animalTotal) el.animalTotal.textContent = String(state.animals.length);
-  const lactating = state.animals.filter((a) => a.status === "Em lactação").length;
+  const lactating = countLactating();
   if (el.lactatingTotal) el.lactatingTotal.textContent = `${lactating} em lactação`;
 
   // Trend analysis panel
@@ -444,10 +439,10 @@ export const renderMilk = () => {
   
   const records = filteredRecords.sort((a, b) => b.date.localeCompare(a.date));
   const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
-  const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
+  const monthAverage = getMonthAverage(state.milk);
   
   // ─── Cálculos do resumo do filtro ────────────────────────────────────────
-  const totalLiters = records.reduce((sum, r) => sum + Number(r.liters || 0), 0);
+  const totalLiters = sumLiters(records);
   const totalValue = totalLiters * price;
   
   // ─── Resumo do período filtrado ──────────────────────────────────────────
@@ -809,153 +804,8 @@ export const renderAlerts = () => {
   el.alertList.innerHTML = alerts.length ? alerts.map(renderAlertItem).join("") : empty("Nenhum alerta no momento", "alert");
 };
 
-// ─── Weather ────────────────────────────────────────────────────────────────
-const WEATHER_CACHE_KEY = "last_weather_forecast";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-export const renderWeatherForecast = (data) => {
-  if (!el.weatherForecast) return;
-  const locationParts = [data.location?.name, data.location?.region, data.location?.country].filter(Boolean);
-  const days = Array.isArray(data.forecast) ? data.forecast : [];
-  el.weatherForecast.innerHTML = `
-    <div class="weather-header"><div><span>Previsao do tempo</span><strong>${escapeHtml(locationParts.join(" - ") || "Local informado")}</strong></div><small>${escapeHtml(data.source || "Open-Meteo")}</small></div>
-    <div class="weather-grid">${days.map((d) => `<article class="weather-day"><span>${escapeHtml(formatDate(d.date))}</span><strong>${escapeHtml(d.condition || "Tempo variavel")}</strong><small>${escapeHtml(`${Number(d.temperatureMin ?? 0).toLocaleString("pt-BR")} a ${Number(d.temperatureMax ?? 0).toLocaleString("pt-BR")} C`)}</small><small>${escapeHtml(`Chuva: ${d.precipitationProbability ?? 0}% | ${d.precipitationMm ?? 0} mm`)}</small><small>${escapeHtml(`Vento: ${d.windSpeedKmh ?? 0} km/h`)}</small></article>`).join("")}</div>`;
-};
-
-export const loadWeatherForecast = async (city) => {
-  if (!el.weatherForecast) return;
-
-  // Try to load cached forecast first
-  const cached = localStorage.getItem(WEATHER_CACHE_KEY);
-  if (cached) {
-    try {
-      const cacheData = JSON.parse(cached);
-      if (cacheData.city === city && cacheData.data && cacheData.timestamp) {
-        const isCacheFresh = (Date.now() - cacheData.timestamp) < CACHE_TTL_MS;
-        // Show cached data when offline (even if expired) or when cache is still fresh
-        if (!navigator.onLine || isCacheFresh) {
-          renderWeatherForecast(cacheData.data);
-          // Show "last updated" indicator
-          const updated = new Date(cacheData.timestamp);
-          const timeStr = updated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-          const dateStr = updated.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-          if (el.weatherForecast) {
-            const header = el.weatherForecast.querySelector(".weather-header small");
-            if (header) header.textContent = `${escapeHtml(cacheData.data.source || "Open-Meteo")} (Atualizado: ${dateStr} ${timeStr})`;
-          }
-          // If offline, don't attempt fetch — just show cached data
-          if (!navigator.onLine) return;
-        }
-        // If cache is expired and online, treat as cache miss — fall through to fetch
-      }
-    } catch { /* invalid cache — ignore */ }
-  }
-
-  // Show skeleton while loading
-  el.weatherForecast.innerHTML = `
-    <div class="weather-header skeleton skeleton-card">
-      <span>Previsão do tempo</span>
-      <strong>Carregando...</strong>
-    </div>
-    <div class="weather-grid">
-      ${[1,2,3].map(() => '<article class="weather-day skeleton skeleton-card"><span>&nbsp;</span><strong>&nbsp;</strong><small>&nbsp;</small></article>').join('')}
-    </div>`;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    const data = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(data?.error || "Nao foi possivel buscar a previsao.");
-    // Cache the successful response
-    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ city, data, timestamp: Date.now() }));
-    localStorage.setItem(userStorageKey("weather_city"), city);
-    renderWeatherForecast(data);
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new Error("Tempo limite excedido. Verifique sua conexão.");
-    }
-    // If fetch failed but we have cached data, show it (don't re-render skeleton)
-    if (cached) {
-      try {
-        const cacheData = JSON.parse(cached);
-        if (cacheData.city === city && cacheData.data) {
-          renderWeatherForecast(cacheData.data);
-          return;
-        }
-      } catch { /* ignore */ }
-    }
-    throw err;
-  }
-};
-
 // ─── Reports ────────────────────────────────────────────────────────────────
-let productionChart = null;
-
-const destroyChart = () => {
-  if (productionChart) {
-    productionChart.destroy();
-    productionChart = null;
-  }
-};
-
-const buildMonthlyReport = () => {
-  const price = Number(state.priceQuote || 0);
-  const currentMonth = monthKey();
-  const today = todayIso();
-  const calvingLimit = addDaysIso(today, 60);
-  const monthRecords = state.milk.filter((r) => r.date?.startsWith(currentMonth));
-  const monthLiters = monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0);
-  const average = monthRecords.length ? monthLiters / monthRecords.length : 0;
-  const bestRecord = monthRecords.reduce((best, r) => (Number(r.liters || 0) > Number(best?.liters || 0) ? r : best), null);
-  const lactating = state.animals.filter((a) => a.status === "Em lactação").length;
-  const medications = state.medication.filter((r) => r.administration_date?.startsWith(currentMonth));
-  const calvings = state.breeding.filter((r) => r.expected_calving_date >= today && r.expected_calving_date <= calvingLimit);
-  return { price, monthRecords, monthLiters, monthValue: monthLiters * price, average, bestRecord, lactating, medications, calvings };
-};
-
-export const renderReports = () => {
-  const report = buildMonthlyReport();
-  const chartRecords = [...state.milk].sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
-  el.reportMonthTotal.textContent = formatLiters(report.monthLiters);
-  el.reportMonthValue.textContent = formatMoney(report.monthValue);
-  el.reportAverage.textContent = formatLiters(report.average);
-  el.reportBestDay.textContent = report.bestRecord ? `${formatDate(report.bestRecord.date)} - ${formatLiters(report.bestRecord.liters)}` : "-";
-  if (el.reportDetails) {
-    el.reportDetails.innerHTML = `
-      <article><span>Animais em lactação</span><strong>${escapeHtml(String(report.lactating))}</strong><small>${escapeHtml(String(state.animals.length))} animais cadastrados</small></article>
-      <article><span>Medicações no mês</span><strong>${escapeHtml(String(report.medications.length))}</strong><small>${escapeHtml(report.medications.slice(0, 2).map((i) => i.medication_name).join(", ") || "Nenhuma aplicação")}</small></article>
-      <article><span>Previsão de parto</span><strong>${escapeHtml(String(report.calvings.length))}</strong><small>${escapeHtml(report.calvings.slice(0, 2).map((i) => `${animalLabel(i.cow_id)}: ${formatDate(i.expected_calving_date)}`).join(", ") || "Sem partos nos próximos 60 dias")}</small></article>
-      <article><span>Faturamento estimado</span><strong>${escapeHtml(formatMoney(report.monthValue))}</strong><small>${escapeHtml(formatMoney(report.price))} por litro</small></article>`;
-  }
-  if (chartRecords.length > 0 && window.Chart && el.productionChart) {
-    const ctx = el.productionChart.getContext ? el.productionChart : document.createElement("canvas");
-
-    // Destrói chart anterior antes de criar novo (previne memory leak)
-    destroyChart();
-
-    el.productionChart.innerHTML = "";
-    el.productionChart.appendChild(ctx);
-    productionChart = new window.Chart(ctx, {
-        type: "line",
-        data: {
-          labels: chartRecords.map((r) => formatDate(r.date)),
-          datasets: [
-            { label: "Produção (L)", data: chartRecords.map((r) => Number(r.liters || 0)), borderColor: "#176c56", backgroundColor: "rgba(23,108,86,0.1)", borderWidth: 2, fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: "#176c56", pointBorderColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 7 },
-            { label: "Média mensal", data: chartRecords.map(() => report.average), borderColor: "#b7791f", borderWidth: 2, borderDash: [5, 5], fill: false, pointRadius: 0, tension: 0 },
-          ],
-        },
-        options: {
-          responsive: true, maintainAspectRatio: true,
-          plugins: { legend: { display: true, position: "top" }, tooltip: { backgroundColor: "rgba(0,0,0,0.8)", padding: 12, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatLiters(ctx.parsed.y)}` } } },
-          scales: { y: { beginAtZero: true, ticks: { callback: (v) => formatLiters(v) } } },
-        },
-      });
-  } else {
-    destroyChart();
-  }
-};
+export const renderReports = () => renderReportsModule(el);
 
 // ─── Debounce helper ────────────────────────────────────────────────────────
 const debounce = (fn, ms = 16) => {
@@ -964,323 +814,6 @@ const debounce = (fn, ms = 16) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// DASHBOARD INTELIGENTE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Renderiza o painel de KPIs inteligentes no dashboard.
- */
-export const renderSmartDashboard = () => {
-  const container = $("#smartDashboard");
-  if (!container) return;
-
-  const farmScore = getFarmScore();
-  const production = getProductionAnalysis(14);
-  const herd = getHerdAnalysis();
-  const financial = getFinancialAnalysis();
-  const anomalies = detectProductionAnomalies();
-  const recommendations = getRecommendationsSummary();
-  const forecast = forecastProduction(7);
-
-  // Score color
-  const scoreColor = farmScore.score >= 80 ? "excellent" : farmScore.score >= 60 ? "good" : farmScore.score >= 40 ? "regular" : "attention";
-
-  // Trend icon
-  const trendIcon = production.hasData
-    ? production.trendDirection === "up" ? "📈" : production.trendDirection === "down" ? "📉" : "➡️"
-    : "📊";
-
-  container.innerHTML = `
-    <div class="smart-dashboard">
-      <!-- SCORE DA FAZENDA -->
-      <div class="smart-card farm-score-card ${scoreColor}">
-        <div class="smart-card-header">
-          <span class="smart-icon">🎯</span>
-          <strong>Score da Fazenda</strong>
-        </div>
-        <div class="score-display">
-          <span class="score-number">${farmScore.score}</span>
-          <span class="score-label">${escapeHtml(farmScore.label)}</span>
-        </div>
-        <small>${escapeHtml(production.hasData ? `${trendIcon} Tendência ${production.trendDirection === "up" ? "de alta" : production.trendDirection === "down" ? "de queda" : "estável"}` : "Colete mais dados para análise")}</small>
-      </div>
-
-      <!-- KPIs DE PRODUÇÃO -->
-      <div class="smart-card">
-        <div class="smart-card-header">
-          <span class="smart-icon">🥛</span>
-          <strong>Produção</strong>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi">
-            <small>Média 7 dias</small>
-            <strong>${production.hasData ? formatLiters(production.last7Avg) : "-"}</strong>
-          </div>
-          <div class="kpi">
-            <small>Consistência</small>
-            <strong>${production.hasData ? Math.round(production.consistency) + "%" : "-"}</strong>
-          </div>
-          <div class="kpi">
-            <small>Previsão 7d</small>
-            <strong>${forecast.length ? formatLiters(forecast.reduce((s, f) => s + f.predicted, 0) / 7) + "/dia" : "-"}</strong>
-          </div>
-          <div class="kpi">
-            <small>Melhor dia</small>
-            <strong>${production.bestDay ? formatDate(production.bestDay.date) : "-"}</strong>
-          </div>
-        </div>
-        ${production.trendPercent !== 0 ? `
-          <div class="trend-badge ${production.trendDirection}">
-            ${production.trendDirection === "up" ? "↑" : "↓"} ${Math.abs(production.trendPercent)}% vs semana anterior
-          </div>
-        ` : ""}
-      </div>
-
-      <!-- KPIs DO REBANHO -->
-      <div class="smart-card">
-        <div class="smart-card-header">
-          <span class="smart-icon">🐄</span>
-          <strong>Rebanho</strong>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi">
-            <small>Total</small>
-            <strong>${herd.total}</strong>
-          </div>
-          <div class="kpi">
-            <small>Lactação</small>
-            <strong>${herd.lactating} (${herd.lactatingPercent}%)</strong>
-          </div>
-          <div class="kpi">
-            <small>Gestantes</small>
-            <strong>${herd.pregnant}</strong>
-          </div>
-          <div class="kpi">
-            <small>Partos 30d</small>
-            <strong>${herd.calvings30d}</strong>
-          </div>
-        </div>
-        ${herd.healthScore < 80 ? `
-          <div class="health-badge warning">
-            🩺 Saúde: ${herd.healthScore}/100
-          </div>
-        ` : `
-          <div class="health-badge good">
-            ✅ Saúde: ${herd.healthScore}/100
-          </div>
-        `}
-      </div>
-
-      <!-- KPIs FINANCEIROS -->
-      <div class="smart-card">
-        <div class="smart-card-header">
-          <span class="smart-icon">💰</span>
-          <strong>Financeiro</strong>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi">
-            <small>Receita mês</small>
-            <strong>${formatMoney(financial.monthValue)}</strong>
-          </div>
-          <div class="kpi">
-            <small>Previsão</small>
-            <strong>${formatMoney(financial.projectedMonthValue)}</strong>
-          </div>
-          <div class="kpi">
-            <small>Média/dia</small>
-            <strong>${formatMoney(financial.dailyAvg * financial.price)}</strong>
-          </div>
-          <div class="kpi">
-            <small>Por animal</small>
-            <strong>${formatMoney(financial.revenuePerCow)}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- ANOMALIAS (se houver) -->
-      ${anomalies.length > 0 ? `
-        <div class="smart-card anomaly-card">
-          <div class="smart-card-header">
-            <span class="smart-icon">⚠️</span>
-            <strong>Anomalias Detectadas</strong>
-            <span class="anomaly-count">${anomalies.length}</span>
-          </div>
-          <div class="anomaly-list">
-            ${anomalies.map((a) => `
-              <div class="anomaly-item ${a.severity}">
-                <span class="anomaly-icon">${a.severity === "critical" ? "🔴" : a.severity === "warning" ? "🟡" : "ℹ️"}</span>
-                <span>${escapeHtml(a.message)}</span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      ` : ""}
-
-      <!-- RECOMENDAÇÕES TOP 3 -->
-      ${recommendations.total > 0 ? `
-        <div class="smart-card recommendations-card">
-          <div class="smart-card-header">
-            <span class="smart-icon">💡</span>
-            <strong>Recomendações</strong>
-            <span class="recommendation-count">${recommendations.total}</span>
-          </div>
-          <div class="recommendation-list">
-            ${recommendations.top3.map((r) => `
-              <div class="recommendation-item ${r.priority}">
-                <span class="rec-icon">${r.icon}</span>
-                <div class="rec-content">
-                  <strong>${escapeHtml(r.title)}</strong>
-                  <small>${escapeHtml(r.message)}</small>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      ` : ""}
-    </div>
-  `;
-};
-
-/**
- * Renderiza previsão de produção no painel de relatórios.
- */
-export const renderProductionForecast = () => {
-  const container = $("#forecastPanel");
-  if (!container) return;
-
-  const forecast = forecastProduction(7);
-  if (forecast.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="forecast-panel">
-      <div class="forecast-header">
-        <span>🔮</span>
-        <strong>Previsão de Produção (7 dias)</strong>
-      </div>
-      <div class="forecast-grid">
-        ${forecast.map((f) => {
-          const confClass = f.confidence === "high" ? "high" : f.confidence === "medium" ? "medium" : "low";
-          return `
-            <div class="forecast-day">
-              <small>${escapeHtml(formatDate(f.date))}</small>
-              <strong>${formatLiters(f.predicted)}</strong>
-              <span class="confidence ${confClass}">${f.confidence === "high" ? "Alta" : f.confidence === "medium" ? "Média" : "Baixa"}</span>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    </div>
-  `;
-};
-
-/**
- * Renderiza recomendações no painel de alertas.
- */
-export const renderRecommendations = () => {
-  const container = $("#recommendationList");
-  if (!container) return;
-
-  const all = generateRecommendations();
-  if (all.length === 0) {
-    container.innerHTML = `<div class="empty-recommendations"><span>✅</span><p>Nenhuma recomendação no momento — tudo sob controle!</p></div>`;
-    return;
-  }
-
-  container.innerHTML = all.map((r) => `
-    <div class="recommendation-card ${r.priority}">
-      <div class="rec-header">
-        <span class="rec-icon">${r.icon}</span>
-        <div class="rec-title">
-          <strong>${escapeHtml(r.title)}</strong>
-          <span class="rec-type">${escapeHtml(r.type)}</span>
-        </div>
-        <span class="rec-priority ${r.priority}">${r.priority}</span>
-      </div>
-      <p class="rec-message">${escapeHtml(r.message)}</p>
-      ${r.action ? `<button class="rec-action" type="button">${escapeHtml(r.action)}</button>` : ""}
-    </div>
-  `).join("");
-};
-
-/**
- * Renderiza previsão de estoque.
- */
-export const renderStockForecast = () => {
-  const container = $("#stockForecastPanel");
-  if (!container) return;
-
-  const stock = forecastStock();
-  const urgentItems = stock.filter((s) => s.recommendation?.type === "critical" || s.recommendation?.type === "warning");
-
-  if (urgentItems.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="stock-forecast-panel">
-      <div class="forecast-header">
-        <span>📦</span>
-        <strong>Estoque — Atenção Necessária</strong>
-      </div>
-      <div class="stock-forecast-list">
-        ${urgentItems.map((s) => `
-          <div class="stock-forecast-item ${s.recommendation?.type}">
-            <div class="stock-info">
-              <strong>${escapeHtml(s.item_name)}</strong>
-              <small>${escapeHtml(s.recommendation?.message || "")}</small>
-            </div>
-            <div class="stock-qty">
-              <span>${formatStockQuantity(s.currentQty, s.unit)}</span>
-              ${s.daysUntilEmpty !== null ? `<small>~${s.daysUntilEmpty} dias</small>` : ""}
-            </div>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
-};
-
-/**
- * Renderiza previsão de lactação.
- */
-export const renderLactationForecast = () => {
-  const container = $("#lactationForecastPanel");
-  if (!container) return;
-
-  const lactations = forecastLactation();
-  const alerts = lactations.filter((l) => l.isLongLactation || l.recommendation);
-
-  if (alerts.length === 0) {
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="lactation-forecast-panel">
-      <div class="forecast-header">
-        <span>🐄</span>
-        <strong>Lactação — Atenção</strong>
-      </div>
-      <div class="lactation-forecast-list">
-        ${alerts.map((l) => `
-          <div class="lactation-forecast-item ${l.isLongLactation ? "critical" : "warning"}">
-            <div class="lact-info">
-              <strong>${escapeHtml(l.cow_name)}</strong>
-              <small>${l.daysActive} dias em lactação — ${escapeHtml(l.productivityPhase)}</small>
-            </div>
-            ${l.recommendation ? `<div class="lact-rec"><small>${escapeHtml(l.recommendation)}</small></div>` : ""}
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
 };
 
 // ─── Master render (debounced) ──────────────────────────────────────────────

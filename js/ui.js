@@ -99,6 +99,26 @@ export const empty = (text, type = "default") => {
   </div>`;
 };
 
+// ─── Safe form submit wrapper ───────────────────────────────────────────────
+/**
+ * Wraps a form submit handler with consistent error handling and button loading.
+ * @param {HTMLFormElement} form - The form element
+ * @param {Function} handler - The async handler function
+ * @param {string} context - Description for error messages (e.g., "salvar produção")
+ * @param {string} loadingText - Text shown during submission (default: "Salvando...")
+ */
+export const safeSubmit = (form, handler, context, loadingText = "Salvando...") => {
+  form.addEventListener("submit", withButtonLoading(form, async (event) => {
+    event.preventDefault();
+    try {
+      await handler(event);
+    } catch (err) {
+      if (err.authRequired) throw err;
+      showToast(err.message || `Erro ao ${context}`, "error");
+    }
+  }, loadingText));
+};
+
 // ─── Normalização de inputs ─────────────────────────────────────────────────
 export const normalizeCropEventInput = (data) => {
   const plotName = cleanText(data.plot_name ?? data.plotName, 100);

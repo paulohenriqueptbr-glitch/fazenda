@@ -5,7 +5,7 @@ import {
   selectedMedicationCowId, setSelectedMedicationCowId,
   milkFilter, setMilkFilter,
 } from "./state.js";
-import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme } from "./ui.js";
+import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, formatMoney, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme, safeSubmit } from "./ui.js";
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
@@ -13,62 +13,18 @@ import { findMedication, getMedicationInfo, calculateDosage, BOVINE_MEDICATIONS 
 import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval, updateAlertsBadge } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
-  populateCowSelects, setupPeriodFilter, recordActions, reminderActions, loadWeatherForecast,
+  populateCowSelects, setupPeriodFilter, recordActions, reminderActions,
   openAnimalProfile,
 } from "./render.js";
+import { loadWeatherForecast } from "./weather.js";
 import { log, warn, error } from "./logger.js";
 import { initPushNotifications, checkPushAlerts } from "./push.js";
+import { contactUrl, subscribeUrl } from "./urls.js";
+import { sumLiters, getMonthAverage } from "./stats.js";
 import { maybeAutoBackup, exportDataBackup } from "./backup.js";
 import { setupInstallPrompt, setupInstallListeners } from "./install.js";
-
-// ─── Onboarding ─────────────────────────────────────────────────────────────
-const hideOnboarding = () => { if (el.onboardingModal) el.onboardingModal.classList.add("hidden"); };
-
-const maybeShowOnboarding = () => {
-  if (!el.onboardingModal || !currentUserId) return;
-  const profile = state.clientProfile;
-  if (profile?.onboardingDone) { hideOnboarding(); return; }
-  el.onboardingModal.classList.remove("hidden");
-  const farmInput = $("#onboardingFarmName");
-  const ownerInput = $("#onboardingOwnerName");
-  const whatsappInput = $("#onboardingWhatsapp");
-  const priceInput = $("#onboardingPrice");
-  const dateInput = $("#onboardingFirstDate");
-  if (farmInput) farmInput.value = profile?.farmName || "";
-  if (ownerInput) ownerInput.value = profile?.ownerName || "";
-  if (whatsappInput) whatsappInput.value = profile?.whatsapp || "";
-  if (priceInput) priceInput.value = state.priceQuote ? String(state.priceQuote) : "";
-  if (dateInput && !dateInput.value) dateInput.value = todayIso();
-};
-
-const completeOnboarding = async (skip = false) => {
-  const profile = state.clientProfile || {};
-  const formData = el.onboardingForm ? new FormData(el.onboardingForm) : new FormData();
-  const nextProfile = {
-    ...profile, farmName: String(formData.get("farmName") || profile.farmName || "").trim(),
-    ownerName: String(formData.get("ownerName") || profile.ownerName || "").trim(),
-    whatsapp: String(formData.get("whatsapp") || profile.whatsapp || "").trim(), onboardingDone: true,
-  };
-  if (!skip) {
-    const price = validateNumber(formData.get("price") || "0", 0, 100);
-    const firstAnimal = String(formData.get("firstAnimal") || "").trim();
-    const firstLitersRaw = formData.get("firstLiters");
-    const firstLiters = firstLitersRaw ? validateNumber(firstLitersRaw, 0, 1000) : null;
-    const firstDate = String(formData.get("firstDate") || todayIso());
-    if (!nextProfile.farmName) throw new Error("Informe o nome da fazenda.");
-    if (price === null) throw new Error("Preço do litro inválido.");
-    if (!isValidDate(firstDate) || !isNotFutureDate(firstDate)) throw new Error("Data da primeira produção inválida.");
-    await savePriceQuote(price);
-    if (firstAnimal) await insertAnimal({ identification: firstAnimal, type: "Bovino de Leite", status: "Em lactação", user_id: currentUserId });
-    if (firstLiters !== null) await upsertMilk({ date: firstDate, liters: firstLiters, user_id: currentUserId });
-  }
-  await saveClientProfile(nextProfile);
-  writeLocal();
-  hideOnboarding();
-  populateCowSelects();
-  render();
-  showToast(skip ? "Onboarding pulado. Você pode configurar depois." : "Primeira configuração concluída!");
-};
+import { maybeShowOnboarding, completeOnboarding } from "./onboarding.js";
+import { registerServiceWorker } from "./sw-registration.js";
 
 // ─── Load data ──────────────────────────────────────────────────────────────
 const loadData = async () => {
@@ -300,26 +256,22 @@ const initApp = () => {
   };
 
   // ─── Form submissions ─────────────────────────────────────────────────────
-  el.milkForm.addEventListener("submit", withButtonLoading(el.milkForm, async (event) => {
-    event.preventDefault();
-    try {
-      const dateValue = $("#milkDate").value;
-      const litersValue = Number.parseFloat($("#liters").value || "0");
-      if (!isValidDate(dateValue)) throw new Error("Data inválida");
-      if (!isNotFutureDate(dateValue)) throw new Error("Não pode registrar produção futura");
-      const liters = validateNumber(litersValue, 0, 1000);
-      if (liters === null) throw new Error("Litros inválido (0-1000)");
-      const monthRecords = state.milk.filter((r) => r.date?.startsWith(monthKey()));
-      const monthAverage = monthRecords.length ? monthRecords.reduce((sum, r) => sum + Number(r.liters || 0), 0) / monthRecords.length : 0;
-      const ps = getProductionStatus(liters, monthAverage);
-      await upsertMilk({ date: dateValue, liters, user_id: currentUserId });
-      el.milkForm.reset(); el.milkDate.value = todayIso();
-      if (ps.status === "Crítico") showToast(`Produção crítica! ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "error");
-      else if (ps.status === "Baixo") showToast(`Produção baixa. ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "sync");
-      else showToast("Produção salva com sucesso!", "success");
-      render();
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar produção", "error"); }
-  }, "Salvando..."));
+  safeSubmit(el.milkForm, async () => {
+    const dateValue = $("#milkDate").value;
+    const litersValue = Number.parseFloat($("#liters").value || "0");
+    if (!isValidDate(dateValue)) throw new Error("Data inválida");
+    if (!isNotFutureDate(dateValue)) throw new Error("Não pode registrar produção futura");
+    const liters = validateNumber(litersValue, 0, 1000);
+    if (liters === null) throw new Error("Litros inválido (0-1000)");
+    const monthAverage = getMonthAverage(state.milk);
+    const ps = getProductionStatus(liters, monthAverage);
+    await upsertMilk({ date: dateValue, liters, user_id: currentUserId });
+    el.milkForm.reset(); el.milkDate.value = todayIso();
+    if (ps.status === "Crítico") showToast(`Produção crítica! ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "error");
+    else if (ps.status === "Baixo") showToast(`Produção baixa. ${formatLiters(liters)} (média: ${formatLiters(monthAverage)})`, "sync");
+    else showToast("Produção salva com sucesso!", "success");
+    render();
+  }, "salvar produção");
 
   // ─── Animal form modal ────────────────────────────────────────────────────
   const openAnimalFormBtn = $("#openAnimalFormBtn");
@@ -336,52 +288,43 @@ const initApp = () => {
     });
   }
   if (animalFormModalForm) {
-    animalFormModalForm.addEventListener("submit", withButtonLoading(animalFormModalForm, async (event) => {
-      event.preventDefault();
-      try {
-        const identification = $("#animalModalName").value.trim();
-        if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
-        const weightRaw = $("#animalModalWeight")?.value;
-        const weight = weightRaw ? parseFloat(weightRaw) : null;
-        if (weight !== null && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
-        await insertAnimal({ identification, type: $("#animalModalType").value, status: $("#animalModalStatus").value, weight, user_id: currentUserId });
-        animalFormModalForm.reset();
-        animalFormModal.classList.add("hidden");
-        showToast("Animal cadastrado!"); populateCowSelects(); render();
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao cadastrar animal", "error"); }
-    }, "Cadastrando..."));
+    safeSubmit(animalFormModalForm, async () => {
+      const identification = $("#animalModalName").value.trim();
+      if (!identification || identification.length > 100) throw new Error("ID do animal deve ter 1-100 caracteres");
+      const weightRaw = $("#animalModalWeight")?.value;
+      const weight = weightRaw ? parseFloat(weightRaw) : null;
+      if (weight !== null && (isNaN(weight) || weight < 0 || weight > 2000)) throw new Error("Peso inválido (0-2000 kg)");
+      await insertAnimal({ identification, type: $("#animalModalType").value, status: $("#animalModalStatus").value, weight, user_id: currentUserId });
+      animalFormModalForm.reset();
+      animalFormModal.classList.add("hidden");
+      showToast("Animal cadastrado!"); populateCowSelects(); render();
+    }, "cadastrar animal", "Cadastrando...");
   }
 
   if (el.lactationForm) {
-    el.lactationForm.addEventListener("submit", withButtonLoading(el.lactationForm, async (event) => {
-      event.preventDefault();
-      try {
-        const startDate = $("#lactStart").value;
-        const endDate = $("#lactEnd").value || null;
-        const dailyLiters = Number.parseFloat($("#lactLiters").value || "0");
-        if (!isValidDate(startDate)) throw new Error("Data de início inválida");
-        if (endDate && !isValidDate(endDate)) throw new Error("Data de fim inválida");
-        if (!isValidDateRange(startDate, endDate)) throw new Error("Data de fim não pode ser antes do início");
-        const liters = validateNumber(dailyLiters, 0, 500);
-        if (liters === null) throw new Error("Litros/dia inválido (0-500)");
-        await insertLactation({ cow_id: $("#lactCowId").value, start_date: startDate, end_date: endDate, daily_liters: liters });
-        el.lactationForm.reset(); showToast("Lactação registrada!"); render();
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar lactação", "error"); }
-    }, "Registrando..."));
+    safeSubmit(el.lactationForm, async () => {
+      const startDate = $("#lactStart").value;
+      const endDate = $("#lactEnd").value || null;
+      const dailyLiters = Number.parseFloat($("#lactLiters").value || "0");
+      if (!isValidDate(startDate)) throw new Error("Data de início inválida");
+      if (endDate && !isValidDate(endDate)) throw new Error("Data de fim inválida");
+      if (!isValidDateRange(startDate, endDate)) throw new Error("Data de fim não pode ser antes do início");
+      const liters = validateNumber(dailyLiters, 0, 500);
+      if (liters === null) throw new Error("Litros/dia inválido (0-500)");
+      await insertLactation({ cow_id: $("#lactCowId").value, start_date: startDate, end_date: endDate, daily_liters: liters });
+      el.lactationForm.reset(); showToast("Lactação registrada!"); render();
+    }, "registrar lactação", "Registrando...");
   }
 
-  el.breedingForm.addEventListener("submit", withButtonLoading(el.breedingForm, async (event) => {
-    event.preventDefault();
-    try {
-      const insemDate = $("#inseminationDate").value;
-      const calvingDate = $("#expectedCalving").value;
-      if (!isValidDate(insemDate)) throw new Error("Data de inseminação inválida");
-      if (!isValidDate(calvingDate)) throw new Error("Data de parto inválida");
-      if (!isValidDateRange(insemDate, calvingDate)) throw new Error("Parto não pode ser antes de inseminação");
-      await insertBreeding({ cow_id: $("#breedCowId").value, insemination_date: insemDate, expected_calving_date: calvingDate });
-      el.breedingForm.reset(); render(); showToast("Reprodução registrada!");
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar reprodução", "error"); }
-  }, "Registrando..."));
+  safeSubmit(el.breedingForm, async () => {
+    const insemDate = $("#inseminationDate").value;
+    const calvingDate = $("#expectedCalving").value;
+    if (!isValidDate(insemDate)) throw new Error("Data de inseminação inválida");
+    if (!isValidDate(calvingDate)) throw new Error("Data de parto inválida");
+    if (!isValidDateRange(insemDate, calvingDate)) throw new Error("Parto não pode ser antes de inseminação");
+    await insertBreeding({ cow_id: $("#breedCowId").value, insemination_date: insemDate, expected_calving_date: calvingDate });
+    el.breedingForm.reset(); render(); showToast("Reprodução registrada!");
+  }, "registrar reprodução", "Registrando...");
 
   // ─── Medication Autocomplete + Smart Badge ────────────────────────────────────
   const setupMedicationAutocomplete = () => {
@@ -444,63 +387,51 @@ const initApp = () => {
 
   setupMedicationAutocomplete();
 
-  el.medicationForm.addEventListener("submit", withButtonLoading(el.medicationForm, async (event) => {
-    event.preventDefault();
-    try {
-      const medName = $("#medName").value.trim();
-      const medDate = $("#medDate").value;
-      const medCowId = $("#medCowId").value;
-      if (!medCowId) throw new Error("Selecione uma vaca");
-      if (!medName || medName.length > 100) throw new Error("Medicamento deve ter 1-100 caracteres");
-      if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
-      if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
-      setSelectedMedicationCowId(medCowId);
-      const reapplyDays = $("#medReapplyInterval")?.value ? validateNumber($("#medReapplyInterval").value, 1, 365) : null;
-      await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate, reapply_interval_days: reapplyDays });
-      el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; render(); showToast("Medicação registrada!");
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao registrar medicação", "error"); }
-  }, "Registrando..."));
+  safeSubmit(el.medicationForm, async () => {
+    const medName = $("#medName").value.trim();
+    const medDate = $("#medDate").value;
+    const medCowId = $("#medCowId").value;
+    if (!medCowId) throw new Error("Selecione uma vaca");
+    if (!medName || medName.length > 100) throw new Error("Medicamento deve ter 1-100 caracteres");
+    if (!isValidDate(medDate)) throw new Error("Data de aplicação inválida");
+    if (!isNotFutureDate(medDate)) throw new Error("Não pode registrar medicação futura");
+    setSelectedMedicationCowId(medCowId);
+    const reapplyDays = $("#medReapplyInterval")?.value ? validateNumber($("#medReapplyInterval").value, 1, 365) : null;
+    await insertMedication({ cow_id: medCowId, medication_name: medName, dosage: $("#medDosage").value.trim().substring(0, 100), administration_date: medDate, reapply_interval_days: reapplyDays });
+    el.medicationForm.reset(); $("#medCowId").value = selectedMedicationCowId; render(); showToast("Medicação registrada!");
+  }, "registrar medicação", "Registrando...");
 
   if (el.cropForm) {
-    el.cropForm.addEventListener("submit", withButtonLoading(el.cropForm, async (event) => {
-      event.preventDefault();
-      try {
-        const plotName = $("#cropPlot").value.trim();
-        const cropName = $("#cropName").value.trim();
-        const eventType = $("#cropEventType").value.trim();
-        const eventDate = $("#cropDate").value;
-        const areaTasksRaw = $("#cropAreaTasks").value;
-        const areaTasks = areaTasksRaw ? validateNumber(areaTasksRaw, 0, 100000) : null;
-        if (!plotName || plotName.length > 100) throw new Error("Talhão/área deve ter 1-100 caracteres");
-        if (!cropName || cropName.length > 100) throw new Error("Cultura deve ter 1-100 caracteres");
-        if (!eventType || eventType.length > 80) throw new Error("Manejo deve ter 1-80 caracteres");
-        if (!isValidDate(eventDate)) throw new Error("Data inválida");
-        if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
-        if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
-        await insertCropEvent({ plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
-        el.cropForm.reset(); $("#cropDate").value = todayIso(); render(); showToast("Manejo da lavoura salvo!");
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar manejo", "error"); }
-    }, "Salvando..."));
+    safeSubmit(el.cropForm, async () => {
+      const plotName = $("#cropPlot").value.trim();
+      const cropName = $("#cropName").value.trim();
+      const eventType = $("#cropEventType").value.trim();
+      const eventDate = $("#cropDate").value;
+      const areaTasksRaw = $("#cropAreaTasks").value;
+      const areaTasks = areaTasksRaw ? validateNumber(areaTasksRaw, 0, 100000) : null;
+      if (!plotName || plotName.length > 100) throw new Error("Talhão/área deve ter 1-100 caracteres");
+      if (!cropName || cropName.length > 100) throw new Error("Cultura deve ter 1-100 caracteres");
+      if (!eventType || eventType.length > 80) throw new Error("Manejo deve ter 1-80 caracteres");
+      if (!isValidDate(eventDate)) throw new Error("Data inválida");
+      if (!isNotFutureDate(eventDate)) throw new Error("Não pode registrar manejo futuro");
+      if (areaTasksRaw && areaTasks === null) throw new Error("Área em tarefas inválida");
+      await insertCropEvent({ plot_name: plotName, crop_name: cropName, event_type: eventType, event_date: eventDate, product: $("#cropProduct").value.trim().substring(0, 120), dosage: $("#cropDosage").value.trim().substring(0, 80), area_tasks: areaTasks, notes: $("#cropNotes").value.trim().substring(0, 500) });
+      el.cropForm.reset(); $("#cropDate").value = todayIso(); render(); showToast("Manejo da lavoura salvo!");
+    }, "salvar manejo");
   }
 
   if (el.stockForm) {
-    el.stockForm.addEventListener("submit", withButtonLoading(el.stockForm, async (event) => {
-      event.preventDefault();
-      try {
-        await insertStockItem({ item_name: $("#stockItemName").value, category: $("#stockCategory").value, quantity: $("#stockQuantity").value, unit: $("#stockUnit").value, min_quantity: $("#stockMinQuantity").value, notes: $("#stockNotes").value });
-        el.stockForm.reset(); render(); showToast("Item de estoque salvo!");
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar item", "error"); }
-    }, "Salvando..."));
+    safeSubmit(el.stockForm, async () => {
+      await insertStockItem({ item_name: $("#stockItemName").value, category: $("#stockCategory").value, quantity: $("#stockQuantity").value, unit: $("#stockUnit").value, min_quantity: $("#stockMinQuantity").value, notes: $("#stockNotes").value });
+      el.stockForm.reset(); render(); showToast("Item de estoque salvo!");
+    }, "salvar item");
   }
 
   if (el.reminderForm) {
-    el.reminderForm.addEventListener("submit", withButtonLoading(el.reminderForm, async (event) => {
-      event.preventDefault();
-      try {
-        await insertReminder({ title: $("#reminderTitle").value, category: $("#reminderCategory").value, due_date: $("#reminderDate").value, notes: $("#reminderNotes").value });
-        el.reminderForm.reset(); if (el.reminderDate) el.reminderDate.value = todayIso(); render(); showToast("Lembrete salvo!");
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar lembrete", "error"); }
-    }, "Salvando..."));
+    safeSubmit(el.reminderForm, async () => {
+      await insertReminder({ title: $("#reminderTitle").value, category: $("#reminderCategory").value, due_date: $("#reminderDate").value, notes: $("#reminderNotes").value });
+      el.reminderForm.reset(); if (el.reminderDate) el.reminderDate.value = todayIso(); render(); showToast("Lembrete salvo!");
+    }, "salvar lembrete");
   }
 
   if (el.weatherForm) {
@@ -511,25 +442,19 @@ const initApp = () => {
     });
   }
 
-  el.priceQuoteForm.addEventListener("submit", withButtonLoading(el.priceQuoteForm, async (event) => {
-    event.preventDefault();
-    try {
-      const price = validateNumber(el.priceQuoteInput.value || "0", 0, 100);
-      if (price === null) throw new Error("Cotação inválida (0-100)");
-      await savePriceQuote(price); writeLocal(); render(); el.priceQuoteForm.reset(); showToast("Cotação atualizada!");
-    } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar cotação", "error"); }
-  }, "Salvando..."));
+  safeSubmit(el.priceQuoteForm, async () => {
+    const price = validateNumber(el.priceQuoteInput.value || "0", 0, 100);
+    if (price === null) throw new Error("Cotação inválida (0-100)");
+    await savePriceQuote(price); writeLocal(); render(); el.priceQuoteForm.reset(); showToast("Cotação atualizada!");
+  }, "salvar cotação");
 
   if (el.clientProfileForm && !el.clientProfileForm._listenerAttached) {
     el.clientProfileForm._listenerAttached = true;
-    el.clientProfileForm.addEventListener("submit", withButtonLoading(el.clientProfileForm, async (event) => {
-      event.preventDefault();
-      try {
-        const profile = state.clientProfile || {};
-        await saveClientProfile({ ...profile, farmName: el.farmNameInput.value.trim(), ownerName: el.ownerNameInput.value.trim(), whatsapp: el.clientWhatsappInput.value.trim() });
-        writeLocal(); render(); showToast("Dados do cliente salvos!");
-      } catch (err) { if (err.authRequired) throw err; showToast(err.message || "Erro ao salvar dados do cliente", "error"); }
-    }, "Salvando..."));
+    safeSubmit(el.clientProfileForm, async () => {
+      const profile = state.clientProfile || {};
+      await saveClientProfile({ ...profile, farmName: el.farmNameInput.value.trim(), ownerName: el.ownerNameInput.value.trim(), whatsapp: el.clientWhatsappInput.value.trim() });
+      writeLocal(); render(); showToast("Dados do cliente salvos!");
+    }, "salvar dados do cliente");
   }
 
   if (el.copyPixButton && !el.copyPixButton._listenerAttached) { el.copyPixButton._listenerAttached = true; el.copyPixButton.addEventListener("click", () => { window.location.href = subscribeUrl(); }); }
@@ -654,48 +579,15 @@ const setupInlineValidations = () => {
 
 // ─── Support links ──────────────────────────────────────────────────────────
 const setupSupportLinks = () => {
-  const contactUrl = (message, subject = "Suporte Terrasyn") => {
-    const encoded = encodeURIComponent(message);
-    if (config.supportWhatsapp) return `https://wa.me/${config.supportWhatsapp.replace(/\D/g, "")}?text=${encoded}`;
-    if (config.supportEmail) return `mailto:${config.supportEmail}?subject=${encodeURIComponent(subject)}&body=${encoded}`;
-    return "privacy.html#contato";
-  };
   document.querySelectorAll("[data-support-link], [data-subscribe-link]").forEach((link) => {
     const url = link.hasAttribute("data-subscribe-link")
-      ? contactUrl(`Olá, quero assinar o Terrasyn. Plano: ${formatLiters(config.planPrice || 39)}/mês.`, "Assinatura Terrasyn")
+      ? contactUrl(`Olá, quero assinar o Terrasyn. Plano: ${formatMoney(config.planPrice || 39)}/mês.`, "Assinatura Terrasyn")
       : contactUrl("Olá, preciso de suporte no Terrasyn.");
     link.setAttribute("href", url);
     if (url.startsWith("https://")) { link.setAttribute("target", "_blank"); link.setAttribute("rel", "noopener noreferrer"); }
     else { link.removeAttribute("target"); link.removeAttribute("rel"); }
   });
 };
-
-// ─── Service worker ─────────────────────────────────────────────────────────
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try {
-      const reg = await navigator.serviceWorker.register("service-worker.js");
-      await reg.update();
-      const onNewSW = (worker) => {
-        if (!worker) return;
-        const showUpdateBanner = () => {
-          if (document.getElementById("swUpdateBanner")) return;
-          const banner = document.createElement("div");
-          banner.id = "swUpdateBanner"; banner.className = "sw-update-banner";
-          banner.innerHTML = `<span>Nova versão disponível</span><button id="swUpdateBtn" class="sw-update-btn">Atualizar agora</button><button id="swUpdateDismiss" class="sw-update-dismiss" aria-label="Fechar">✕</button>`;
-          document.body.appendChild(banner);
-          document.getElementById("swUpdateBtn").addEventListener("click", () => { worker.postMessage({ type: "SKIP_WAITING" }); banner.remove(); });
-          document.getElementById("swUpdateDismiss").addEventListener("click", () => banner.remove());
-        };
-        if (worker.state === "installed") showUpdateBanner();
-        else worker.addEventListener("statechange", () => { if (worker.state === "installed") showUpdateBanner(); });
-      };
-      if (reg.waiting) onNewSW(reg.waiting);
-      reg.addEventListener("updatefound", () => onNewSW(reg.installing));
-      navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload());
-    } catch (err) { warn("Service Worker não registrado:", err); }
-  });
-}
 
 // ─── Global events ──────────────────────────────────────────────────────────
 window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)).catch(() => {}); } });
@@ -712,6 +604,7 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
+registerServiceWorker();
 setupSupportLinks();
 setupAuthListeners(initApp);
 setupAuthStateListener(initApp);
