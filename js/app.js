@@ -5,12 +5,12 @@ import {
   selectedMedicationCowId, setSelectedMedicationCowId,
   milkFilter, setMilkFilter,
 } from "./state.js";
-import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, formatMoney, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme, safeSubmit } from "./ui.js";
+import { showToast, withButtonLoading, addInlineValidation, isValidDate, isNotFutureDate, isValidDateRange, validateNumber, formatLiters, formatMoney, formatDate, escapeHtml, getProductionStatus, toggleTheme, updateThemeToggleIcon, getPreferredTheme, safeSubmit } from "./ui.js";
 import { setupAuthListeners, checkSession, setupAuthStateListener, showLogin, showApp, requireSession, handleSupabaseError, saveLoginEmail } from "./auth.js";
 import { getSyncQueue, processSyncQueue, loadSupabase, loadAppSettings, setStatus, updateSyncBadge, enqueueMutation } from "./sync.js";
 import { findRecord, animalLabel, upsertMilk, insertAnimal, insertLactation, insertBreeding, insertMedication, insertCropEvent, insertStockItem, insertReminder, updateRecord, deleteRecord, savePriceQuote, saveClientProfile, showEditModal } from "./crud.js";
 import { findMedication, getMedicationInfo, calculateDosage, BOVINE_MEDICATIONS } from "./medication-catalog.js";
-import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval, updateAlertsBadge } from "./alerts.js";
+import { dismissAutoAlert, confirmAutoAlert, toggleReminder, getMedicationInterval, updateAlertsBadge, getNextReapplyDate, daysFromToday, alertStatusLabel } from "./alerts.js";
 import {
   el, render, renderMilk, renderReports, renderMedication, renderAlerts, renderSummary,
   populateCowSelects, setupPeriodFilter, recordActions, reminderActions,
@@ -131,6 +131,58 @@ const initApp = () => {
         if (action === "toggle-reminder") { await toggleReminder(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "confirm-auto-alert") { confirmAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
         if (action === "dismiss-auto-alert") { dismissAutoAlert(id); renderAlerts(); updateAlertsBadge(); }
+        
+        // Inline edit actions for medication history
+        if (action === "inline-edit") {
+          const record = findRecord("medication", id);
+          if (!record) return;
+          const card = button.closest(".med-animal-card");
+          const cowId = card?.dataset.medicalCowId;
+          // Re-render with expandedId to show inline edit form
+          if (cowId) {
+            setSelectedMedicationCowId(cowId);
+            // Store the editing ID and re-render
+            window._editingMedId = id;
+            renderMedication(cowId);
+          }
+        }
+        if (action === "inline-save") {
+          const form = button.closest("form");
+          if (!form) return;
+          const data = Object.fromEntries(new FormData(form));
+          const record = findRecord("medication", id);
+          if (!record) return;
+          if (!data.medication_name?.trim()) throw new Error("Medicamento inválido");
+          if (!isValidDate(data.administration_date)) throw new Error("Data inválida");
+          await updateRecord("medication", id, {
+            medication_name: data.medication_name.trim(),
+            dosage: (data.dosage || "").trim(),
+            administration_date: data.administration_date,
+            reapply_interval_days: data.reapply_interval_days ? parseInt(data.reapply_interval_days) : null
+          });
+          delete window._editingMedId;
+          populateCowSelects(); render(); showToast("Registro atualizado!");
+        }
+        if (action === "inline-cancel") {
+          delete window._editingMedId;
+          populateCowSelects(); render();
+        }
+        
+        // View all history modal
+        if (action === "view-all-history") {
+          const cowId = button.dataset.cowId;
+          if (!cowId) return;
+          await showHistoryModal(cowId);
+        }
+        
+        // Export history
+        if (action === "export-history") {
+          const cowId = button.dataset.cowId;
+          const cowLabel = button.dataset.cowLabel || "vaca";
+          if (!cowId) return;
+          exportHistory(cowId, cowLabel);
+        }
+        
       } catch (err) { error(err); showToast("Não foi possível concluir a ação.", "error"); }
     });
   }
@@ -592,6 +644,127 @@ const setupSupportLinks = () => {
 // ─── Global events ──────────────────────────────────────────────────────────
 window.addEventListener("online", () => { if (hasSupabase && db) { setStatus("Conectando...", "syncing"); processSyncQueue().then(() => checkSession(initApp)).catch(() => {}); } });
 window.addEventListener("offline", () => { const q = getSyncQueue(); setStatus(`Offline ${q.length > 0 ? '(' + q.length + ' pendentes)' : '(Modo Local)'}`, "error"); updateSyncBadge(); });
+
+// ─── History modal & export ─────────────────────────────────────────────────
+const showHistoryModal = async (cowId) => {
+  const profile = findRecord("animal", cowId);
+  if (!profile) return;
+  
+  // Get all medication records for this cow
+  const medRecords = state.medications
+    .filter((m) => cowIdKey(m.cow_id) === cowIdKey(cowId))
+    .sort((a, b) => String(b.administration_date || "").localeCompare(String(a.administration_date || "")));
+  
+  if (!medRecords.length) {
+    showToast("Nenhum histórico para exportar", "info");
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "history-modal-overlay";
+  modal.innerHTML = `
+    <div class="history-modal-card">
+      <div class="history-modal-header">
+        <h2>Histórico completo: ${escapeHtml(profile.identification)}</h2>
+        <button type="button" class="history-modal-close" aria-label="Fechar">✕</button>
+      </div>
+      <div class="history-modal-body">
+        ${medRecords.map((r) => {
+          const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r.administration_date, r.reapply_interval_days) : null;
+          const daysUntil = nextReapply ? daysFromToday(nextReapply) : null;
+          let statusBadge = "";
+          if (daysUntil !== null) {
+            if (daysUntil < 0) statusBadge = `<span class="status-badge overdue">Vencida ${Math.abs(daysUntil)}d</span>`;
+            else if (daysUntil === 0) statusBadge = `<span class="status-badge today">Hoje</span>`;
+            else if (daysUntil <= 7) statusBadge = `<span class="status-badge upcoming">${daysUntil}d</span>`;
+            else statusBadge = `<span class="status-badge ok">${daysUntil}d</span>`;
+          }
+          return `
+            <article class="history-modal-item">
+              <div class="history-modal-item-main">
+                <span class="history-modal-med-name">${escapeHtml(r.medication_name || "")}</span>
+                <small class="history-modal-date">${escapeHtml(formatDate(r.administration_date))}</small>
+              </div>
+              <div class="history-modal-item-details">
+                <span class="history-modal-dosage">${escapeHtml(r.dosage || "")}</span>
+                ${statusBadge}
+                ${r.reapply_interval_days ? `<small class="history-modal-reapply">Reaplicar a cada ${r.reapply_interval_days}d</small>` : ""}
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+      <div class="history-modal-footer">
+        <button type="button" class="ghost" data-action="close-history-modal">Fechar</button>
+        <button type="button" class="btn-primary" data-action="export-history-modal" data-cow-id="${escapeHtml(cowId)}" data-cow-label="${escapeHtml(profile.identification)}">Exportar CSV</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Focus trap
+  const closeBtn = modal.querySelector(".history-modal-close, [data-action='close-history-modal']");
+  const exportBtn = modal.querySelector("[data-action='export-history-modal']");
+  
+  const cleanup = () => modal.remove();
+  
+  closeBtn?.addEventListener("click", cleanup);
+  exportBtn?.addEventListener("click", () => {
+    exportHistory(cowId, profile.identification);
+    cleanup();
+  });
+  
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) cleanup();
+  });
+  
+  // ESC key
+  const escHandler = (e) => { if (e.key === "Escape") { cleanup(); document.removeEventListener("keydown", escHandler); } };
+  document.addEventListener("keydown", escHandler);
+};
+
+const exportHistory = (cowId, cowLabel) => {
+  const records = state.medications
+    .filter((m) => cowIdKey(m.cow_id) === cowIdKey(cowId))
+    .sort((a, b) => String(b.administration_date || "").localeCompare(String(a.administration_date || "")));
+  
+  if (!records.length) {
+    showToast("Nenhum registro para exportar", "info");
+    return;
+  }
+  
+  const headers = ["Medicamento", "Dosagem", "Data de aplicação", "Reaplicar em (dias)", "Próxima reaplicação", "Status"];
+  const rows = records.map((r) => {
+    const nextReapply = r.reapply_interval_days ? getNextReapplyDate(r.administration_date, r.reapply_interval_days) : "";
+    const daysUntil = nextReapply ? daysFromToday(nextReapply) : "";
+    let status = "";
+    if (daysUntil !== "") {
+      if (daysUntil < 0) status = `Vencida ${Math.abs(daysUntil)}d`;
+      else if (daysUntil === 0) status = "Hoje";
+      else if (daysUntil <= 7) status = `Em ${daysUntil}d`;
+      else status = `Em ${daysUntil}d`;
+    }
+    return [
+      r.medication_name || "",
+      r.dosage || "",
+      formatDate(r.administration_date || ""),
+      r.reapply_interval_days || "",
+      nextReapply ? formatDate(nextReapply) : "",
+      status
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+  });
+  
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `historico-${cowLabel.replace(/\s+/g, "-")}-${todayIso()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Histórico exportado (CSV)");
+};
 
 // ─── Error boundary global ──────────────────────────────────────────────────
 window.addEventListener("error", (event) => {

@@ -2295,8 +2295,278 @@ button[type="submit"]:active,
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   FORMULARIO DE MEDICACAO
+   MEDICATION CARD ENHANCEMENTS
    ═══════════════════════════════════════════════════════════════════════ */
+
+.med-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line-light);
+  background: var(--field);
+}
+
+.med-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: var(--red-light);
+  color: var(--red-dark);
+  margin-left: var(--space-2);
+}
+
+.med-overdue-badge.warning {
+  background: var(--orange-light);
+  color: var(--orange-dark);
+}
+
+.med-overdue-badge.soon {
+  background: var(--yellow-light);
+  color: var(--yellow-dark);
+}
+
+.med-view-all-btn {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.med-view-all-btn:hover {
+  background: var(--green-light);
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.med-export-btn {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  opacity: 0.7;
+}
+
+.med-export-btn:hover {
+  background: var(--blue-light);
+  border-color: var(--blue);
+  opacity: 1;
+}
+
+.med-inline-edit-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.5;
+  margin-left: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.med-inline-edit-btn:hover {
+  background: var(--green-light);
+  opacity: 1;
+}
+
+.med-inline-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--field);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--green-light);
+}
+
+.med-inline-edit-form input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  font-size: 0.85rem;
+}
+
+.med-inline-edit-form input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-light);
+}
+
+.med-inline-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.med-history-item.editing {
+  border-left: 3px solid var(--green);
+}
+
+/* History Modal */
+.history-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+  animation: fadeIn 0.2s ease;
+}
+
+.history-modal-card {
+  background: var(--panel);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+.history-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line-light);
+}
+
+.history-modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.history-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.history-modal-close:hover {
+  background: var(--field);
+  color: var(--ink);
+}
+
+.history-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+}
+
+.history-modal-item {
+  border-bottom: 1px solid var(--line-light);
+  padding: var(--space-3) 0;
+}
+
+.history-modal-item:last-child {
+  border-bottom: none;
+}
+
+.history-modal-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.history-modal-med-name {
+  font-weight: 600;
+  color: var(--ink);
+  flex: 1;
+}
+
+.history-modal-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.history-modal-item-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+}
+
+.history-modal-dosage {
+  color: var(--green-dark);
+  font-weight: 500;
+}
+
+.history-modal-reapply {
+  color: var(--muted);
+}
+
+.history-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--line-light);
+  background: var(--field);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+/* Virtualization spacers */
+.med-virtual-spacer {
+  width: 100%;
+}
+
+/* Status badges in history modal */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge.overdue {
+  background: var(--red-light);
+  color: var(--red-dark);
+}
+
+.status-badge.today {
+  background: var(--orange-light);
+  color: var(--orange-dark);
+}
+
+.status-badge.upcoming {
+  background: var(--yellow-light);
+  color: var(--yellow-dark);
+}
+
+.status-badge.ok {
+  background: var(--green-light);
+  color: var(--green-dark);
+}
 
 .med-form-container {
   margin-bottom: var(--space-4);

@@ -1,7 +1,8 @@
 import { $, state, todayIso, monthKey, addDaysIso, parseIsoDate, userStorageKey, planPrice, trialDays, milkFilter, setMilkFilter } from "./state.js";
 import { formatLiters, formatMoney, formatTasks, formatStockQuantity, formatDate, escapeHtml, empty, getProductionStatus, createStatusBadge, countUp } from "./ui.js";
 import { animalLabel, cowIdKey, cowProfileKey, findRecord } from "./crud.js";
-import { buildAlerts, alertStatusLabel, daysFromToday, diffDays, updateAlertsBadge } from "./alerts.js";
+import { buildAlerts, alertStatusLabel, daysFromToday, diffDays, updateAlertsBadge, getNextReapplyDate } from "./alerts.js";
+import { getMedicationInfo } from "./medication-catalog.js";
 import { normalizeClientProfile, normalizeSubscription, writeLocal } from "./state.js";
 import { supportWhatsapp, supportEmail } from "./state.js";
 import { getProductionAnalysis, detectProductionAnomalies, getHerdAnalysis, getFinancialAnalysis, getFarmScore, forecastProduction } from "./analytics.js";
@@ -625,10 +626,11 @@ export const getSelectedMedicationProfile = (profiles, selectedMedicationCowId) 
   return profiles.find((p) => p.records.length > 0) || profiles[0];
 };
 
-const renderMedicalCowRecord = (profile, isExpanded) => {
+const renderMedicalCowRecord = (profile, isExpanded, options = {}) => {
   const records = profile.records;
   const last = records[0];
   const info = [profile.type, profile.status].filter(Boolean).join(" · ");
+  const { lazyLoad = false, expandedId = null } = options;
   
   const getMedIcon = (name) => {
     const n = (name || "").toLowerCase();
@@ -640,9 +642,70 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
     return "&#128138;";
   };
 
+  // Check if last medication has overdue reapplication
+  let overdueBadge = "";
+  if (last?.administration_date && last?.reapply_interval_days) {
+    const nextReapply = getNextReapplyDate(last.administration_date, last.reapply_interval_days);
+    const daysUntil = daysFromToday(nextReapply);
+    if (daysUntil < 0) {
+      overdueBadge = `<span class="med-overdue-badge" title="Reaplicação vencida há ${Math.abs(daysUntil)} dia(s)">⚠ Vencida ${Math.abs(daysUntil)}d</span>`;
+    } else if (daysUntil === 0) {
+      overdueBadge = `<span class="med-overdue-badge warning" title="Reaplicação hoje">⚠ Hoje</span>`;
+    } else if (daysUntil <= 3) {
+      overdueBadge = `<span class="med-overdue-badge soon" title="Reaplicação em ${daysUntil} dia(s)">⏰ ${daysUntil}d</span>`;
+    }
+  }
+
   const lastDate = last?.administration_date ? formatDate(last.administration_date) : "";
   const daysSince = last?.administration_date ? daysFromToday(last.administration_date) : null;
   const daysLabel = daysSince !== null ? (daysSince < 0 ? `há ${Math.abs(daysSince)}d` : daysSince === 0 ? "hoje" : `em ${daysSince}d`) : "";
+
+  const historyHtml = records.length ? records.map((r) => {
+    const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : "";
+    const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "";
+    const isEditing = expandedId === r.id;
+    
+    if (isEditing) {
+      return `
+        <article class="item medical-history-item editing" data-med-id="${escapeHtml(r.id)}">
+          <form class="med-inline-edit-form">
+            <input type="text" name="medication_name" value="${escapeHtml(r.medication_name || '')}" required placeholder="Medicamento">
+            <input type="text" name="dosage" value="${escapeHtml(r.dosage || '')}" placeholder="Dosagem">
+            <input type="date" name="administration_date" value="${escapeHtml(r.administration_date || '')}" required>
+            <input type="number" name="reapply_interval_days" value="${escapeHtml(r.reapply_interval_days || '')}" min="1" max="365" placeholder="Reaplicar em (dias)">
+            <div class="med-inline-actions">
+              <button type="button" data-action="inline-save" data-id="${escapeHtml(r.id)}" class="btn-primary">Salvar</button>
+              <button type="button" data-action="inline-cancel" data-id="${escapeHtml(r.id)}" class="ghost">Cancelar</button>
+            </div>
+          </form>
+        </article>
+      `;
+    }
+    
+    return `
+      <article class="item medical-history-item" data-med-id="${escapeHtml(r.id)}">
+        <div>
+          <span>${escapeHtml(medName)}</span>
+          <small>${escapeHtml(formatDate(r.administration_date))}</small>
+        </div>
+        <strong>${escapeHtml(dosageDisplay)}</strong>
+        ${recordActions("medication", r)}
+        ${r.reapply_interval_days ? `<button type="button" class="med-inline-edit-btn" data-action="inline-edit" data-id="${escapeHtml(r.id)}" title="Editar inline">✎</button>` : ""}
+      </article>
+    `;
+  }).join("") : '<small class="med-card-empty">Nenhuma medicação registrada</small>';
+
+  const showAllBtn = records.length > 3 ? `
+    <button type="button" class="med-view-all-btn" data-action="view-all-history" data-cow-id="${escapeHtml(profile.id)}">
+      Ver todo o histórico (${records.length} registros)
+    </button>
+  ` : "";
+
+  const exportBtn = records.length ? `
+    <button type="button" class="med-export-btn" data-action="export-history" data-cow-id="${escapeHtml(profile.id)}" data-cow-label="${escapeHtml(profile.label)}" title="Exportar histórico">
+      📥
+    </button>
+  ` : "";
 
   return `
     <article class="med-animal-card${isExpanded ? " expanded" : ""}" data-medical-cow-id="${escapeHtml(profile.id)}">
@@ -665,17 +728,62 @@ const renderMedicalCowRecord = (profile, isExpanded) => {
         <div class="med-card-summary-date">
           <span class="med-card-date">${escapeHtml(lastDate)}</span>
           ${daysLabel ? `<span class="med-card-days">${escapeHtml(daysLabel)}</span>` : ""}
+          ${overdueBadge}
         </div>
       </div>
-      <div class="med-card-history">${records.length ? records.map((r) => {
-        const medName = r.medication_name ? r.medication_name.charAt(0).toUpperCase() + r.medication_name.slice(1) : "";
-        const dosageDisplay = r.dosage ? (r.dosage + (r.dosage.match(/\s*(ml|mg|comprimido|frasco|g|L|%)/i) ? "" : " ml")) : "";
-        return `<article class="item medical-history-item"><div><span>${escapeHtml(medName)}</span><small>${escapeHtml(formatDate(r.administration_date))}</small></div><strong>${escapeHtml(dosageDisplay)}</strong>${recordActions("medication", r)}</article>`;
-      }).join("") : '<small class="med-card-empty">Nenhuma medicação registrada</small>'}</div>
+      <div class="med-card-history">${historyHtml}</div>
+      <div class="med-card-footer">
+        ${showAllBtn}
+        ${exportBtn}
+      </div>
     </article>`;
 };
 
 
+
+// ─── Virtualized rendering for medication cards ──────────────────────────────
+const VIRTUALIZATION_THRESHOLD = 50;
+
+const renderMedicationVirtualized = (profiles, selectedMedicationCowId, container, editingId = null) => {
+  const cardHeight = 180; // estimated height per card
+  const visibleCount = Math.ceil(container.clientHeight / cardHeight) + 5;
+  
+  let startIndex = 0;
+  let endIndex = profiles.length;
+  
+  if (profiles.length > VIRTUALIZATION_THRESHOLD) {
+    // Find the selected card index
+    let selectedIndex = -1;
+    if (selectedMedicationCowId) {
+      selectedIndex = profiles.findIndex(p => 
+        (p.ids || [p.id]).some(id => cowIdKey(id) === cowIdKey(selectedMedicationCowId))
+      );
+    }
+    
+    if (selectedIndex >= 0) {
+      startIndex = Math.max(0, selectedIndex - Math.floor(visibleCount / 2));
+      endIndex = Math.min(profiles.length, startIndex + visibleCount);
+    } else {
+      endIndex = Math.min(profiles.length, visibleCount);
+    }
+  }
+  
+  const visibleProfiles = profiles.slice(startIndex, endIndex);
+  
+  let html = '';
+  if (startIndex > 0) {
+    html += `<div class="med-virtual-spacer" style="height: ${startIndex * cardHeight}px"></div>`;
+  }
+  html += `<div class="med-cards-grid">${visibleProfiles.map(p => {
+    const isExpanded = selectedMedicationCowId && (p.ids || [p.id]).some(id => cowIdKey(id) === cowIdKey(selectedMedicationCowId));
+    return renderMedicalCowRecord(p, isExpanded, { lazyLoad: profiles.length > VIRTUALIZATION_THRESHOLD, expandedId: editingId });
+  }).join("")}</div>`;
+  if (endIndex < profiles.length) {
+    html += `<div class="med-virtual-spacer" style="height: ${(profiles.length - endIndex) * cardHeight}px"></div>`;
+  }
+  
+  container.innerHTML = html;
+};
 
 export const renderMedication = (selectedMedicationCowId) => {
   const profiles = getMedicationCowProfiles();
@@ -690,10 +798,18 @@ export const renderMedication = (selectedMedicationCowId) => {
     return;
   }
   if (selectedMedicationCowId && medCowSelect && Array.from(medCowSelect.options).some((o) => cowIdKey(o.value) === cowIdKey(selectedMedicationCowId))) medCowSelect.value = selectedMedicationCowId;
-  el.medicationList.innerHTML = `<div class="med-cards-grid">${profiles.map((p) => {
-    const isExpanded = selectedMedicationCowId && (p.ids || [p.id]).some((id) => cowIdKey(id) === cowIdKey(selectedMedicationCowId));
-    return renderMedicalCowRecord(p, isExpanded);
-  }).join("")}</div>`;
+  
+  const editingId = window._editingMedId || null;
+  
+  // Use virtualization for large lists
+  if (profiles.length > VIRTUALIZATION_THRESHOLD) {
+    renderMedicationVirtualized(profiles, selectedMedicationCowId, el.medicationList, editingId);
+  } else {
+    el.medicationList.innerHTML = `<div class="med-cards-grid">${profiles.map((p) => {
+      const isExpanded = selectedMedicationCowId && (p.ids || [p.id]).some((id) => cowIdKey(id) === cowIdKey(selectedMedicationCowId));
+      return renderMedicalCowRecord(p, isExpanded, { expandedId: editingId });
+    }).join("")}</div>`;
+  }
 };
 
 export const renderCropEvents = () => {
